@@ -49,6 +49,8 @@ func (h *hyperliquid) FetchKlines(symbol, interval string, limit int) ([]connect
 		}
 
 		klines = append(klines, connector.Kline{
+			Symbol:    symbol,
+			Interval:  interval,
 			OpenTime:  time.Unix(candle.Time/1000, 0),
 			Open:      open,
 			High:      high,
