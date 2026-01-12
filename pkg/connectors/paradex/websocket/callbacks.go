@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 )
 
 func (s *service) setupCallbacks() {
@@ -41,8 +40,6 @@ func (s *service) onMessage(message []byte) error {
 	if s.isParadexSubscriptionMessage(message) {
 		return s.routeParadexSubscription(message)
 	}
-
-	s.applicationLogger.Debug("🔵 RECEIVED FROM PARADEX: %s", string(message))
 
 	// Handle subscription confirmations
 	if s.isSubscriptionConfirmation(message) {
@@ -216,12 +213,12 @@ func (s *service) processTradeData(channel string, data json.RawMessage) error {
 		return nil
 	}
 
-	price, err := numerical.NewFromString(paradexTrade.Price)
+	price, err := strconv.ParseFloat(paradexTrade.Price, 64)
 	if err != nil {
 		return fmt.Errorf("invalid price '%s': %w", paradexTrade.Price, err)
 	}
 
-	quantity, err := numerical.NewFromString(paradexTrade.Size)
+	quantity, err := strconv.ParseFloat(paradexTrade.Size, 64)
 	if err != nil {
 		return fmt.Errorf("invalid size '%s': %w", paradexTrade.Size, err)
 	}
@@ -241,7 +238,6 @@ func (s *service) processTradeData(channel string, data json.RawMessage) error {
 		s.applicationLogger.Warn("Trade channel full, dropping update for %s", symbol)
 	}
 
-	s.applicationLogger.Debug("✅ Processed trade update for %s", symbol)
 	return nil
 }
 
@@ -276,12 +272,12 @@ func (s *service) processAccountData(data json.RawMessage) error {
 	case "balance":
 		update.Symbol = paradexData.Asset
 		if paradexData.Balance != "" {
-			if balance, err := numerical.NewFromString(paradexData.Balance); err == nil {
+			if balance, err := strconv.ParseFloat(paradexData.Balance, 64); err == nil {
 				update.Balance = balance
 			}
 		}
 		if paradexData.Available != "" {
-			if available, err := numerical.NewFromString(paradexData.Available); err == nil {
+			if available, err := strconv.ParseFloat(paradexData.Available, 64); err == nil {
 				update.Available = available
 			}
 		}
@@ -290,17 +286,17 @@ func (s *service) processAccountData(data json.RawMessage) error {
 		update.Symbol = paradexData.Symbol
 		update.Side = paradexData.Side
 		if paradexData.Size != "" {
-			if size, err := numerical.NewFromString(paradexData.Size); err == nil {
+			if size, err := strconv.ParseFloat(paradexData.Size, 64); err == nil {
 				update.Size = size
 			}
 		}
 		if paradexData.EntryPrice != "" {
-			if entryPrice, err := numerical.NewFromString(paradexData.EntryPrice); err == nil {
+			if entryPrice, err := strconv.ParseFloat(paradexData.EntryPrice, 64); err == nil {
 				update.EntryPrice = entryPrice
 			}
 		}
 		if paradexData.UnrealizedPnL != "" {
-			if pnl, err := numerical.NewFromString(paradexData.UnrealizedPnL); err == nil {
+			if pnl, err := strconv.ParseFloat(paradexData.UnrealizedPnL, 64); err == nil {
 				update.UnrealizedPnL = pnl
 			}
 		}
@@ -343,12 +339,12 @@ func (s *service) convertParadexLevels(levels []struct {
 			continue
 		}
 
-		price, err := numerical.NewFromString(level.Price)
+		price, err := strconv.ParseFloat(level.Price, 64)
 		if err != nil {
 			continue
 		}
 
-		quantity, err := numerical.NewFromString(level.Size)
+		quantity, err := strconv.ParseFloat(level.Size, 64)
 		if err != nil {
 			continue
 		}

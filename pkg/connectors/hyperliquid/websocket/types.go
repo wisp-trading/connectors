@@ -90,10 +90,10 @@ type KlineMessage struct {
 	Interval  string
 	OpenTime  time.Time
 	CloseTime time.Time
-	Open      numerical.Decimal
-	High      numerical.Decimal
-	Low       numerical.Decimal
-	Close     numerical.Decimal
-	Volume    numerical.Decimal
+	Open      float64
+	High      float64
+	Low       float64
+	Close     float64
+	Volume    float64
 	Timestamp time.Time
 }

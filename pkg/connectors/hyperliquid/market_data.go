@@ -2,6 +2,7 @@ package hyperliquid
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
@@ -23,27 +24,27 @@ func (h *hyperliquid) FetchKlines(symbol, interval string, limit int) ([]connect
 
 	klines := make([]connector.Kline, 0, len(candles))
 	for _, candle := range candles {
-		open, err := numerical.NewFromString(candle.Open)
+		open, err := strconv.ParseFloat(candle.Open, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid open price: %w", err)
 		}
 
-		high, err := numerical.NewFromString(candle.High)
+		high, err := strconv.ParseFloat(candle.High, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid high price: %w", err)
 		}
 
-		low, err := numerical.NewFromString(candle.Low)
+		low, err := strconv.ParseFloat(candle.Low, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid low price: %w", err)
 		}
 
-		closeVal, err := numerical.NewFromString(candle.Close)
+		closeVal, err := strconv.ParseFloat(candle.Close, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid close price: %w", err)
 		}
 
-		volume, err := numerical.NewFromString(candle.Volume)
+		volume, err := strconv.ParseFloat(candle.Volume, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid volume: %w", err)
 		}

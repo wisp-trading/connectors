@@ -62,8 +62,8 @@ var _ = Describe("WebSocket Subscription Tests", func() {
 			Expect(ob.Asks).ToNot(BeEmpty())
 
 			LogSuccess("OrderBook subscription working")
-			LogInfo("Best Bid: %s @ %s", ob.Bids[0].Quantity.String(), ob.Bids[0].Price.String())
-			LogInfo("Best Ask: %s @ %s", ob.Asks[0].Quantity.String(), ob.Asks[0].Price.String())
+			LogInfo("Best Bid: %.8f @ %.8f", ob.Bids[0].Quantity, ob.Bids[0].Price)
+			LogInfo("Best Ask: %.8f @ %.8f", ob.Asks[0].Quantity, ob.Asks[0].Price)
 		})
 	})
 
@@ -93,12 +93,12 @@ var _ = Describe("WebSocket Subscription Tests", func() {
 			Eventually(klineCh, "90s").Should(Receive(&kline),
 				"Should receive kline update (may take up to 90s)")
 
-			Expect(kline.Open.IsPositive()).To(BeTrue())
+			Expect(kline.Open).To(BeNumerically(">", 0))
 
 			LogSuccess("Kline subscription working")
-			LogInfo("OHLC: %s / %s / %s / %s",
-				kline.Open.String(), kline.High.String(),
-				kline.Low.String(), kline.Close.String())
+			LogInfo("OHLC: %.8f / %.8f / %.8f / %.8f",
+				kline.Open, kline.High,
+				kline.Low, kline.Close)
 		})
 	})
 

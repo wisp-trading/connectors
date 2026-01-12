@@ -109,28 +109,28 @@ func (m *marketDataService) parseKline(data []interface{}) connector.Kline {
 				kline.OpenTime = time.Unix(timestamp/1000, (timestamp%1000)*1000000)
 			}
 		}
-		if open, ok := data[1].(string); ok {
-			if val, err := numerical.NewFromString(open); err == nil {
+		if openStr, ok := data[1].(string); ok {
+			if val, err := strconv.ParseFloat(openStr, 64); err == nil {
 				kline.Open = val
 			}
 		}
-		if high, ok := data[2].(string); ok {
-			if val, err := numerical.NewFromString(high); err == nil {
+		if highStr, ok := data[2].(string); ok {
+			if val, err := strconv.ParseFloat(highStr, 64); err == nil {
 				kline.High = val
 			}
 		}
-		if low, ok := data[3].(string); ok {
-			if val, err := numerical.NewFromString(low); err == nil {
+		if lowStr, ok := data[3].(string); ok {
+			if val, err := strconv.ParseFloat(lowStr, 64); err == nil {
 				kline.Low = val
 			}
 		}
-		if close, ok := data[4].(string); ok {
-			if val, err := numerical.NewFromString(close); err == nil {
+		if closeStr, ok := data[4].(string); ok {
+			if val, err := strconv.ParseFloat(closeStr, 64); err == nil {
 				kline.Close = val
 			}
 		}
-		if volume, ok := data[5].(string); ok {
-			if val, err := numerical.NewFromString(volume); err == nil {
+		if volumeStr, ok := data[5].(string); ok {
+			if val, err := strconv.ParseFloat(volumeStr, 64); err == nil {
 				kline.Volume = val
 			}
 		}
