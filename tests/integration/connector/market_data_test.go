@@ -46,9 +46,9 @@ var _ = Describe("Market Data Tests", func() {
 			LogSuccess("Fetched %d klines for %s", len(klines), perpSymbol)
 			if len(klines) > 0 {
 				latest := klines[len(klines)-1]
-				LogInfo("Latest: O=%s H=%s L=%s C=%s",
-					latest.Open.String(), latest.High.String(),
-					latest.Low.String(), latest.Close.String())
+				LogInfo("Latest: O=%.8f H=%.8f L=%.8f C=%.8f",
+					latest.Open, latest.High,
+					latest.Low, latest.Close)
 			}
 		})
 	})

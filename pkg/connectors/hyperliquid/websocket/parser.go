@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
@@ -311,11 +312,11 @@ func (p *Parser) ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error)
 	openTime, _ := data["t"].(float64)
 	closeTime, _ := data["T"].(float64)
 
-	open, _ := numerical.NewFromString(openStr)
-	high, _ := numerical.NewFromString(highStr)
-	low, _ := numerical.NewFromString(lowStr)
-	close, _ := numerical.NewFromString(closeStr)
-	volume, _ := numerical.NewFromString(volumeStr)
+	open, _ := strconv.ParseFloat(openStr, 64)
+	high, _ := strconv.ParseFloat(highStr, 64)
+	low, _ := strconv.ParseFloat(lowStr, 64)
+	closeVal, _ := strconv.ParseFloat(closeStr, 64)
+	volume, _ := strconv.ParseFloat(volumeStr, 64)
 
 	return &KlineMessage{
 		Coin:      coin,
@@ -325,7 +326,7 @@ func (p *Parser) ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error)
 		Open:      open,
 		High:      high,
 		Low:       low,
-		Close:     close,
+		Close:     closeVal,
 		Volume:    volume,
 		Timestamp: p.timeProvider.Now(),
 	}, nil

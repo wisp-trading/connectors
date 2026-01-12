@@ -122,11 +122,11 @@ func (p *paradex) FetchKlines(symbol, interval string, limit int) ([]connector.K
 			Symbol:   symbol,
 			Interval: interval,
 			OpenTime: time.UnixMilli(k.Timestamp),
-			Open:     numerical.NewFromFloat(k.Open),
-			High:     numerical.NewFromFloat(k.High),
-			Low:      numerical.NewFromFloat(k.Low),
-			Close:    numerical.NewFromFloat(k.Close),
-			Volume:   numerical.NewFromFloat(k.Volume),
+			Open:     k.Open,
+			High:     k.High,
+			Low:      k.Low,
+			Close:    k.Close,
+			Volume:   k.Volume,
 		})
 	}
 

@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
 )
 
@@ -19,11 +18,11 @@ type KlineBuilder struct {
 type ActiveKline struct {
 	Symbol     string
 	Interval   string
-	Open       numerical.Decimal
-	High       numerical.Decimal
-	Low        numerical.Decimal
-	Close      numerical.Decimal
-	Volume     numerical.Decimal
+	Open       float64
+	High       float64
+	Low        float64
+	Close      float64
+	Volume     float64
 	OpenTime   time.Time
 	CloseTime  time.Time
 	TradeCount int64
@@ -33,11 +32,11 @@ type ActiveKline struct {
 type KlineUpdate struct {
 	Symbol     string
 	Interval   string
-	Open       numerical.Decimal
-	High       numerical.Decimal
-	Low        numerical.Decimal
-	Close      numerical.Decimal
-	Volume     numerical.Decimal
+	Open       float64
+	High       float64
+	Low        float64
+	Close      float64
+	Volume     float64
 	OpenTime   time.Time
 	CloseTime  time.Time
 	TradeCount int64
@@ -67,19 +66,19 @@ func (kb *KlineBuilder) updateKline(trade TradeUpdate, interval string) {
 	kline := kb.getOrCreateKline(key, trade, interval)
 
 	// Update OHLCV data
-	if kline.Open.IsZero() {
+	if kline.Open == 0 {
 		kline.Open = trade.Price
 	}
 	kline.Close = trade.Price
 
-	if kline.High.IsZero() || trade.Price.GreaterThan(kline.High) {
+	if kline.High == 0 || trade.Price > kline.High {
 		kline.High = trade.Price
 	}
-	if kline.Low.IsZero() || trade.Price.LessThan(kline.Low) {
+	if kline.Low == 0 || trade.Price < kline.Low {
 		kline.Low = trade.Price
 	}
 
-	kline.Volume = kline.Volume.Add(trade.Quantity)
+	kline.Volume = kline.Volume + trade.Quantity
 	kline.TradeCount++
 
 	// Check if kline period is complete
@@ -104,7 +103,7 @@ func (kb *KlineBuilder) getOrCreateKline(key string, trade TradeUpdate, interval
 		Interval:  interval,
 		OpenTime:  openTime,
 		CloseTime: closeTime,
-		Volume:    numerical.Zero(),
+		Volume:    0,
 	}
 
 	kb.activeKlines[key] = kline

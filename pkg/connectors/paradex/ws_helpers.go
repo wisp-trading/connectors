@@ -35,8 +35,8 @@ func (p *paradex) convertWSPriceLevels(wsLevels []websockets.PriceLevel) []conne
 	result := make([]connector.PriceLevel, len(wsLevels))
 	for i, wsLevel := range wsLevels {
 		result[i] = connector.PriceLevel{
-			Price:    wsLevel.Price,
-			Quantity: wsLevel.Quantity,
+			Price:    numerical.NewFromFloat(wsLevel.Price),
+			Quantity: numerical.NewFromFloat(wsLevel.Quantity),
 		}
 	}
 	return result
@@ -51,8 +51,8 @@ func (p *paradex) convertTradeUpdates(output chan<- connector.Trade) {
 		connectorTrade := connector.Trade{
 			ID:        wsUpdate.TradeID,
 			Symbol:    wsUpdate.Symbol,
-			Price:     wsUpdate.Price,
-			Quantity:  wsUpdate.Quantity,
+			Price:     numerical.NewFromFloat(wsUpdate.Price),
+			Quantity:  numerical.NewFromFloat(wsUpdate.Quantity),
 			Side:      p.convertOrderSide(side),
 			IsMaker:   false,            // paradex doesn't provide this in trade updates
 			Fee:       numerical.Zero(), // Not available in WebSocket updates

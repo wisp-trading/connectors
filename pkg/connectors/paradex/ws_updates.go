@@ -2,7 +2,6 @@ package paradex
 
 import (
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 )
 
 func (p *paradex) GetKlineChannels() map[string]<-chan connector.Kline {
@@ -111,9 +110,9 @@ func (p *paradex) convertKlineUpdates(out chan<- connector.Kline) {
 				Close:       paradexKline.Close,
 				Volume:      paradexKline.Volume,
 				CloseTime:   paradexKline.CloseTime,
-				QuoteVolume: numerical.Zero(),             // Not available from paradex
+				QuoteVolume: 0,                            // Not available from paradex
 				TradeCount:  int(paradexKline.TradeCount), // Convert int64 to int
-				TakerVolume: numerical.Zero(),             // Not available from paradex
+				TakerVolume: 0,                            // Not available from paradex
 			}
 
 			select {
