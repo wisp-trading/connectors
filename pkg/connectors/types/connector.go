@@ -9,9 +9,3 @@ const (
 	Paradex     connector.ExchangeName = "paradex"
 	Bybit       connector.ExchangeName = "bybit"
 )
-
-// ConnectorInfo contains metadata about an available connector
-type ConnectorInfo struct {
-	ExchangeName  connector.ExchangeName
-	ConfigExample connector.Config
-}

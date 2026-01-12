@@ -19,7 +19,11 @@ type Config struct {
 
 var _ connector.Config = (*Config)(nil)
 
-func (c *Config) Validate() error {
+func (p *paradex) NewConfig() connector.Config {
+	return &Config{}
+}
+
+func (c Config) Validate() error {
 	if c.EthPrivateKey == "" {
 		return fmt.Errorf("eth_private_key is required")
 	}
@@ -63,6 +67,6 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) ExchangeName() connector.ExchangeName {
+func (c Config) ExchangeName() connector.ExchangeName {
 	return types.Paradex
 }

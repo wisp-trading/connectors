@@ -13,5 +13,4 @@ var Module = fx.Options(
 	paradex.Module,
 	hyperliquid.Module,
 	bybit.Module,
-	fx.Provide(NewConnectorAvailabilityService),
 )
