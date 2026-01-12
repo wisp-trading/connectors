@@ -3,7 +3,7 @@ module github.com/backtesting-org/live-trading
 go 1.24.2
 
 require (
-	github.com/backtesting-org/kronos-sdk v0.0.6
+	github.com/backtesting-org/kronos-sdk v0.0.7-0.20260112055130-91721a510fe5
 	github.com/bybit-exchange/bybit.go.api v0.0.0-20250727214011-c9347d6804d6
 	github.com/ethereum/go-ethereum v1.16.7
 	github.com/go-openapi/runtime v0.29.0
@@ -18,8 +18,6 @@ require (
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1
 )
-
-replace github.com/backtesting-org/kronos-sdk => ../kronos-sdk
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
