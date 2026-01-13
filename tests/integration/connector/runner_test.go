@@ -9,10 +9,11 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/fx"
 
+	"github.com/backtesting-org/kronos-sdk/kronos"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
-	"github.com/backtesting-org/live-trading/pkg"
+	"github.com/backtesting-org/live-trading/pkg/connectors"
 )
 
 // TestRunner manages the lifecycle of connector tests
@@ -29,9 +30,13 @@ type TestRunner struct {
 func NewTestRunner(connectorName connector.ExchangeName, config connector.Config) (*TestRunner, error) {
 	var reg registry.ConnectorRegistry
 
-	// Create fx app with all modules
+	// Create fx app with SDK + all connectors
 	app := fx.New(
-		pkg.Module,
+		kronos.Module,
+		connectors.Module,
+		fx.Invoke(func(conn connector.Connector, r registry.ConnectorRegistry) {
+			r.RegisterConnector(connectorName, conn)
+		}),
 		fx.Populate(&reg),
 		fx.NopLogger,
 	)

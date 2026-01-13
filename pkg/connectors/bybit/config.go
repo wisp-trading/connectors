@@ -18,12 +18,16 @@ type Config struct {
 
 var _ connector.Config = (*Config)(nil)
 
-func (c *Config) ExchangeName() connector.ExchangeName {
+func (b *bybit) NewConfig() connector.Config {
+	return &Config{}
+}
+
+func (c Config) ExchangeName() connector.ExchangeName {
 	return types.Bybit
 }
 
 // Validate checks if the configuration is valid
-func (c *Config) Validate() error {
+func (c Config) Validate() error {
 	if c.APIKey == "" {
 		return fmt.Errorf("api_key is required")
 	}

@@ -18,11 +18,15 @@ type Config struct {
 
 var _ connector.Config = (*Config)(nil)
 
-func (c *Config) ExchangeName() connector.ExchangeName {
+func (h *hyperliquid) NewConfig() connector.Config {
+	return &Config{}
+}
+
+func (c Config) ExchangeName() connector.ExchangeName {
 	return types.Hyperliquid
 }
 
-func (c *Config) Validate() error {
+func (c Config) Validate() error {
 	if c.PrivateKey == "" {
 		return fmt.Errorf("private_key is required")
 	}
