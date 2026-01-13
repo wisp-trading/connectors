@@ -207,12 +207,13 @@ func (g *gateSpot) FetchRecentTrades(symbol string, limit int) ([]connector.Trad
 			side = connector.OrderSideSell
 		}
 
-		// Parse timestamp - CreateTimeMs is in milliseconds as string
-		createTimeMs, err := strconv.ParseInt(trade.CreateTimeMs, 10, 64)
+		// Parse timestamp - CreateTimeMs is string with decimal places like "1768286709611.413000"
+		createTimeMsFloat, err := strconv.ParseFloat(trade.CreateTimeMs, 64)
 		if err != nil {
 			g.appLogger.Warn("Invalid timestamp in trade", "id", trade.Id, "createTimeMs", trade.CreateTimeMs)
 			continue
 		}
+		createTimeMs := int64(createTimeMsFloat)
 		timestamp := time.Unix(createTimeMs/1000, (createTimeMs%1000)*1000000)
 
 		trades = append(trades, connector.Trade{
