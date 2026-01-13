@@ -33,7 +33,7 @@ func (c *Config) Validate() error {
 	// Set default base URL
 	if c.BaseURL == "" {
 		if c.UseTestnet {
-			c.BaseURL = "https://fx-api-testnet.gateio.ws/api/v4"
+			c.BaseURL = "https://api-testnet.gateapi.io/api/v4"
 		} else {
 			c.BaseURL = "https://api.gateio.ws/api/v4"
 		}

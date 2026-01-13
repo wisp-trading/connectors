@@ -16,6 +16,7 @@ var Module = fx.Options(
 		adaptor.NewSpotClient,
 		fx.Annotate(
 			NewGateSpot,
+			fx.ParamTags(``, ``, ``, ``, ``), // No special tags - use auto-wiring
 			fx.ResultTags(`name:"gate_spot"`),
 		),
 	),

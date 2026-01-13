@@ -9,6 +9,7 @@ import (
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
+	"github.com/backtesting-org/live-trading/pkg/connectors/types"
 	"github.com/gate/gateapi-go/v7"
 )
 
@@ -29,12 +30,22 @@ func (g *gateSpot) FetchKlines(symbol, interval string, limit int) ([]connector.
 	// Convert interval format (1m -> 1m, 5m -> 5m, 1h -> 1h, etc.)
 	gateInterval := convertInterval(interval)
 
+	// Debug logging
+	g.appLogger.Info("Fetching klines",
+		"currencyPair", currencyPair,
+		"interval", gateInterval,
+		"limit", limit)
+
 	// Get candlesticks
-	candles, _, err := client.SpotApi.ListCandlesticks(ctx, currencyPair, &gateapi.ListCandlesticksOpts{
+	candles, resp, err := client.SpotApi.ListCandlesticks(ctx, currencyPair, &gateapi.ListCandlesticksOpts{
 		Limit:    optional.NewInt32(int32(limit)),
 		Interval: optional.NewString(gateInterval),
 	})
 	if err != nil {
+		g.appLogger.Error("Failed to fetch candles",
+			"error", err,
+			"statusCode", resp.StatusCode,
+			"currencyPair", currencyPair)
 		return nil, fmt.Errorf("failed to fetch candles: %w", err)
 	}
 
@@ -99,7 +110,7 @@ func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
 	return &connector.Price{
 		Symbol:    symbol,
 		Price:     price,
-		Source:    "Gate.io",
+		Source:    types.GateSpot,
 		Timestamp: g.timeProvider.Now(),
 	}, nil
 }
@@ -227,7 +238,7 @@ func convertInterval(interval string) string {
 
 // GetPerpSymbol returns the perpetual symbol format (not used in spot)
 func (g *gateSpot) GetPerpSymbol(asset portfolio.Asset) string {
-	return ""
+	return asset.Symbol()
 }
 
 // GetSpotSymbol returns the spot symbol format

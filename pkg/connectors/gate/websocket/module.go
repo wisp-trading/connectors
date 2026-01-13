@@ -120,7 +120,7 @@ func NewReconnectManager(
 // NewBaseServiceConfig creates base service configuration
 func NewBaseServiceConfig() base.Config {
 	return base.Config{
-		URL:            "wss://api.gateio.ws/ws/v4/",
+		URL:            GateSpotWSURL,
 		ReconnectDelay: 5 * time.Second,
 		MaxReconnects:  10,
 		PingInterval:   30 * time.Second,
@@ -233,6 +233,7 @@ var WebSocketModule = fx.Module("gate_spot_websocket",
 				`name:"gate_spot_base_service"`,
 				``,
 			),
+			fx.As(new(RealTimeService)),
 		),
 	),
 )
