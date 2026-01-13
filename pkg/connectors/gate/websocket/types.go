@@ -6,7 +6,7 @@ import (
 
 // RealTimeService defines the WebSocket interface for Gate.io Spot real-time market data
 type RealTimeService interface {
-	Connect() error
+	Connect(wsURL string) error
 	Disconnect() error
 	IsConnected() bool
 	GetErrorChannel() <-chan error

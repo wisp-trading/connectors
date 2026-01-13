@@ -101,7 +101,7 @@ func NewWebSocketService(
 }
 
 // Connect establishes the WebSocket connection with automatic reconnection
-func (ws *WebSocketService) Connect() error {
+func (ws *WebSocketService) Connect(websocketUrl *string) error {
 	// Create a background context that will NEVER be cancelled
 	// This allows the connection to stay alive independent of caller's context
 	ws.ctx = context.Background()
@@ -109,8 +109,8 @@ func (ws *WebSocketService) Connect() error {
 
 	ws.logger.Info("🔌 Connecting to WebSocket: %s", ws.connManager.GetState())
 
-	// Connect - pass a never-cancelling context
-	if err := ws.connManager.Connect(ws.ctx); err != nil {
+	// Connect - pass the websocket URL and a never-cancelling context
+	if err := ws.connManager.Connect(ws.ctx, websocketUrl); err != nil {
 		ws.logger.Error("❌ Failed to connect to WebSocket: %v", err)
 		return fmt.Errorf("websocket connection failed: %w", err)
 	}

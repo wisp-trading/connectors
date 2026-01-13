@@ -8,7 +8,7 @@ import (
 
 // RealTimeService defines the WebSocket interface for real-time market data
 type RealTimeService interface {
-	Connect() error
+	Connect(websocketUrl *string) error
 	Disconnect() error
 	IsConnected() bool
 	GetErrorChannel() <-chan error

@@ -11,7 +11,8 @@ import (
 type Config struct {
 	APIKey          string  `json:"api_key"`
 	APISecret       string  `json:"api_secret"`
-	BaseURL         string  `json:"base_url,omitempty"`
+	BaseURL         string  `json:"base_url,omitempty"`      // REST API URL
+	WebSocketURL    string  `json:"websocket_url,omitempty"` // WebSocket URL
 	UseTestnet      bool    `json:"use_testnet,omitempty"`
 	DefaultSlippage float64 `json:"default_slippage,omitempty"` // Default slippage for market orders (0.005 = 0.5%)
 }
@@ -30,12 +31,21 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("api_secret is required")
 	}
 
-	// Set default base URL
+	// Set default REST API URL
 	if c.BaseURL == "" {
 		if c.UseTestnet {
 			c.BaseURL = "https://api-testnet.gateapi.io/api/v4"
 		} else {
 			c.BaseURL = "https://api.gateio.ws/api/v4"
+		}
+	}
+
+	// Set default WebSocket URL
+	if c.WebSocketURL == "" {
+		if c.UseTestnet {
+			c.WebSocketURL = "wss://ws-testnet.gate.com/v4/ws/spot"
+		} else {
+			c.WebSocketURL = "wss://api.gateio.ws/ws/v4/"
 		}
 	}
 

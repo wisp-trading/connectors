@@ -87,11 +87,12 @@ func NewWebSocketService(
 }
 
 // Connect establishes the WebSocket connection with automatic reconnection
-func (ws *WebSocketService) Connect() error {
+func (ws *WebSocketService) Connect(wsURL string) error {
 	ws.ctx = context.Background()
-	ws.logger.Info("🔌 Connecting to Gate.io WebSocket")
+	ws.logger.Info(fmt.Sprintf("🔌 Connecting to Gate.io WebSocket: %s", wsURL))
 
-	if err := ws.connManager.Connect(ws.ctx); err != nil {
+	// Pass the URL to connection manager
+	if err := ws.connManager.Connect(ws.ctx, &wsURL); err != nil {
 		ws.logger.Error("❌ Failed to connect to WebSocket: %v", err)
 		return fmt.Errorf("websocket connection failed: %w", err)
 	}

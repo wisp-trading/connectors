@@ -19,7 +19,8 @@ func (g *gateSpot) ConnectWebSocket() error {
 		return fmt.Errorf("websocket service not initialized")
 	}
 
-	return g.wsService.Connect()
+	// Pass the WebSocket URL from config
+	return g.wsService.Connect(g.config.WebSocketURL)
 }
 
 // DisconnectWebSocket closes WebSocket connection
