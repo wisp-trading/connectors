@@ -34,9 +34,6 @@ func NewTestRunner(connectorName connector.ExchangeName, config connector.Config
 	app := fx.New(
 		kronos.Module,
 		connectors.Module,
-		fx.Invoke(func(conn connector.Connector, r registry.ConnectorRegistry) {
-			r.RegisterConnector(connectorName, conn)
-		}),
 		fx.Populate(&reg),
 		fx.NopLogger,
 	)

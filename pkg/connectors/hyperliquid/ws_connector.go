@@ -18,7 +18,13 @@ func (h *hyperliquid) StartWebSocket() error {
 	// Start error forwarding from realTime service
 	go h.forwardWebSocketErrors()
 
-	return h.realTime.Connect()
+	// Pass the WebSocket URL from config
+	var wsURL *string
+	if h.config.WebsocketURL != "" {
+		wsURL = &h.config.WebsocketURL
+	}
+
+	return h.realTime.Connect(wsURL)
 }
 
 // forwardWebSocketErrors forwards errors from the realTime service to the connector's error channel

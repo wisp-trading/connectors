@@ -101,7 +101,7 @@ var _ = Describe("ConnectionManager - Send Operations", func() {
 			BeforeEach(func() {
 				mockAuth.ExpectedCalls = nil
 				mockAuth.On("GetSecureHeaders", mock.Anything).Return(http.Header{}, nil)
-				err := mgr.Connect(ctx)
+				err := mgr.Connect(ctx, nil)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -126,7 +126,7 @@ var _ = Describe("ConnectionManager - Send Operations", func() {
 			BeforeEach(func() {
 				mockAuth.ExpectedCalls = nil
 				mockAuth.On("GetSecureHeaders", mock.Anything).Return(http.Header{}, nil)
-				err := mgr.Connect(ctx)
+				err := mgr.Connect(ctx, nil)
 				Expect(err).ToNot(HaveOccurred())
 			})
 

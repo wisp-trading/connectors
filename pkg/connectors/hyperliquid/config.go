@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	BaseURL         string  `json:"base_url,omitempty"`
+	WebsocketURL    string  `json:"websocket_url,omitempty"`
 	PrivateKey      string  `json:"private_key"`
 	AccountAddress  string  `json:"account_address"`
 	VaultAddress    string  `json:"vault_address,omitempty"`
@@ -35,9 +36,19 @@ func (c Config) Validate() error {
 	}
 
 	if c.UseTestnet {
-		c.BaseURL = "https://api.hyperliquid-testnet.xyz"
-	} else if c.BaseURL == "" {
-		c.BaseURL = "https://api.hyperliquid.xyz"
+		if c.BaseURL == "" {
+			c.BaseURL = "https://api.hyperliquid-testnet.xyz"
+		}
+		if c.WebsocketURL == "" {
+			c.WebsocketURL = "wss://api.hyperliquid-testnet.xyz/ws"
+		}
+	} else {
+		if c.BaseURL == "" {
+			c.BaseURL = "https://api.hyperliquid.xyz"
+		}
+		if c.WebsocketURL == "" {
+			c.WebsocketURL = "wss://api.hyperliquid.xyz/ws"
+		}
 	}
 
 	// Set default slippage if not specified (0.5%)

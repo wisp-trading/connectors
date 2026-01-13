@@ -6,6 +6,7 @@ import (
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
 	"github.com/backtesting-org/live-trading/pkg/connectors/bybit"
+	gatespot "github.com/backtesting-org/live-trading/pkg/connectors/gate/spot"
 	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid"
 	"github.com/backtesting-org/live-trading/pkg/connectors/paradex"
 	"github.com/backtesting-org/live-trading/pkg/connectors/types"
@@ -24,13 +25,14 @@ func init() {
 // ========================================
 const (
 	// Which connector to test
-	testConnectorName = types.Hyperliquid // Change to types.Paradex or types.Bybit
+	testConnectorName = types.GateSpot // Change to types.Paradex or types.Bybit
+	//testConnectorName = types.Hyperliquid // Change to types.Paradex or types.Bybit
 
 	// Test asset
 	testSymbol = "ETH"
 
 	// Test instrument type
-	testInstrumentType = connector.TypePerpetual
+	testInstrumentType = connector.TypeSpot
 
 	// Enable trading tests (DANGEROUS - only on testnet)
 	enableTradingTests = true
@@ -48,6 +50,8 @@ func getConnectorConfig(name connector.ExchangeName) connector.Config {
 		return getParadexConfig()
 	case types.Bybit:
 		return getBybitConfig()
+	case types.GateSpot:
+		return getGateSpotConfig()
 	default:
 		panic("unknown connector: " + name)
 	}
@@ -91,6 +95,28 @@ func getBybitConfig() connector.Config {
 		APIKey:    mustGetEnv("BYBIT_API_KEY"),
 		APISecret: mustGetEnv("BYBIT_API_SECRET"),
 		IsTestnet: getEnv("BYBIT_TESTNET", "true") == "true",
+	}
+}
+
+func getGateSpotConfig() connector.Config {
+	useTestnet := getEnv("GATE_TESTNET", "true") == "true"
+
+	var baseURL string
+	if envURL := os.Getenv("GATE_BASE_URL"); envURL != "" {
+		baseURL = envURL
+	} else if useTestnet {
+		baseURL = "https://api-testnet.gateapi.io/api/v4"
+	} else {
+		baseURL = "https://api.gateio.ws/api/v4"
+		println("⚠️  WARNING: Using Gate.io MAINNET - real money at risk!")
+	}
+
+	return &gatespot.Config{
+		APIKey:          mustGetEnv("GATE_API_KEY"),
+		APISecret:       mustGetEnv("GATE_API_SECRET"),
+		BaseURL:         baseURL,
+		UseTestnet:      useTestnet,
+		DefaultSlippage: 0.005, // 0.5% default slippage
 	}
 }
 

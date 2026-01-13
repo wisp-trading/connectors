@@ -105,9 +105,16 @@ func (cm *connectionManager) SetCallbacks(
 	cm.onError = onError
 }
 
-func (cm *connectionManager) Connect(ctx context.Context) error {
+func (cm *connectionManager) Connect(
+	ctx context.Context,
+	websocketUrl *string,
+) error {
 	cm.stateMutex.Lock()
 	defer cm.stateMutex.Unlock()
+
+	if websocketUrl != nil {
+		cm.config.URL = *websocketUrl
+	}
 
 	if cm.state == StateConnected || cm.state == StateConnecting {
 		return fmt.Errorf("already connected or connecting")
