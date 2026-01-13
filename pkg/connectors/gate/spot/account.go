@@ -77,16 +77,18 @@ func (g *gateSpot) GetOpenOrders() ([]connector.Order, error) {
 
 	ctx := g.spotClient.GetAPIContext()
 
-	// Get all open orders (empty currency pair means all)
-	orders, _, err := client.SpotApi.ListOrders(ctx, "", "open", &gateapi.ListOrdersOpts{})
+	orders, _, err := client.SpotApi.ListAllOpenOrders(ctx, &gateapi.ListAllOpenOrdersOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get open orders: %w", err)
 	}
 
 	var connectorOrders []connector.Order
 	for _, order := range orders {
-		connectorOrder := g.convertGateOrderToConnector(&order)
-		connectorOrders = append(connectorOrders, connectorOrder)
+		for _, order := range order.Orders {
+			connectorOrder := g.convertGateOrderToConnector(&order)
+			connectorOrders = append(connectorOrders, connectorOrder)
+
+		}
 	}
 
 	return connectorOrders, nil
