@@ -9,3 +9,9 @@ const (
 	Paradex     connector.ExchangeName = "paradex"
 	Bybit       connector.ExchangeName = "bybit"
 )
+
+var AllConnectors = []connector.ExchangeName{
+	Hyperliquid,
+	Paradex,
+	Bybit,
+}
