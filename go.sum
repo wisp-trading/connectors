@@ -12,6 +12,8 @@ github.com/backtesting-org/kronos-sdk v0.0.6 h1:8q6BWbx08dMyU2GUSc7+6R/WxBrMMnt9
 github.com/backtesting-org/kronos-sdk v0.0.6/go.mod h1:1XUlnHAk+8E8OAL/P48BAHBTm8NrBgvi7SDvxQ5R4Mo=
 github.com/backtesting-org/kronos-sdk v0.0.7-0.20260112055130-91721a510fe5 h1:qIezd3m9oIbZP11GUW3GR5PAoZbnUR1Vu/NO2P3g0Ek=
 github.com/backtesting-org/kronos-sdk v0.0.7-0.20260112055130-91721a510fe5/go.mod h1:1XUlnHAk+8E8OAL/P48BAHBTm8NrBgvi7SDvxQ5R4Mo=
+github.com/backtesting-org/kronos-sdk v0.0.7-0.20260113013513-a15f2874bd92 h1:wmYQ6FWV8Mm/WeeByh6MAynaBR6kw3Wb8Mx3SmdQunA=
+github.com/backtesting-org/kronos-sdk v0.0.7-0.20260113013513-a15f2874bd92/go.mod h1:1XUlnHAk+8E8OAL/P48BAHBTm8NrBgvi7SDvxQ5R4Mo=
 github.com/bitly/go-simplejson v0.5.1 h1:xgwPbetQScXt1gh9BmoJ6j9JMr3TElvuIyjR8pgdoow=
 github.com/bitly/go-simplejson v0.5.1/go.mod h1:YOPVLzCfwK14b4Sff3oP1AmGhI9T9Vsg84etUnlyp+Q=
 github.com/bits-and-blooms/bitset v1.24.0 h1:H4x4TuulnokZKvHLfzVRTHJfFfnHEeSYJizujEZvmAM=
