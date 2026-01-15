@@ -27,10 +27,11 @@ type hyperliquid struct {
 	initialized    bool
 
 	// WebSocket channels
-	tradeCh    chan connector.Trade
-	positionCh chan connector.Position
-	balanceCh  chan connector.AccountBalance
-	errorCh    chan error
+	tradeCh       chan connector.Trade
+	positionCh    chan connector.Position
+	balanceCh     chan connector.AccountBalance
+	fundingRateCh chan perp.FundingRate
+	errorCh       chan error
 
 	// Separate channels per orderbook subscription (key: "BTC", "ETH", etc.)
 	orderBookChannels map[string]chan connector.OrderBook
@@ -46,7 +47,7 @@ type hyperliquid struct {
 }
 
 // Ensure hyperliquid implements all interfaces at compile time
-var _ perp.Connector = (*hyperliquid)(nil)
+var _ perp.WebSocketConnector = (*hyperliquid)(nil)
 
 // NewHyperliquid creates a new Hyperliquid connector
 func NewHyperliquid(
@@ -73,6 +74,7 @@ func NewHyperliquid(
 		tradeCh:           make(chan connector.Trade, 100),
 		positionCh:        make(chan connector.Position, 100),
 		balanceCh:         make(chan connector.AccountBalance, 100),
+		fundingRateCh:     make(chan perp.FundingRate, 100),
 		orderBookChannels: make(map[string]chan connector.OrderBook),
 		klineChannels:     make(map[string]chan connector.Kline),
 		errorCh:           make(chan error, 100),

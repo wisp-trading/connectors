@@ -30,6 +30,10 @@ type RealTimeService interface {
 	// Kline subscriptions
 	SubscribeToKlines(coin, interval string, callback func(*KlineMessage)) (int, error)
 	UnsubscribeFromKlines(coin, interval string, subscriptionID int) error
+
+	// Funding rate subscriptions (activeAssetCtx)
+	SubscribeToFundingRates(coin string, callback func(*FundingRateMessage)) (int, error)
+	UnsubscribeFromFundingRates(coin string, subscriptionID int) error
 }
 
 // OrderBookMessage represents a parsed L2 order book update from WebSocket
@@ -96,4 +100,18 @@ type KlineMessage struct {
 	Close     float64
 	Volume    float64
 	Timestamp time.Time
+}
+
+// FundingRateMessage represents a parsed funding rate update from activeAssetCtx WebSocket
+type FundingRateMessage struct {
+	Coin            string
+	FundingRate     numerical.Decimal
+	MarkPrice       numerical.Decimal
+	OpenInterest    numerical.Decimal
+	PreviousDayPx   numerical.Decimal
+	DayNtlVlm       numerical.Decimal
+	Premium         numerical.Decimal
+	OraclePrice     numerical.Decimal
+	NextFundingTime time.Time
+	Timestamp       time.Time
 }

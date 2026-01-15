@@ -34,12 +34,14 @@ type WebSocketService struct {
 	handlersMu      sync.RWMutex
 
 	// Parsed callbacks
-	orderBookCallbacks map[int]func(*OrderBookMessage)
-	orderBookMu        sync.RWMutex
-	tradesCallbacks    map[int]func([]TradeMessage)
-	tradesMu           sync.RWMutex
-	klinesCallbacks    map[int]func(*KlineMessage)
-	klinesMu           sync.RWMutex
+	orderBookCallbacks    map[int]func(*OrderBookMessage)
+	orderBookMu           sync.RWMutex
+	tradesCallbacks       map[int]func([]TradeMessage)
+	tradesMu              sync.RWMutex
+	klinesCallbacks       map[int]func(*KlineMessage)
+	klinesMu              sync.RWMutex
+	fundingRatesCallbacks map[int]func(*FundingRateMessage)
+	fundingRatesMu        sync.RWMutex
 
 	// Error channel
 	errorCh chan error
@@ -68,18 +70,19 @@ func NewWebSocketService(
 	parser MessageParser,
 ) (RealTimeService, error) {
 	ws := &WebSocketService{
-		connManager:        connManager,
-		reconnectMgr:       reconnectMgr,
-		baseService:        baseService,
-		logger:             logger,
-		parser:             parser,
-		subscriptions:      make(map[int]*SubscriptionHandler),
-		subscriptionIndex:  make(map[string][]*SubscriptionHandler),
-		messageHandlers:    make(map[string]func([]byte) error),
-		orderBookCallbacks: make(map[int]func(*OrderBookMessage)),
-		tradesCallbacks:    make(map[int]func([]TradeMessage)),
-		klinesCallbacks:    make(map[int]func(*KlineMessage)),
-		errorCh:            make(chan error, 100),
+		connManager:           connManager,
+		reconnectMgr:          reconnectMgr,
+		baseService:           baseService,
+		logger:                logger,
+		parser:                parser,
+		subscriptions:         make(map[int]*SubscriptionHandler),
+		subscriptionIndex:     make(map[string][]*SubscriptionHandler),
+		messageHandlers:       make(map[string]func([]byte) error),
+		orderBookCallbacks:    make(map[int]func(*OrderBookMessage)),
+		tradesCallbacks:       make(map[int]func([]TradeMessage)),
+		klinesCallbacks:       make(map[int]func(*KlineMessage)),
+		fundingRatesCallbacks: make(map[int]func(*FundingRateMessage)),
+		errorCh:               make(chan error, 100),
 	}
 
 	// Set up connection manager callbacks
@@ -264,6 +267,8 @@ func (ws *WebSocketService) resubscribeAll() {
 			ws.logger.Debug("Re-subscribing to candles: %s %s", sub.Coin, sub.Interval)
 		case "webData2":
 			ws.logger.Debug("Re-subscribing to webData2")
+		case "activeAssetCtx":
+			ws.logger.Debug("Re-subscribing to funding rates: %s", sub.Coin)
 		}
 	}
 }
@@ -356,6 +361,22 @@ func (ws *WebSocketService) extractCandleMetadata(data json.RawMessage) (coin, i
 	return coin, interval
 }
 
+// extractActiveAssetCtxCoin extracts coin from activeAssetCtx message data
+// activeAssetCtx messages use "coin" field directly
+func (ws *WebSocketService) extractActiveAssetCtxCoin(data json.RawMessage) string {
+	var msgData map[string]interface{}
+	if err := json.Unmarshal(data, &msgData); err != nil {
+		fmt.Printf("🔴 extractActiveAssetCtxCoin: Failed to unmarshal: %v\n", err)
+		return ""
+	}
+
+	if coinVal, ok := msgData["coin"].(string); ok {
+		return coinVal
+	}
+
+	return ""
+}
+
 // routeMessageToSubscriptions routes incoming messages to matching subscriptions using O(1) index lookup
 func (ws *WebSocketService) routeMessageToSubscriptions(channel string, data []byte) error {
 	var msgWrapper struct {
@@ -376,6 +397,8 @@ func (ws *WebSocketService) routeMessageToSubscriptions(channel string, data []b
 		coin = ws.extractOrderBookCoin(msgWrapper.Data)
 	case "candle":
 		coin, interval = ws.extractCandleMetadata(msgWrapper.Data)
+	case "activeAssetCtx":
+		coin = ws.extractActiveAssetCtxCoin(msgWrapper.Data)
 	default:
 		fmt.Printf("🔴 Unknown channel type '%s' for metadata extraction\n", channel)
 	}

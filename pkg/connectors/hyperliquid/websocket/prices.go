@@ -137,3 +137,67 @@ func (ws *WebSocketService) UnsubscribeFromKlines(coin, interval string, subscri
 
 	return fmt.Errorf("subscription not found")
 }
+
+// SubscribeToFundingRates subscribes to funding rate updates via activeAssetCtx channel
+func (ws *WebSocketService) SubscribeToFundingRates(coin string, callback func(*FundingRateMessage)) (int, error) {
+	if callback == nil {
+		return 0, fmt.Errorf("callback cannot be nil")
+	}
+
+	subID := generateSubscriptionID()
+
+	ws.fundingRatesMu.Lock()
+	ws.fundingRatesCallbacks[subID] = callback
+	ws.fundingRatesMu.Unlock()
+
+	rawSubID, err := ws.subscribeToChannel("activeAssetCtx", coin, "", func(msg hyperliquid.WSMessage) {
+		parsed, err := ws.parser.ParseFundingRate(msg)
+		if err != nil {
+			select {
+			case ws.errorCh <- fmt.Errorf("failed to parse funding rate for %s: %w", coin, err):
+			default:
+			}
+			return
+		}
+
+		ws.fundingRatesMu.RLock()
+		cb, exists := ws.fundingRatesCallbacks[subID]
+		ws.fundingRatesMu.RUnlock()
+
+		if exists && cb != nil {
+			cb(parsed)
+		}
+	})
+
+	if err != nil {
+		ws.fundingRatesMu.Lock()
+		delete(ws.fundingRatesCallbacks, subID)
+		ws.fundingRatesMu.Unlock()
+		return 0, err
+	}
+
+	ws.subscriptionsMu.Lock()
+	ws.subscriptions[rawSubID].ID = subID
+	ws.subscriptionsMu.Unlock()
+
+	return subID, nil
+}
+
+// UnsubscribeFromFundingRates unsubscribes from funding rate updates
+func (ws *WebSocketService) UnsubscribeFromFundingRates(coin string, subscriptionID int) error {
+	ws.fundingRatesMu.Lock()
+	delete(ws.fundingRatesCallbacks, subscriptionID)
+	ws.fundingRatesMu.Unlock()
+
+	ws.subscriptionsMu.Lock()
+	for rawID, sub := range ws.subscriptions {
+		if sub.ID == subscriptionID && sub.Channel == "activeAssetCtx" && sub.Coin == coin {
+			delete(ws.subscriptions, rawID)
+			ws.subscriptionsMu.Unlock()
+			return nil
+		}
+	}
+	ws.subscriptionsMu.Unlock()
+
+	return fmt.Errorf("subscription not found")
+}
