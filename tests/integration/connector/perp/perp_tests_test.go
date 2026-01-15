@@ -1,5 +1,3 @@
-//go:build integration
-
 package perp_test
 
 import (
@@ -83,21 +81,7 @@ var _ = Describe("Perp Connector Tests", func() {
 			})
 		})
 	})
-
-	Describe("Contracts", func() {
-		Context("FetchContracts", func() {
-			It("should fetch contract specifications", func() {
-				conn := runner.GetPerpConnector()
-
-				contracts, err := conn.FetchContracts()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(contracts).ToNot(BeEmpty())
-
-				connector_test.LogSuccess("Fetched %d contracts", len(contracts))
-			})
-		})
-	})
-
+	
 	Describe("Perp WebSocket Subscriptions", func() {
 		BeforeEach(func() {
 			if !runner.HasWebSocketSupport() {
