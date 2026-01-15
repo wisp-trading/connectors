@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
@@ -44,8 +45,7 @@ type bybit struct {
 	subMu         sync.RWMutex
 }
 
-var _ connector.Connector = (*bybit)(nil)
-var _ connector.WebSocketConnector = (*bybit)(nil)
+var _ perp.Connector = (*bybit)(nil)
 
 func NewBybit(
 	tradingService trading.TradingService,
@@ -54,7 +54,7 @@ func NewBybit(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) connector.Connector {
+) perp.Connector {
 	return &bybit{
 		trading:       tradingService,
 		marketData:    marketDataService,

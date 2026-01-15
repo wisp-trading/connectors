@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
 	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/adaptors"
@@ -26,10 +27,11 @@ type hyperliquid struct {
 	initialized    bool
 
 	// WebSocket channels
-	tradeCh    chan connector.Trade
-	positionCh chan connector.Position
-	balanceCh  chan connector.AccountBalance
-	errorCh    chan error
+	tradeCh       chan connector.Trade
+	positionCh    chan connector.Position
+	balanceCh     chan connector.AccountBalance
+	fundingRateCh chan perp.FundingRate
+	errorCh       chan error
 
 	// Separate channels per orderbook subscription (key: "BTC", "ETH", etc.)
 	orderBookChannels map[string]chan connector.OrderBook
@@ -45,8 +47,7 @@ type hyperliquid struct {
 }
 
 // Ensure hyperliquid implements all interfaces at compile time
-var _ connector.Connector = (*hyperliquid)(nil)
-var _ connector.WebSocketConnector = (*hyperliquid)(nil)
+var _ perp.WebSocketConnector = (*hyperliquid)(nil)
 
 // NewHyperliquid creates a new Hyperliquid connector
 func NewHyperliquid(
@@ -58,7 +59,7 @@ func NewHyperliquid(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) connector.Connector {
+) perp.Connector {
 	return &hyperliquid{
 		exchangeClient:    exchangeClient,
 		infoClient:        infoClient,
@@ -73,6 +74,7 @@ func NewHyperliquid(
 		tradeCh:           make(chan connector.Trade, 100),
 		positionCh:        make(chan connector.Position, 100),
 		balanceCh:         make(chan connector.AccountBalance, 100),
+		fundingRateCh:     make(chan perp.FundingRate, 100),
 		orderBookChannels: make(map[string]chan connector.OrderBook),
 		klineChannels:     make(map[string]chan connector.Kline),
 		errorCh:           make(chan error, 100),
@@ -90,6 +92,8 @@ func (h *hyperliquid) Initialize(config connector.Config) error {
 	if !ok {
 		return fmt.Errorf("invalid config type for Hyperliquid connector: expected *hyperliquid.Config, got %T", config)
 	}
+
+	hlConfig.Validate()
 
 	// Configure the existing clients with runtime config
 	if err := h.exchangeClient.Configure(hlConfig.BaseURL, hlConfig.PrivateKey, hlConfig.VaultAddress, hlConfig.AccountAddress); err != nil {

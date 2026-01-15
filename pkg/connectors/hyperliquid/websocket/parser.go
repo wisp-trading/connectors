@@ -19,6 +19,7 @@ type MessageParser interface {
 	ParsePosition(msg hyperliquidsdk.WSMessage) (*PositionMessage, error)
 	ParseAccountBalance(msg hyperliquidsdk.WSMessage) (*AccountBalanceMessage, error)
 	ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error)
+	ParseFundingRate(msg hyperliquidsdk.WSMessage) (*FundingRateMessage, error)
 }
 
 // Parser handles parsing of WebSocket messages into typed structs
@@ -329,5 +330,57 @@ func (p *Parser) ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error)
 		Close:     closeVal,
 		Volume:    volume,
 		Timestamp: p.timeProvider.Now(),
+	}, nil
+}
+
+// ParseFundingRate parses a raw WebSocket message into a FundingRateMessage
+// Hyperliquid activeAssetCtx message format:
+// {"channel":"activeAssetCtx","data":{"coin":"ETH","ctx":{"funding":"0.00001234","markPx":"3300.5",...}}}
+func (p *Parser) ParseFundingRate(msg hyperliquidsdk.WSMessage) (*FundingRateMessage, error) {
+	if msg.Channel != "activeAssetCtx" {
+		return nil, fmt.Errorf("expected activeAssetCtx channel, got %s", msg.Channel)
+	}
+
+	var data struct {
+		Coin string `json:"coin"`
+		Ctx  struct {
+			Funding      string   `json:"funding"`
+			OpenInterest string   `json:"openInterest"`
+			PrevDayPx    string   `json:"prevDayPx"`
+			DayNtlVlm    string   `json:"dayNtlVlm"`
+			Premium      string   `json:"premium"`
+			OraclePx     string   `json:"oraclePx"`
+			MarkPx       string   `json:"markPx"`
+			MidPx        string   `json:"midPx"`
+			ImpactPxs    []string `json:"impactPxs"`
+		} `json:"ctx"`
+	}
+
+	if err := json.Unmarshal(msg.Data, &data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal activeAssetCtx data: %w", err)
+	}
+
+	funding, err := numerical.NewFromString(data.Ctx.Funding)
+	if err != nil {
+		return nil, fmt.Errorf("invalid funding rate: %w", err)
+	}
+
+	markPrice, _ := numerical.NewFromString(data.Ctx.MarkPx)
+	openInterest, _ := numerical.NewFromString(data.Ctx.OpenInterest)
+	prevDayPx, _ := numerical.NewFromString(data.Ctx.PrevDayPx)
+	dayNtlVlm, _ := numerical.NewFromString(data.Ctx.DayNtlVlm)
+	premium, _ := numerical.NewFromString(data.Ctx.Premium)
+	oraclePrice, _ := numerical.NewFromString(data.Ctx.OraclePx)
+
+	return &FundingRateMessage{
+		Coin:          data.Coin,
+		FundingRate:   funding,
+		MarkPrice:     markPrice,
+		OpenInterest:  openInterest,
+		PreviousDayPx: prevDayPx,
+		DayNtlVlm:     dayNtlVlm,
+		Premium:       premium,
+		OraclePrice:   oraclePrice,
+		Timestamp:     p.timeProvider.Now(),
 	}, nil
 }

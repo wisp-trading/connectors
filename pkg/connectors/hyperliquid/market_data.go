@@ -91,14 +91,8 @@ func (h *hyperliquid) FetchPrice(symbol string) (*connector.Price, error) {
 }
 
 // FetchOrderBook retrieves order book with decimal precision
-func (h *hyperliquid) FetchOrderBook(symbol portfolio.Asset, instrument connector.Instrument, depth int) (*connector.OrderBook, error) {
+func (h *hyperliquid) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector.OrderBook, error) {
 	l2Book, err := h.marketData.GetL2Book(symbol.Symbol())
-
-	if instrument != connector.TypePerpetual {
-		l2Book, err = h.marketData.GetL2Book(symbol.Symbol() + "-USD")
-	} else {
-		l2Book, err = h.marketData.GetL2Book(h.GetPerpSymbol(symbol))
-	}
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order book: %w", err)

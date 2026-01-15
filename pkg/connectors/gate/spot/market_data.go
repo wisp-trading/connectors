@@ -27,19 +27,16 @@ func (g *gateSpot) FetchKlines(symbol, interval string, limit int) ([]connector.
 	ctx := g.spotClient.GetAPIContext()
 	currencyPair := g.formatSymbol(symbol)
 
-	// Convert interval format (1m -> 1m, 5m -> 5m, 1h -> 1h, etc.)
-	gateInterval := convertInterval(interval)
-
 	// Debug logging
 	g.appLogger.Info("Fetching klines",
 		"currencyPair", currencyPair,
-		"interval", gateInterval,
+		"interval", interval,
 		"limit", limit)
 
 	// Get candlesticks
 	candles, resp, err := client.SpotApi.ListCandlesticks(ctx, currencyPair, &gateapi.ListCandlesticksOpts{
 		Limit:    optional.NewInt32(int32(limit)),
-		Interval: optional.NewString(gateInterval),
+		Interval: optional.NewString(interval),
 	})
 	if err != nil {
 		g.appLogger.Error("Failed to fetch candles",
@@ -116,7 +113,7 @@ func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
 }
 
 // FetchOrderBook retrieves order book
-func (g *gateSpot) FetchOrderBook(symbol portfolio.Asset, instrument connector.Instrument, depth int) (*connector.OrderBook, error) {
+func (g *gateSpot) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector.OrderBook, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -228,13 +225,6 @@ func (g *gateSpot) FetchRecentTrades(symbol string, limit int) ([]connector.Trad
 	}
 
 	return trades, nil
-}
-
-// convertInterval converts Kronos interval format to Gate.io format
-func convertInterval(interval string) string {
-	// Gate.io uses: 10s, 1m, 5m, 15m, 30m, 1h, 4h, 8h, 1d, 7d, 30d
-	// Kronos typically uses: 1m, 5m, 15m, 30m, 1h, 4h, 1d
-	return interval
 }
 
 // GetPerpSymbol returns the perpetual symbol format (not used in spot)

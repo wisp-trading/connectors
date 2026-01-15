@@ -1,7 +1,7 @@
 package bybit
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
 	"github.com/backtesting-org/live-trading/pkg/connectors/bybit/data"
 	"github.com/backtesting-org/live-trading/pkg/connectors/bybit/data/real_time"
@@ -26,6 +26,6 @@ var Module = fx.Options(
 	)),
 )
 
-func registerBybit(bybitConn connector.Connector, reg registry.ConnectorRegistry) {
-	reg.RegisterConnector(types.Bybit, bybitConn)
+func registerBybit(bybitConn perp.Connector, reg registry.ConnectorRegistry) {
+	reg.RegisterPerpConnector(types.Bybit, bybitConn)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/websocket"
 	"github.com/backtesting-org/live-trading/pkg/connectors/types"
@@ -103,7 +104,7 @@ func (h *hyperliquid) ErrorChannel() <-chan error {
 }
 
 // SubscribeOrderBook subscribes to order book updates for an asset
-func (h *hyperliquid) SubscribeOrderBook(asset portfolio.Asset, _ connector.Instrument) error {
+func (h *hyperliquid) SubscribeOrderBook(asset portfolio.Asset) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -165,7 +166,7 @@ func (h *hyperliquid) SubscribeOrderBook(asset portfolio.Asset, _ connector.Inst
 }
 
 // UnsubscribeOrderBook unsubscribes from order book updates
-func (h *hyperliquid) UnsubscribeOrderBook(asset portfolio.Asset, _ connector.Instrument) error {
+func (h *hyperliquid) UnsubscribeOrderBook(asset portfolio.Asset) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -185,7 +186,7 @@ func (h *hyperliquid) UnsubscribeOrderBook(asset portfolio.Asset, _ connector.In
 }
 
 // SubscribeTrades subscribes to trade updates for an asset
-func (h *hyperliquid) SubscribeTrades(asset portfolio.Asset, _ connector.Instrument) error {
+func (h *hyperliquid) SubscribeTrades(asset portfolio.Asset) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -222,7 +223,7 @@ func (h *hyperliquid) SubscribeTrades(asset portfolio.Asset, _ connector.Instrum
 }
 
 // UnsubscribeTrades unsubscribes from trade updates
-func (h *hyperliquid) UnsubscribeTrades(asset portfolio.Asset, _ connector.Instrument) error {
+func (h *hyperliquid) UnsubscribeTrades(asset portfolio.Asset) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -242,7 +243,7 @@ func (h *hyperliquid) UnsubscribeTrades(asset portfolio.Asset, _ connector.Instr
 }
 
 // SubscribePositions subscribes to position updates
-func (h *hyperliquid) SubscribePositions(asset portfolio.Asset, _ connector.Instrument) error {
+func (h *hyperliquid) SubscribePositions(asset portfolio.Asset) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -289,7 +290,7 @@ func (h *hyperliquid) SubscribePositions(asset portfolio.Asset, _ connector.Inst
 }
 
 // UnsubscribePositions unsubscribes from position updates
-func (h *hyperliquid) UnsubscribePositions(asset portfolio.Asset, _ connector.Instrument) error {
+func (h *hyperliquid) UnsubscribePositions(asset portfolio.Asset) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -432,4 +433,64 @@ func (h *hyperliquid) UnsubscribeKlines(asset portfolio.Asset, interval string) 
 	h.subMu.Unlock()
 
 	return h.realTime.UnsubscribeFromKlines(symbol, interval, subID)
+}
+
+func (h *hyperliquid) SubscribeFundingRates(asset portfolio.Asset) error {
+	if !h.initialized {
+		return fmt.Errorf("connector not initialized")
+	}
+
+	symbol := h.normaliseAssetName(asset)
+
+	subID, err := h.realTime.SubscribeToFundingRates(symbol, func(frMsg *websocket.FundingRateMessage) {
+		select {
+		case h.fundingRateCh <- perp.FundingRate{
+			CurrentRate:     frMsg.FundingRate,
+			MarkPrice:       frMsg.MarkPrice,
+			IndexPrice:      frMsg.OraclePrice,
+			Timestamp:       frMsg.Timestamp,
+			NextFundingTime: frMsg.NextFundingTime,
+		}:
+		default:
+			select {
+			case h.errorCh <- fmt.Errorf("funding rate channel full for %s, dropping update", symbol):
+			default:
+			}
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	h.subMu.Lock()
+	h.subscriptions["funding:"+symbol] = subID
+	h.subMu.Unlock()
+
+	return nil
+}
+
+// UnsubscribeFundingRates unsubscribes from funding rate updates
+func (h *hyperliquid) UnsubscribeFundingRates(asset portfolio.Asset) error {
+	if !h.initialized {
+		return fmt.Errorf("connector not initialized")
+	}
+
+	symbol := h.normaliseAssetName(asset)
+
+	h.subMu.Lock()
+	key := "funding:" + symbol
+	subID, exists := h.subscriptions[key]
+	if !exists {
+		h.subMu.Unlock()
+		return fmt.Errorf("no active subscription for funding:%s", symbol)
+	}
+	delete(h.subscriptions, key)
+	h.subMu.Unlock()
+
+	return h.realTime.UnsubscribeFromFundingRates(symbol, subID)
+}
+
+// FundingRateUpdates returns a channel for funding rate updates
+func (h *hyperliquid) FundingRateUpdates() <-chan perp.FundingRate {
+	return h.fundingRateCh
 }

@@ -41,11 +41,7 @@ func (p *paradex) FetchPrice(symbol string) (*connector.Price, error) {
 
 }
 
-func (p *paradex) FetchOrderBook(symbol portfolio.Asset, instrument connector.Instrument, depth int) (*connector.OrderBook, error) {
-	if instrument != connector.TypePerpetual {
-		return nil, fmt.Errorf("order book only supported for perpetual contracts")
-	}
-
+func (p *paradex) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector.OrderBook, error) {
 	symbolStr := p.GetPerpSymbol(symbol)
 	depthInt := int64(depth)
 

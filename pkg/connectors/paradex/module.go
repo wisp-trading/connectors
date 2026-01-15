@@ -1,7 +1,7 @@
 package paradex
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
 	"github.com/backtesting-org/live-trading/pkg/connectors/types"
 	"go.uber.org/fx"
@@ -22,7 +22,7 @@ var Module = fx.Options(
 )
 
 // registerParadex registers the paradex connector with the SDK's ConnectorRegistry
-func registerParadex(paradexConn connector.Connector, reg registry.ConnectorRegistry) {
+func registerParadex(paradexConn perp.Connector, reg registry.ConnectorRegistry) {
 	// Register the connector
-	reg.RegisterConnector(types.Paradex, paradexConn)
+	reg.RegisterPerpConnector(types.Paradex, paradexConn)
 }

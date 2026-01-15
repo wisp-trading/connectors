@@ -16,26 +16,6 @@ func (g *gateSpot) SupportsRealTimeData() bool {
 	return true
 }
 
-// SupportsHistoricalData returns whether historical data is supported
-func (g *gateSpot) SupportsHistoricalData() bool {
-	return true
-}
-
-// SupportsPerpetuals returns whether perpetual contracts are supported
-func (g *gateSpot) SupportsPerpetuals() bool {
-	return false
-}
-
-// SupportsSpot returns whether spot trading is supported
-func (g *gateSpot) SupportsSpot() bool {
-	return true
-}
-
-// SupportsWebSocket returns whether WebSocket is supported
-func (g *gateSpot) SupportsWebSocket() bool {
-	return true
-}
-
 // GetConnectorInfo returns metadata about the exchange
 func (g *gateSpot) GetConnectorInfo() *connector.Info {
 	return &connector.Info{

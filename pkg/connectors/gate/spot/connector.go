@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/spot"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
@@ -44,8 +45,7 @@ type gateSpot struct {
 }
 
 // Ensure gateSpot implements all interfaces at compile time
-var _ connector.Connector = (*gateSpot)(nil)
-var _ connector.WebSocketConnector = (*gateSpot)(nil)
+var _ spot.WebSocketConnector = (*gateSpot)(nil)
 
 // NewGateSpot creates a new Gate.io Spot connector
 func NewGateSpot(
@@ -54,7 +54,7 @@ func NewGateSpot(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) connector.Connector {
+) spot.Connector {
 	return &gateSpot{
 		spotClient:        spotClient,
 		wsService:         wsService,
@@ -136,37 +136,6 @@ func (g *gateSpot) Close() error {
 	return nil
 }
 
-// FetchContracts returns available contracts (spot doesn't have contracts)
-func (g *gateSpot) FetchContracts() ([]connector.ContractInfo, error) {
-	// Spot trading doesn't have contracts
-	return []connector.ContractInfo{}, nil
-}
-
-// FetchRiskFundBalance returns risk fund balance (not applicable for spot)
-func (g *gateSpot) FetchRiskFundBalance(_ string) (*connector.RiskFundBalance, error) {
-	return nil, fmt.Errorf("risk fund balance not supported for spot trading")
-}
-
-// FetchCurrentFundingRates returns current funding rates (not applicable for spot)
-func (g *gateSpot) FetchCurrentFundingRates() (map[portfolio.Asset]connector.FundingRate, error) {
-	return nil, fmt.Errorf("funding rates not supported for spot trading")
-}
-
-// FetchFundingRate returns funding rate for a specific asset (not applicable for spot)
-func (g *gateSpot) FetchFundingRate(asset portfolio.Asset) (*connector.FundingRate, error) {
-	return nil, fmt.Errorf("funding rates not supported for spot trading")
-}
-
-// SupportsFundingRates returns whether funding rates are supported
-func (g *gateSpot) SupportsFundingRates() bool {
-	return false
-}
-
-// FetchHistoricalFundingRates returns historical funding rates (not applicable for spot)
-func (g *gateSpot) FetchHistoricalFundingRates(asset portfolio.Asset, startTime int64, endTime int64) ([]connector.HistoricalFundingRate, error) {
-	return nil, fmt.Errorf("funding rates not supported for spot trading")
-}
-
 // GetTradingHistory retrieves trading history
 func (g *gateSpot) GetTradingHistory(_ string, _ int) ([]connector.Trade, error) {
 	if !g.initialized {
@@ -217,7 +186,7 @@ func (g *gateSpot) UnsubscribeAccountBalance() error {
 }
 
 // SubscribeTrades subscribes to trade updates for an asset
-func (g *gateSpot) SubscribeTrades(asset portfolio.Asset, _ connector.Instrument) error {
+func (g *gateSpot) SubscribeTrades(asset portfolio.Asset) error {
 	if !g.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -228,18 +197,8 @@ func (g *gateSpot) SubscribeTrades(asset portfolio.Asset, _ connector.Instrument
 }
 
 // UnsubscribeTrades unsubscribes from trade updates
-func (g *gateSpot) UnsubscribeTrades(_ portfolio.Asset, _ connector.Instrument) error {
+func (g *gateSpot) UnsubscribeTrades(_ portfolio.Asset) error {
 	// TODO: Implement proper unsubscription tracking
 	g.appLogger.Info("Trades unsubscription requested")
 	return nil
-}
-
-// SubscribePositions subscribes to position updates (not applicable for spot)
-func (g *gateSpot) SubscribePositions(_ portfolio.Asset, _ connector.Instrument) error {
-	return fmt.Errorf("positions not supported for spot trading")
-}
-
-// UnsubscribePositions unsubscribes from position updates (not applicable for spot)
-func (g *gateSpot) UnsubscribePositions(_ portfolio.Asset, _ connector.Instrument) error {
-	return fmt.Errorf("positions not supported for spot trading")
 }

@@ -27,7 +27,7 @@ func (c Config) ExchangeName() connector.ExchangeName {
 	return types.Hyperliquid
 }
 
-func (c Config) Validate() error {
+func (c *Config) Validate() error {
 	if c.PrivateKey == "" {
 		return fmt.Errorf("private_key is required")
 	}

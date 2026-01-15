@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
 	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/adaptor"
@@ -44,13 +45,13 @@ type paradex struct {
 
 // Ensure paradex implements all interfaces at compile time
 var _ connector.Connector = (*paradex)(nil)
-var _ connector.WebSocketConnector = (*paradex)(nil)
+var _ perp.Connector = (*paradex)(nil)
 
 func NewParadex(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) connector.Connector {
+) perp.Connector {
 	return &paradex{
 		paradexService:    nil, // Will be created during initialization
 		wsService:         nil, // Will be created during initialization

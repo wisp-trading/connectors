@@ -34,15 +34,3 @@ func (p *paradex) SupportsTradingOperations() bool {
 func (p *paradex) SupportsRealTimeData() bool {
 	return true
 }
-
-func (p *paradex) SupportsFundingRates() bool {
-	return true
-}
-
-func (p *paradex) SupportsPerpetuals() bool {
-	return true
-}
-
-func (p *paradex) SupportsSpot() bool {
-	return false
-}
