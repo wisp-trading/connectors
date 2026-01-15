@@ -1,0 +1,130 @@
+package connector
+
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
+
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/live-trading/pkg/connectors/bybit"
+	gatespot "github.com/backtesting-org/live-trading/pkg/connectors/gate/spot"
+	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid"
+	"github.com/backtesting-org/live-trading/pkg/connectors/paradex"
+	"github.com/backtesting-org/live-trading/pkg/connectors/types"
+	"github.com/joho/godotenv"
+)
+
+func init() {
+	// Get the directory of this source file
+	_, filename, _, ok := runtime.Caller(0)
+	if ok {
+		dir := filepath.Dir(filename)
+		// Load .env from the connector directory
+		_ = godotenv.Load(filepath.Join(dir, ".env"))
+	}
+	// Fallback to current directory
+	_ = godotenv.Load()
+}
+
+// ========================================
+// SPOT CONNECTOR CONFIGURATION
+// ========================================
+const (
+	testSpotConnectorName = types.GateSpot
+	testSpotSymbol        = "ETH"
+)
+
+// GetTestSpotConnectorName returns the spot connector name for tests
+func GetTestSpotConnectorName() connector.ExchangeName {
+	return testSpotConnectorName
+}
+
+// GetSpotSymbol returns the spot symbol for tests
+func GetSpotSymbol() string {
+	return testSpotSymbol
+}
+
+// GetSpotConnectorConfig returns the config for the spot connector under test
+func GetSpotConnectorConfig() connector.Config {
+	return getGateSpotConfig()
+}
+
+// ========================================
+// PERP CONNECTOR CONFIGURATION
+// ========================================
+const (
+	testPerpConnectorName = types.Hyperliquid
+	testPerpSymbol        = "ETH"
+)
+
+// GetTestPerpConnectorName returns the perp connector name for tests
+func GetTestPerpConnectorName() connector.ExchangeName {
+	return testPerpConnectorName
+}
+
+// GetPerpSymbol returns the perp symbol for tests
+func GetPerpSymbol() string {
+	return testPerpSymbol
+}
+
+// GetPerpConnectorConfig returns the config for the perp connector under test
+func GetPerpConnectorConfig() connector.Config {
+	return getHyperliquidConfig()
+}
+
+// ========================================
+// TRADING TEST FLAGS
+// ========================================
+const (
+	enableSpotTradingTests = true
+	enablePerpTradingTests = true
+)
+
+// ========================================
+// INDIVIDUAL CONNECTOR CONFIGS
+// ========================================
+
+// getHyperliquidConfig creates a Hyperliquid config from environment variables
+func getHyperliquidConfig() *hyperliquid.Config {
+	testnet, _ := strconv.ParseBool(os.Getenv("HYPERLIQUID_TESTNET"))
+	return &hyperliquid.Config{
+		AccountAddress: os.Getenv("HYPERLIQUID_ACCOUNT_ADDRESS"),
+		PrivateKey:     os.Getenv("HYPERLIQUID_PRIVATE_KEY"),
+		VaultAddress:   os.Getenv("HYPERLIQUID_VAULT_ADDRESS"),
+		BaseURL:        os.Getenv("HYPERLIQUID_BASE_URL"),
+		UseTestnet:     testnet,
+	}
+}
+
+// getParadexConfig creates a Paradex config from environment variables
+func getParadexConfig() *paradex.Config {
+	return &paradex.Config{
+		AccountAddress: os.Getenv("PARADEX_ACCOUNT_ADDRESS"),
+		EthPrivateKey:  os.Getenv("PARADEX_ETH_PRIVATE_KEY"),
+		Network:        os.Getenv("PARADEX_NETWORK"),
+		BaseURL:        os.Getenv("PARADEX_BASE_URL"),
+		WebSocketURL:   os.Getenv("PARADEX_WS_URL"),
+		StarknetRPC:    os.Getenv("PARADEX_STARKNET_RPC"),
+	}
+}
+
+// getBybitConfig creates a Bybit config from environment variables
+func getBybitConfig() *bybit.Config {
+	testnet, _ := strconv.ParseBool(os.Getenv("BYBIT_TESTNET"))
+	return &bybit.Config{
+		APIKey:    os.Getenv("BYBIT_API_KEY"),
+		APISecret: os.Getenv("BYBIT_API_SECRET"),
+		IsTestnet: testnet,
+	}
+}
+
+// getGateSpotConfig creates a Gate.io Spot config from environment variables
+func getGateSpotConfig() *gatespot.Config {
+	testnet, _ := strconv.ParseBool(os.Getenv("GATE_TESTNET"))
+	return &gatespot.Config{
+		APIKey:     os.Getenv("GATE_API_KEY"),
+		APISecret:  os.Getenv("GATE_API_SECRET"),
+		UseTestnet: testnet,
+	}
+}

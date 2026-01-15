@@ -33,7 +33,7 @@ func (g *gateSpot) DisconnectWebSocket() error {
 }
 
 // SubscribeOrderBook subscribes to order book updates
-func (g *gateSpot) SubscribeOrderBook(symbol portfolio.Asset, _ connector.Instrument) error {
+func (g *gateSpot) SubscribeOrderBook(symbol portfolio.Asset) error {
 	if !g.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -102,7 +102,7 @@ func (g *gateSpot) SubscribeOrderBook(symbol portfolio.Asset, _ connector.Instru
 }
 
 // UnsubscribeOrderBook unsubscribes from order book updates
-func (g *gateSpot) UnsubscribeOrderBook(symbol portfolio.Asset, _ connector.Instrument) error {
+func (g *gateSpot) UnsubscribeOrderBook(symbol portfolio.Asset) error {
 	// Remove from WebSocket subscriptions
 	// Note: We need to track subscription IDs to properly unsubscribe
 	// For now, just close the channel

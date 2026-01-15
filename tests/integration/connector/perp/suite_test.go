@@ -1,6 +1,6 @@
 //go:build integration
 
-package connector_test
+package perp_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestConnectorIntegration(t *testing.T) {
+func TestPerpConnectorIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Connector Integration Suite")
+	RunSpecs(t, "Perp Connector Integration Suite")
 }

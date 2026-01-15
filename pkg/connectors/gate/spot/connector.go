@@ -45,7 +45,7 @@ type gateSpot struct {
 }
 
 // Ensure gateSpot implements all interfaces at compile time
-var _ spot.Connector = (*gateSpot)(nil)
+var _ spot.WebSocketConnector = (*gateSpot)(nil)
 
 // NewGateSpot creates a new Gate.io Spot connector
 func NewGateSpot(
@@ -186,7 +186,7 @@ func (g *gateSpot) UnsubscribeAccountBalance() error {
 }
 
 // SubscribeTrades subscribes to trade updates for an asset
-func (g *gateSpot) SubscribeTrades(asset portfolio.Asset, _ connector.Instrument) error {
+func (g *gateSpot) SubscribeTrades(asset portfolio.Asset) error {
 	if !g.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -197,7 +197,7 @@ func (g *gateSpot) SubscribeTrades(asset portfolio.Asset, _ connector.Instrument
 }
 
 // UnsubscribeTrades unsubscribes from trade updates
-func (g *gateSpot) UnsubscribeTrades(_ portfolio.Asset, _ connector.Instrument) error {
+func (g *gateSpot) UnsubscribeTrades(_ portfolio.Asset) error {
 	// TODO: Implement proper unsubscription tracking
 	g.appLogger.Info("Trades unsubscription requested")
 	return nil
