@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 )
 
-func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]connector.FundingRate, error) {
+func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error) {
 	contexts, err := h.marketData.GetAllAssetContexts()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get asset contexts: %w", err)
 	}
 
-	fundingRates := make(map[portfolio.Asset]connector.FundingRate)
+	fundingRates := make(map[portfolio.Asset]perp.FundingRate)
 
 	for _, ctx := range contexts {
 		asset := portfolio.NewAsset(ctx.Name)
@@ -47,7 +47,7 @@ func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]connector.
 			continue
 		}
 
-		fundingRates[asset] = connector.FundingRate{
+		fundingRates[asset] = perp.FundingRate{
 			CurrentRate:     funding,
 			Timestamp:       h.timeProvider.Now(),
 			MarkPrice:       markPrice,
@@ -59,7 +59,7 @@ func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]connector.
 	return fundingRates, nil
 }
 
-func (h *hyperliquid) FetchFundingRate(asset portfolio.Asset) (*connector.FundingRate, error) {
+func (h *hyperliquid) FetchFundingRate(asset portfolio.Asset) (*perp.FundingRate, error) {
 	ctx, err := h.marketData.GetAssetContext(asset.Symbol())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get asset context: %w", err)
@@ -80,7 +80,7 @@ func (h *hyperliquid) FetchFundingRate(asset portfolio.Asset) (*connector.Fundin
 		return nil, fmt.Errorf("invalid oracle price for %s: %w", asset.Symbol(), err)
 	}
 
-	return &connector.FundingRate{
+	return &perp.FundingRate{
 		CurrentRate:     funding,
 		Timestamp:       h.timeProvider.Now(),
 		MarkPrice:       markPrice,
@@ -89,13 +89,13 @@ func (h *hyperliquid) FetchFundingRate(asset portfolio.Asset) (*connector.Fundin
 	}, nil
 }
 
-func (h *hyperliquid) FetchHistoricalFundingRates(symbol portfolio.Asset, startTime, endTime int64) ([]connector.HistoricalFundingRate, error) {
+func (h *hyperliquid) FetchHistoricalFundingRates(symbol portfolio.Asset, startTime, endTime int64) ([]perp.HistoricalFundingRate, error) {
 	rawData, err := h.marketData.GetHistoricalFundingRates(symbol.Symbol(), startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
 
-	var rates []connector.HistoricalFundingRate
+	var rates []perp.HistoricalFundingRate
 	for _, entry := range rawData {
 		fundingRate, err := numerical.NewFromString(entry.FundingRate)
 
@@ -103,7 +103,7 @@ func (h *hyperliquid) FetchHistoricalFundingRates(symbol portfolio.Asset, startT
 			return nil, fmt.Errorf("invalid funding rate %s for symbol %s: %w", entry.FundingRate, symbol.Symbol(), err)
 		}
 
-		rates = append(rates, connector.HistoricalFundingRate{
+		rates = append(rates, perp.HistoricalFundingRate{
 			FundingRate: fundingRate,
 			Timestamp:   time.Unix(entry.Time/1000, 0),
 		})

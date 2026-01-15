@@ -1,7 +1,7 @@
 package spot
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/spot"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
 	"github.com/backtesting-org/live-trading/pkg/connectors/gate/adaptor"
 	"github.com/backtesting-org/live-trading/pkg/connectors/gate/websocket"
@@ -27,6 +27,6 @@ var Module = fx.Options(
 )
 
 // registerGateSpot registers the Gate Spot connector with the SDK's ConnectorRegistry
-func registerGateSpot(gateSpotConn connector.Connector, reg registry.ConnectorRegistry) {
-	reg.RegisterConnector(types.GateSpot, gateSpotConn)
+func registerGateSpot(gateSpotConn spot.Connector, reg registry.ConnectorRegistry) {
+	reg.RegisterSpotConnector(types.GateSpot, gateSpotConn)
 }

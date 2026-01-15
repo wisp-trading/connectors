@@ -1,7 +1,7 @@
 package hyperliquid
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
 	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/adaptors"
 	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/rest"
@@ -33,6 +33,6 @@ var Module = fx.Options(
 )
 
 // registerHyperliquid registers the hyperliquid connector with the SDK's ConnectorRegistry
-func registerHyperliquid(hyperliquidConn connector.Connector, reg registry.ConnectorRegistry) {
-	reg.RegisterConnector(types.Hyperliquid, hyperliquidConn)
+func registerHyperliquid(hyperliquidConn perp.Connector, reg registry.ConnectorRegistry) {
+	reg.RegisterPerpConnector(types.Hyperliquid, hyperliquidConn)
 }

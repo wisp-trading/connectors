@@ -8,6 +8,8 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
+	perp "github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
+
 	portfolio "github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 )
 
@@ -139,23 +141,23 @@ func (_c *MarketDataService_FetchAvailableSpotAssets_Call) RunAndReturn(run func
 }
 
 // FetchCurrentFundingRates provides a mock function with no fields
-func (_m *MarketDataService) FetchCurrentFundingRates() (map[portfolio.Asset]connector.FundingRate, error) {
+func (_m *MarketDataService) FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error) {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchCurrentFundingRates")
 	}
 
-	var r0 map[portfolio.Asset]connector.FundingRate
+	var r0 map[portfolio.Asset]perp.FundingRate
 	var r1 error
-	if rf, ok := ret.Get(0).(func() (map[portfolio.Asset]connector.FundingRate, error)); ok {
+	if rf, ok := ret.Get(0).(func() (map[portfolio.Asset]perp.FundingRate, error)); ok {
 		return rf()
 	}
-	if rf, ok := ret.Get(0).(func() map[portfolio.Asset]connector.FundingRate); ok {
+	if rf, ok := ret.Get(0).(func() map[portfolio.Asset]perp.FundingRate); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[portfolio.Asset]connector.FundingRate)
+			r0 = ret.Get(0).(map[portfolio.Asset]perp.FundingRate)
 		}
 	}
 
@@ -185,34 +187,34 @@ func (_c *MarketDataService_FetchCurrentFundingRates_Call) Run(run func()) *Mark
 	return _c
 }
 
-func (_c *MarketDataService_FetchCurrentFundingRates_Call) Return(_a0 map[portfolio.Asset]connector.FundingRate, _a1 error) *MarketDataService_FetchCurrentFundingRates_Call {
+func (_c *MarketDataService_FetchCurrentFundingRates_Call) Return(_a0 map[portfolio.Asset]perp.FundingRate, _a1 error) *MarketDataService_FetchCurrentFundingRates_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MarketDataService_FetchCurrentFundingRates_Call) RunAndReturn(run func() (map[portfolio.Asset]connector.FundingRate, error)) *MarketDataService_FetchCurrentFundingRates_Call {
+func (_c *MarketDataService_FetchCurrentFundingRates_Call) RunAndReturn(run func() (map[portfolio.Asset]perp.FundingRate, error)) *MarketDataService_FetchCurrentFundingRates_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // FetchFundingRate provides a mock function with given fields: symbol
-func (_m *MarketDataService) FetchFundingRate(symbol string) (*connector.FundingRate, error) {
+func (_m *MarketDataService) FetchFundingRate(symbol string) (*perp.FundingRate, error) {
 	ret := _m.Called(symbol)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchFundingRate")
 	}
 
-	var r0 *connector.FundingRate
+	var r0 *perp.FundingRate
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (*connector.FundingRate, error)); ok {
+	if rf, ok := ret.Get(0).(func(string) (*perp.FundingRate, error)); ok {
 		return rf(symbol)
 	}
-	if rf, ok := ret.Get(0).(func(string) *connector.FundingRate); ok {
+	if rf, ok := ret.Get(0).(func(string) *perp.FundingRate); ok {
 		r0 = rf(symbol)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*connector.FundingRate)
+			r0 = ret.Get(0).(*perp.FundingRate)
 		}
 	}
 
@@ -243,34 +245,34 @@ func (_c *MarketDataService_FetchFundingRate_Call) Run(run func(symbol string)) 
 	return _c
 }
 
-func (_c *MarketDataService_FetchFundingRate_Call) Return(_a0 *connector.FundingRate, _a1 error) *MarketDataService_FetchFundingRate_Call {
+func (_c *MarketDataService_FetchFundingRate_Call) Return(_a0 *perp.FundingRate, _a1 error) *MarketDataService_FetchFundingRate_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MarketDataService_FetchFundingRate_Call) RunAndReturn(run func(string) (*connector.FundingRate, error)) *MarketDataService_FetchFundingRate_Call {
+func (_c *MarketDataService_FetchFundingRate_Call) RunAndReturn(run func(string) (*perp.FundingRate, error)) *MarketDataService_FetchFundingRate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // FetchHistoricalFundingRates provides a mock function with given fields: symbol, startTime, endTime
-func (_m *MarketDataService) FetchHistoricalFundingRates(symbol string, startTime int64, endTime int64) ([]connector.HistoricalFundingRate, error) {
+func (_m *MarketDataService) FetchHistoricalFundingRates(symbol string, startTime int64, endTime int64) ([]perp.HistoricalFundingRate, error) {
 	ret := _m.Called(symbol, startTime, endTime)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchHistoricalFundingRates")
 	}
 
-	var r0 []connector.HistoricalFundingRate
+	var r0 []perp.HistoricalFundingRate
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, int64, int64) ([]connector.HistoricalFundingRate, error)); ok {
+	if rf, ok := ret.Get(0).(func(string, int64, int64) ([]perp.HistoricalFundingRate, error)); ok {
 		return rf(symbol, startTime, endTime)
 	}
-	if rf, ok := ret.Get(0).(func(string, int64, int64) []connector.HistoricalFundingRate); ok {
+	if rf, ok := ret.Get(0).(func(string, int64, int64) []perp.HistoricalFundingRate); ok {
 		r0 = rf(symbol, startTime, endTime)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]connector.HistoricalFundingRate)
+			r0 = ret.Get(0).([]perp.HistoricalFundingRate)
 		}
 	}
 
@@ -303,12 +305,12 @@ func (_c *MarketDataService_FetchHistoricalFundingRates_Call) Run(run func(symbo
 	return _c
 }
 
-func (_c *MarketDataService_FetchHistoricalFundingRates_Call) Return(_a0 []connector.HistoricalFundingRate, _a1 error) *MarketDataService_FetchHistoricalFundingRates_Call {
+func (_c *MarketDataService_FetchHistoricalFundingRates_Call) Return(_a0 []perp.HistoricalFundingRate, _a1 error) *MarketDataService_FetchHistoricalFundingRates_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MarketDataService_FetchHistoricalFundingRates_Call) RunAndReturn(run func(string, int64, int64) ([]connector.HistoricalFundingRate, error)) *MarketDataService_FetchHistoricalFundingRates_Call {
+func (_c *MarketDataService_FetchHistoricalFundingRates_Call) RunAndReturn(run func(string, int64, int64) ([]perp.HistoricalFundingRate, error)) *MarketDataService_FetchHistoricalFundingRates_Call {
 	_c.Call.Return(run)
 	return _c
 }

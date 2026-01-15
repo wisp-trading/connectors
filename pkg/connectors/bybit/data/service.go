@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
@@ -28,9 +29,9 @@ type MarketDataService interface {
 	FetchPrice(symbol string) (*connector.Price, error)
 	FetchOrderBook(symbol string, depth int) (*connector.OrderBook, error)
 	FetchRecentTrades(symbol string, limit int) ([]connector.Trade, error)
-	FetchFundingRate(symbol string) (*connector.FundingRate, error)
-	FetchCurrentFundingRates() (map[portfolio.Asset]connector.FundingRate, error)
-	FetchHistoricalFundingRates(symbol string, startTime, endTime int64) ([]connector.HistoricalFundingRate, error)
+	FetchFundingRate(symbol string) (*perp.FundingRate, error)
+	FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error)
+	FetchHistoricalFundingRates(symbol string, startTime, endTime int64) ([]perp.HistoricalFundingRate, error)
 	FetchAvailablePerpetualAssets() ([]portfolio.Asset, error)
 	FetchAvailableSpotAssets() ([]portfolio.Asset, error)
 }
@@ -307,7 +308,7 @@ func (m *marketDataService) parseTrade(data map[string]interface{}, symbol strin
 	return trade
 }
 
-func (m *marketDataService) FetchFundingRate(symbol string) (*connector.FundingRate, error) {
+func (m *marketDataService) FetchFundingRate(symbol string) (*perp.FundingRate, error) {
 	m.mu.RLock()
 	client := m.client
 	m.mu.RUnlock()
@@ -332,7 +333,7 @@ func (m *marketDataService) FetchFundingRate(symbol string) (*connector.FundingR
 				if fundingData, ok := listData[0].(map[string]interface{}); ok {
 					if fundingRate, ok := fundingData["fundingRate"].(string); ok {
 						if rate, err := numerical.NewFromString(fundingRate); err == nil {
-							return &connector.FundingRate{
+							return &perp.FundingRate{
 								CurrentRate:     rate,
 								Timestamp:       m.timeProvider.Now(),
 								NextFundingTime: m.timeProvider.Now(),
@@ -433,7 +434,7 @@ func (m *marketDataService) FetchAvailableSpotAssets() ([]portfolio.Asset, error
 	return assets, nil
 }
 
-func (m *marketDataService) FetchCurrentFundingRates() (map[portfolio.Asset]connector.FundingRate, error) {
+func (m *marketDataService) FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error) {
 	m.mu.RLock()
 	client := m.client
 	m.mu.RUnlock()
@@ -448,7 +449,7 @@ func (m *marketDataService) FetchCurrentFundingRates() (map[portfolio.Asset]conn
 		return nil, fmt.Errorf("failed to fetch perpetual assets: %w", err)
 	}
 
-	fundingRates := make(map[portfolio.Asset]connector.FundingRate)
+	fundingRates := make(map[portfolio.Asset]perp.FundingRate)
 
 	// Fetch funding rate for each asset
 	for _, asset := range assets {
@@ -466,7 +467,7 @@ func (m *marketDataService) FetchCurrentFundingRates() (map[portfolio.Asset]conn
 	return fundingRates, nil
 }
 
-func (m *marketDataService) FetchHistoricalFundingRates(symbol string, startTime, endTime int64) ([]connector.HistoricalFundingRate, error) {
+func (m *marketDataService) FetchHistoricalFundingRates(symbol string, startTime, endTime int64) ([]perp.HistoricalFundingRate, error) {
 	m.mu.RLock()
 	client := m.client
 	m.mu.RUnlock()
@@ -487,14 +488,14 @@ func (m *marketDataService) FetchHistoricalFundingRates(symbol string, startTime
 		return nil, fmt.Errorf("failed to fetch historical funding rates: %w", err)
 	}
 
-	var rates []connector.HistoricalFundingRate
+	var rates []perp.HistoricalFundingRate
 
 	if result != nil && result.Result != nil {
 		if resultData, ok := result.Result.(map[string]interface{}); ok {
 			if listData, ok := resultData["list"].([]interface{}); ok {
 				for _, item := range listData {
 					if fundingData, ok := item.(map[string]interface{}); ok {
-						var rate connector.HistoricalFundingRate
+						var rate perp.HistoricalFundingRate
 
 						if fundingRateStr, ok := fundingData["fundingRate"].(string); ok {
 							if fundingRate, err := numerical.NewFromString(fundingRateStr); err == nil {
