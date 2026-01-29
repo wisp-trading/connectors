@@ -1,9 +1,9 @@
 package paradex
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"go.uber.org/fx"
 )
 

@@ -3,9 +3,9 @@ package spot
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 	gateapi "github.com/gate/gateapi-go/v7"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // PlaceLimitOrder places a limit order on Gate.io Spot

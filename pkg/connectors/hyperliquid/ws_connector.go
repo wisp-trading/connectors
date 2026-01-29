@@ -3,11 +3,11 @@ package hyperliquid
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/websocket"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 // StartWebSocket starts the WebSocket connection for real-time data

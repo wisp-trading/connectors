@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/requests"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/requests"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 func (p *paradex) PlaceLimitOrder(symbol string, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {

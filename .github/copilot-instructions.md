@@ -1,6 +1,6 @@
 <!-- This file is markdown documentation, not Go code -->
 
-# GitHub Copilot Configuration for kronos-sdk
+# GitHub Copilot Configuration for wisp
 
 ## CRITICAL: Always Check Existing Code First
 

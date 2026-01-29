@@ -10,11 +10,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 
-	logger "github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	mockconn "github.com/backtesting-org/live-trading/mocks/github.com/backtesting-org/live-trading/pkg/websocket/connection"
-	mockperf "github.com/backtesting-org/live-trading/mocks/github.com/backtesting-org/live-trading/pkg/websocket/performance"
-	mocksec "github.com/backtesting-org/live-trading/mocks/github.com/backtesting-org/live-trading/pkg/websocket/security"
-	"github.com/backtesting-org/live-trading/pkg/websocket/connection"
+	mockconn "github.com/wisp-trading/connectors/mocks/github.com/wisp-trading/connectors/pkg/websocket/connection"
+	mockperf "github.com/wisp-trading/connectors/mocks/github.com/wisp-trading/connectors/pkg/websocket/performance"
+	mocksec "github.com/wisp-trading/connectors/mocks/github.com/wisp-trading/connectors/pkg/websocket/security"
+	"github.com/wisp-trading/connectors/pkg/websocket/connection"
+	logger "github.com/wisp-trading/sdk/pkg/types/logging"
 )
 
 var _ = Describe("ConnectionManager - Connect Operations", func() {

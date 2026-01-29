@@ -1,8 +1,8 @@
 package requests
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/adaptor"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
 )
 
 type Service struct {

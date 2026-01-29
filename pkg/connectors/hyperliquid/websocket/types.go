@@ -3,7 +3,7 @@ package websocket
 import (
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // RealTimeService defines the WebSocket interface for real-time market data

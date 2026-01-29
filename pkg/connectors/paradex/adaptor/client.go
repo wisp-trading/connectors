@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	"github.com/trishtzy/go-paradex/client/authentication"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
 
 	"github.com/trishtzy/go-paradex/auth"
 	"github.com/trishtzy/go-paradex/client"

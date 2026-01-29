@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 func (p *paradex) FetchPrice(symbol string) (*connector.Price, error) {

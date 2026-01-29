@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
 )
 
 type exponentialBackoffStrategy struct {

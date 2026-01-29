@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/antihax/optional"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
 	"github.com/gate/gateapi-go/v7"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // FetchKlines retrieves historical candlestick data

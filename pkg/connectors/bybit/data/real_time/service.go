@@ -7,10 +7,10 @@ import (
 
 	bybit "github.com/bybit-exchange/bybit.go.api"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 type Config struct {

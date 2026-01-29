@@ -3,8 +3,8 @@ package rest
 import (
 	"fmt"
 
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/adaptors"
 	hyperliquid "github.com/sonirico/go-hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
 )
 
 // TradingService interface for trading operations

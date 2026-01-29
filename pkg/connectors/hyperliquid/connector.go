@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/adaptors"
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/rest"
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/rest"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/websocket"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 // hyperliquid implements Connector and Initializable interfaces

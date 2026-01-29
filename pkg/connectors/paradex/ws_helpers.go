@@ -1,11 +1,11 @@
 package paradex
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/websocket"
 	padexmodel "github.com/trishtzy/go-paradex/models"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/websocket"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 
 	"strings"
 )

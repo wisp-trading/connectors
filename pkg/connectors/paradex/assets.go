@@ -1,7 +1,7 @@
 package paradex
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 func (p *paradex) FetchAvailableSpotAssets() ([]portfolio.Asset, error) {

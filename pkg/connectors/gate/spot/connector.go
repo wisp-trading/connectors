@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/spot"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/adaptor"
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/websocket"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/spot"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 // gateSpot implements Connector and WebSocketConnector interfaces

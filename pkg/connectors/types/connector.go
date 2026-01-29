@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 const (

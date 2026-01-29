@@ -8,9 +8,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/live-trading/pkg/websocket/base"
-	"github.com/backtesting-org/live-trading/pkg/websocket/connection"
+	"github.com/wisp-trading/connectors/pkg/websocket/base"
+	"github.com/wisp-trading/connectors/pkg/websocket/connection"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
 )
 
 // WebSocketService manages the Gate.io WebSocket connection using pkg/websocket infrastructure

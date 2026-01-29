@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/adaptor"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/requests"
-	websockets2 "github.com/backtesting-org/live-trading/pkg/connectors/paradex/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/requests"
+	websockets2 "github.com/wisp-trading/connectors/pkg/connectors/paradex/websocket"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 // paradex implements Connector, WebSocketConnector, and Initializable interfaces

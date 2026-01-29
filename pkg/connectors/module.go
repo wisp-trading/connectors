@@ -1,10 +1,10 @@
 package connectors
 
 import (
-	"github.com/backtesting-org/live-trading/pkg/connectors/bybit"
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate"
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
 	"go.uber.org/fx"
 )
 

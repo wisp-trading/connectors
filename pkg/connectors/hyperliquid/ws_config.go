@@ -3,7 +3,7 @@ package hyperliquid
 import (
 	"time"
 
-	"github.com/backtesting-org/live-trading/pkg/websocket/security"
+	"github.com/wisp-trading/connectors/pkg/websocket/security"
 )
 
 // HyperliquidWSConfig holds Hyperliquid-specific WebSocket configuration

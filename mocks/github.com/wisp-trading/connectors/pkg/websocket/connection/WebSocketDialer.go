@@ -5,7 +5,7 @@ package connection
 import (
 	context "context"
 
-	connection "github.com/backtesting-org/live-trading/pkg/websocket/connection"
+	connection "github.com/wisp-trading/connectors/pkg/websocket/connection"
 
 	http "net/http"
 

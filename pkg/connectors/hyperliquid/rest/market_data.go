@@ -3,8 +3,8 @@ package rest
 import (
 	"fmt"
 
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid/adaptors"
 	"github.com/sonirico/go-hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
 )
 
 // MarketDataService interface for market data operations

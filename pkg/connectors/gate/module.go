@@ -1,7 +1,7 @@
 package gate
 
 import (
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/spot"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
 	"go.uber.org/fx"
 )
 

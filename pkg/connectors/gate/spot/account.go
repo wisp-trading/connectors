@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	"github.com/gate/gateapi-go/v7"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // GetAccountBalance retrieves the account balance for spot trading
@@ -164,13 +164,13 @@ func (g *gateSpot) convertGateOrderType(orderType string) connector.OrderType {
 	}
 }
 
-// formatSymbol converts symbol from Kronos format to Gate format
+// formatSymbol converts symbol from Wisp format to Gate format
 // Example: ETH -> ETH_USDT
 func (g *gateSpot) formatSymbol(symbol string) string {
 	return symbol + "_USDT"
 }
 
-// parseSymbol converts Gate symbol format to Kronos format
+// parseSymbol converts Gate symbol format to Wisp format
 // Example: ETH_USDT -> ETH
 func (g *gateSpot) parseSymbol(gateSymbol string) portfolio.Asset {
 	// Simple implementation - split on underscore and take first part

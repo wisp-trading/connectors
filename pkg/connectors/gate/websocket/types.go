@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 // RealTimeService defines the WebSocket interface for Gate.io Spot real-time market data

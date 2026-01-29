@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"go.uber.org/fx"
 )
 

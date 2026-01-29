@@ -3,8 +3,8 @@ package paradex
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 func (p *paradex) FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error) {

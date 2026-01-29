@@ -7,11 +7,11 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/backtesting-org/kronos-sdk/kronos"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/spot"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
-	"github.com/backtesting-org/live-trading/pkg/connectors"
+	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/spot"
+	"github.com/wisp-trading/sdk/pkg/types/registry"
+	"github.com/wisp-trading/sdk/wisp"
 )
 
 // SpotTestRunner manages the lifecycle of spot connector tests
@@ -26,7 +26,7 @@ func NewSpotTestRunner(connectorName connector.ExchangeName, config connector.Co
 	var reg registry.ConnectorRegistry
 
 	app := fx.New(
-		kronos.Module,
+		wisp.Module,
 		connectors.Module,
 		fx.Populate(&reg),
 		fx.NopLogger,

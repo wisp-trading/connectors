@@ -1,11 +1,12 @@
-module github.com/backtesting-org/live-trading
+module github.com/wisp-trading/connectors
 
 go 1.24.2
 
 require (
-	github.com/backtesting-org/kronos-sdk v0.0.7
+	github.com/antihax/optional v1.0.0
 	github.com/bybit-exchange/bybit.go.api v0.0.0-20250727214011-c9347d6804d6
 	github.com/ethereum/go-ethereum v1.16.7
+	github.com/gate/gateapi-go/v7 v7.2.8
 	github.com/go-openapi/runtime v0.29.0
 	github.com/go-openapi/strfmt v0.24.0
 	github.com/gorilla/websocket v1.5.3
@@ -15,6 +16,7 @@ require (
 	github.com/sonirico/go-hyperliquid v0.5.0
 	github.com/stretchr/testify v1.11.1
 	github.com/trishtzy/go-paradex v0.1.3
+	github.com/wisp-trading/sdk v0.0.8
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1
 )
@@ -24,7 +26,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608-1fe7b43fc4d6 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/antihax/optional v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/bitly/go-simplejson v0.5.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.0 // indirect
@@ -38,7 +39,6 @@ require (
 	github.com/ethereum/c-kzg-4844/v2 v2.1.5 // indirect
 	github.com/ethereum/go-verkle v0.2.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/gate/gateapi-go/v7 v7.2.8 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect

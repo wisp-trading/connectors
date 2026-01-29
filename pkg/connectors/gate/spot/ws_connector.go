@@ -3,10 +3,10 @@ package spot
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/websocket"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // ConnectWebSocket establishes WebSocket connection

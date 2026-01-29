@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 type KlineBuilder struct {

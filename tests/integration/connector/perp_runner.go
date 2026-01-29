@@ -7,12 +7,12 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/backtesting-org/kronos-sdk/kronos"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
-	"github.com/backtesting-org/live-trading/pkg/connectors"
+	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/registry"
+	"github.com/wisp-trading/sdk/wisp"
 )
 
 // PerpTestRunner manages the lifecycle of perpetual connector tests
@@ -27,7 +27,7 @@ func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Co
 	var reg registry.ConnectorRegistry
 
 	app := fx.New(
-		kronos.Module,
+		wisp.Module,
 		connectors.Module,
 		fx.Populate(&reg),
 		fx.NopLogger,

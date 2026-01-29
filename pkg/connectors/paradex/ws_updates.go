@@ -1,7 +1,7 @@
 package paradex
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 func (p *paradex) GetKlineChannels() map[string]<-chan connector.Kline {

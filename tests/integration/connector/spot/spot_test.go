@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	connector_test "github.com/backtesting-org/live-trading/tests/integration/connector"
+	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 )
 
 var _ = Describe("Spot Connector Tests", func() {

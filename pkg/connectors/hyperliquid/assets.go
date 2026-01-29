@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 // FetchAvailableSpotAssets fetches all available spot assets from Hyperliquid

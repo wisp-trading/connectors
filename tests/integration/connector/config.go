@@ -6,13 +6,13 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/live-trading/pkg/connectors/bybit"
-	gatespot "github.com/backtesting-org/live-trading/pkg/connectors/gate/spot"
-	"github.com/backtesting-org/live-trading/pkg/connectors/hyperliquid"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
 	"github.com/joho/godotenv"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit"
+	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 func init() {

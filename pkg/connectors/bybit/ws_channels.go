@@ -1,6 +1,6 @@
 package bybit
 
-import "github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+import "github.com/wisp-trading/sdk/pkg/types/connector"
 
 func (b *bybit) AccountBalanceUpdates() <-chan connector.AccountBalance {
 	return b.balanceCh

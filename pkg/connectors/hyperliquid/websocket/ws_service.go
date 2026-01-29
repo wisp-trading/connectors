@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/live-trading/pkg/websocket/base"
-	"github.com/backtesting-org/live-trading/pkg/websocket/connection"
 	"github.com/sonirico/go-hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/websocket/base"
+	"github.com/wisp-trading/connectors/pkg/websocket/connection"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
 )
 
 // WebSocketService manages the WebSocket connection using the robust pkg/websocket infrastructure

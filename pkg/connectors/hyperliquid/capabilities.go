@@ -1,9 +1,9 @@
 package hyperliquid
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // SupportsTradingOperations returns whether trading operations are supported

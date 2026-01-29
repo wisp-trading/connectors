@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // normaliseAssetName converts an asset symbol to the format Hyperliquid API accepts

@@ -3,9 +3,9 @@ package paradex
 import (
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
 	"github.com/trishtzy/go-paradex/models"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 func (p *paradex) convertParadexOrder(paradexOrder *models.ResponsesOrderResp) connector.Order {

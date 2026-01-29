@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/adaptor"
 )
 
 type ParadexAuthProvider struct {

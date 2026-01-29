@@ -5,13 +5,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
-	"github.com/backtesting-org/live-trading/pkg/connectors/paradex/adaptor"
-	"github.com/backtesting-org/live-trading/pkg/websocket/base"
-	"github.com/backtesting-org/live-trading/pkg/websocket/connection"
-	"github.com/backtesting-org/live-trading/pkg/websocket/performance"
-	"github.com/backtesting-org/live-trading/pkg/websocket/security"
+	"github.com/wisp-trading/connectors/pkg/connectors/paradex/adaptor"
+	"github.com/wisp-trading/connectors/pkg/websocket/base"
+	"github.com/wisp-trading/connectors/pkg/websocket/connection"
+	"github.com/wisp-trading/connectors/pkg/websocket/performance"
+	"github.com/wisp-trading/connectors/pkg/websocket/security"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 // Ensure service implements WebSocketService interface at compile time

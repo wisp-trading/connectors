@@ -3,7 +3,7 @@ package base
 import (
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // BaseMessage represents the common structure of all WebSocket messages

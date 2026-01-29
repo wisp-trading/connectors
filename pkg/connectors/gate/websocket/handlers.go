@@ -3,7 +3,7 @@ package websocket
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 // handleOrderBookMessage processes order book updates

@@ -1,11 +1,11 @@
 package spot
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/spot"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/registry"
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/adaptor"
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/websocket"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector/spot"
+	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"go.uber.org/fx"
 )
 

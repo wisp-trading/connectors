@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector/perp"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/temporal"
-	"github.com/backtesting-org/live-trading/pkg/connectors/bybit/data"
-	"github.com/backtesting-org/live-trading/pkg/connectors/bybit/data/real_time"
-	"github.com/backtesting-org/live-trading/pkg/connectors/bybit/trading"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/data"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/data/real_time"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/trading"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 type bybit struct {

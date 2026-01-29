@@ -3,9 +3,9 @@ package adaptor_test
 import (
 	"testing"
 
-	"github.com/backtesting-org/live-trading/pkg/connectors/gate/adaptor"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/wisp-trading/connectors/pkg/connectors/gate/adaptor"
 )
 
 func TestAdaptor(t *testing.T) {
