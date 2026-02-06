@@ -33,7 +33,7 @@ func (g *gateSpot) DisconnectWebSocket() error {
 }
 
 // SubscribeOrderBook subscribes to order book updates
-func (g *gateSpot) SubscribeOrderBook(symbol portfolio.Asset) error {
+func (g *gateSpot) SubscribeOrderBook(pair portfolio.Pair) error {
 	if !g.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -45,8 +45,7 @@ func (g *gateSpot) SubscribeOrderBook(symbol portfolio.Asset) error {
 	// Create channel for this subscription
 	ch := make(chan connector.OrderBook, 100)
 
-	// Format symbol: BTC -> BTC_USDT
-	gateSymbol := g.formatSymbol(symbol.Symbol())
+	gateSymbol := g.GetSpotSymbol(pair)
 
 	// Subscribe to WebSocket
 	_, err := g.wsService.SubscribeToOrderBook(gateSymbol, func(msg *websocket.OrderBookMessage) {
@@ -95,21 +94,21 @@ func (g *gateSpot) SubscribeOrderBook(symbol portfolio.Asset) error {
 
 	// Store channel
 	g.orderBookMu.Lock()
-	g.orderBookChannels[symbol.Symbol()] = ch
+	g.orderBookChannels[pair.Symbol()] = ch
 	g.orderBookMu.Unlock()
 
 	return nil
 }
 
 // UnsubscribeOrderBook unsubscribes from order book updates
-func (g *gateSpot) UnsubscribeOrderBook(symbol portfolio.Asset) error {
+func (g *gateSpot) UnsubscribeOrderBook(pair portfolio.Pair) error {
 	// Remove from WebSocket subscriptions
 	// Note: We need to track subscription IDs to properly unsubscribe
 	// For now, just close the channel
 	g.orderBookMu.Lock()
-	if ch, exists := g.orderBookChannels[symbol.Symbol()]; exists {
+	if ch, exists := g.orderBookChannels[pair.Symbol()]; exists {
 		close(ch)
-		delete(g.orderBookChannels, symbol.Symbol())
+		delete(g.orderBookChannels, pair.Symbol())
 	}
 	g.orderBookMu.Unlock()
 
@@ -117,7 +116,7 @@ func (g *gateSpot) UnsubscribeOrderBook(symbol portfolio.Asset) error {
 }
 
 // SubscribeKlines subscribes to kline/candlestick updates
-func (g *gateSpot) SubscribeKlines(symbol portfolio.Asset, interval string) error {
+func (g *gateSpot) SubscribeKlines(pair portfolio.Pair, interval string) error {
 	if !g.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -127,7 +126,7 @@ func (g *gateSpot) SubscribeKlines(symbol portfolio.Asset, interval string) erro
 	}
 
 	ch := make(chan connector.Kline, 100)
-	gateSymbol := g.formatSymbol(symbol.Symbol())
+	gateSymbol := g.GetSpotSymbol(pair)
 
 	_, err := g.wsService.SubscribeToKlines(gateSymbol, interval, func(msg *websocket.KlineMessage) {
 		// Convert to connector.Kline
@@ -138,7 +137,7 @@ func (g *gateSpot) SubscribeKlines(symbol portfolio.Asset, interval string) erro
 		volume, _ := numerical.NewFromString(msg.Volume)
 
 		kline := connector.Kline{
-			Symbol:    symbol.Symbol(),
+			Pair:      pair,
 			Interval:  interval,
 			OpenTime:  g.timeProvider.Now(),
 			Open:      open.InexactFloat64(),
@@ -162,7 +161,7 @@ func (g *gateSpot) SubscribeKlines(symbol portfolio.Asset, interval string) erro
 	}
 
 	// Store channel
-	key := symbol.Symbol() + ":" + interval
+	key := pair.Symbol() + ":" + interval
 	g.klineMu.Lock()
 	g.klineChannels[key] = ch
 	g.klineMu.Unlock()
@@ -171,8 +170,8 @@ func (g *gateSpot) SubscribeKlines(symbol portfolio.Asset, interval string) erro
 }
 
 // UnsubscribeKlines unsubscribes from kline updates
-func (g *gateSpot) UnsubscribeKlines(symbol portfolio.Asset, interval string) error {
-	key := symbol.Symbol() + ":" + interval
+func (g *gateSpot) UnsubscribeKlines(pair portfolio.Pair, interval string) error {
+	key := pair.Symbol() + ":" + interval
 
 	g.klineMu.Lock()
 	if ch, exists := g.klineChannels[key]; exists {
@@ -188,12 +187,6 @@ func (g *gateSpot) UnsubscribeKlines(symbol portfolio.Asset, interval string) er
 func (g *gateSpot) TradeUpdates() <-chan connector.Trade {
 	// Return the existing trade channel
 	return g.tradeCh
-}
-
-// PositionUpdates subscribes to position updates (not applicable for spot)
-func (g *gateSpot) PositionUpdates() <-chan connector.Position {
-	// Spot trading doesn't have positions
-	return g.positionCh
 }
 
 // GetOrderBookChannels returns all order book channels
@@ -220,10 +213,10 @@ func (g *gateSpot) GetKlineChannels() map[string]<-chan connector.Kline {
 	return result
 }
 
-// AccountBalanceUpdates subscribes to balance updates
-func (g *gateSpot) AccountBalanceUpdates() <-chan connector.AccountBalance {
+// AssetBalanceUpdates subscribes to balance updates
+func (g *gateSpot) AssetBalanceUpdates() <-chan connector.AssetBalance {
 	if !g.initialized {
-		g.appLogger.Error("Connector not initialized for AccountBalanceUpdates")
+		g.appLogger.Error("Connector not initialized for AssetBalanceUpdates")
 		return g.balanceCh
 	}
 
@@ -234,32 +227,29 @@ func (g *gateSpot) AccountBalanceUpdates() <-chan connector.AccountBalance {
 
 	// Subscribe to account balance updates via WebSocket
 	_, err := g.wsService.SubscribeToAccountBalance(func(msg *websocket.AccountBalanceMessage) {
-		// Convert to connector.AccountBalance
-		totalBalance := numerical.Zero()
-		availableBalance := numerical.Zero()
-
 		for _, bal := range msg.Balances {
-			if bal.Currency == "USDT" {
-				available, _ := numerical.NewFromString(bal.Available)
-				locked, _ := numerical.NewFromString(bal.Locked)
-				totalBalance = totalBalance.Add(available).Add(locked)
-				availableBalance = availableBalance.Add(available)
+			available, _ := numerical.NewFromString(bal.Available)
+			locked, _ := numerical.NewFromString(bal.Locked)
+			total := available.Add(locked)
+
+			// Skip assets with zero balance
+			if total.IsZero() {
+				continue
 			}
-		}
 
-		balance := connector.AccountBalance{
-			TotalBalance:     totalBalance,
-			AvailableBalance: availableBalance,
-			UsedMargin:       numerical.Zero(),
-			UnrealizedPnL:    numerical.Zero(),
-			Currency:         "USDT",
-			UpdatedAt:        g.timeProvider.Now(),
-		}
+			balance := connector.AssetBalance{
+				Asset:     portfolio.NewAsset(bal.Currency),
+				Free:      available,
+				Locked:    locked,
+				Total:     total,
+				UpdatedAt: g.timeProvider.Now(),
+			}
 
-		select {
-		case g.balanceCh <- balance:
-		default:
-			g.appLogger.Warn("Balance channel full, dropping message")
+			select {
+			case g.balanceCh <- balance:
+			default:
+				g.appLogger.Warn("Balance channel full, dropping message", "asset", bal.Currency)
+			}
 		}
 	})
 

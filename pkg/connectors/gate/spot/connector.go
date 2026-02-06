@@ -26,10 +26,9 @@ type gateSpot struct {
 	initialized   bool
 
 	// WebSocket channels
-	tradeCh    chan connector.Trade
-	positionCh chan connector.Position
-	balanceCh  chan connector.AccountBalance
-	errorCh    chan error
+	tradeCh   chan connector.Trade
+	balanceCh chan connector.AssetBalance
+	errorCh   chan error
 
 	// Separate channels per orderbook subscription (key: "BTC_USDT", "ETH_USDT", etc.)
 	orderBookChannels map[string]chan connector.OrderBook
@@ -65,8 +64,7 @@ func NewGateSpot(
 		ctx:               context.Background(),
 		initialized:       false,
 		tradeCh:           make(chan connector.Trade, 100),
-		positionCh:        make(chan connector.Position, 100),
-		balanceCh:         make(chan connector.AccountBalance, 100),
+		balanceCh:         make(chan connector.AssetBalance, 100),
 		errorCh:           make(chan error, 100),
 		orderBookChannels: make(map[string]chan connector.OrderBook),
 		klineChannels:     make(map[string]chan connector.Kline),
@@ -115,7 +113,6 @@ func (g *gateSpot) Close() error {
 
 	// Close all channels
 	close(g.tradeCh)
-	close(g.positionCh)
 	close(g.balanceCh)
 	close(g.errorCh)
 
@@ -134,15 +131,6 @@ func (g *gateSpot) Close() error {
 	g.initialized = false
 	g.appLogger.Info("Gate Spot connector closed")
 	return nil
-}
-
-// GetTradingHistory retrieves trading history
-func (g *gateSpot) GetTradingHistory(_ string, _ int) ([]connector.Trade, error) {
-	if !g.initialized {
-		return nil, fmt.Errorf("connector not initialized")
-	}
-	// TODO: Implement trading history when needed
-	return []connector.Trade{}, nil
 }
 
 // IsInitialized returns whether the connector is initialized
@@ -174,7 +162,7 @@ func (g *gateSpot) SubscribeAccountBalance() error {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	_ = g.AccountBalanceUpdates()
+	_ = g.AssetBalanceUpdates()
 	return nil
 }
 
@@ -186,7 +174,7 @@ func (g *gateSpot) UnsubscribeAccountBalance() error {
 }
 
 // SubscribeTrades subscribes to trade updates for an asset
-func (g *gateSpot) SubscribeTrades(asset portfolio.Asset) error {
+func (g *gateSpot) SubscribeTrades(pair portfolio.Pair) error {
 	if !g.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
@@ -197,7 +185,7 @@ func (g *gateSpot) SubscribeTrades(asset portfolio.Asset) error {
 }
 
 // UnsubscribeTrades unsubscribes from trade updates
-func (g *gateSpot) UnsubscribeTrades(_ portfolio.Asset) error {
+func (g *gateSpot) UnsubscribeTrades(_ portfolio.Pair) error {
 	// TODO: Implement proper unsubscription tracking
 	g.appLogger.Info("Trades unsubscription requested")
 	return nil

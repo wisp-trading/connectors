@@ -14,7 +14,7 @@ import (
 )
 
 // FetchKlines retrieves historical candlestick data
-func (g *gateSpot) FetchKlines(symbol, interval string, limit int) ([]connector.Kline, error) {
+func (g *gateSpot) FetchKlines(pair portfolio.Pair, interval string, limit int) ([]connector.Kline, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -25,7 +25,7 @@ func (g *gateSpot) FetchKlines(symbol, interval string, limit int) ([]connector.
 	}
 
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol)
+	currencyPair := g.GetSpotSymbol(pair)
 
 	// Debug logging
 	g.appLogger.Info("Fetching klines",
@@ -58,7 +58,7 @@ func (g *gateSpot) FetchKlines(symbol, interval string, limit int) ([]connector.
 		open, _ := strconv.ParseFloat(candle[5], 64)
 
 		klines = append(klines, connector.Kline{
-			Symbol:    symbol,
+			Pair:      pair,
 			Interval:  interval,
 			OpenTime:  openTime,
 			Open:      open,
@@ -74,7 +74,7 @@ func (g *gateSpot) FetchKlines(symbol, interval string, limit int) ([]connector.
 }
 
 // FetchPrice retrieves current price
-func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
+func (g *gateSpot) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -85,7 +85,7 @@ func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
 	}
 
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol)
+	currencyPair := g.GetSpotSymbol(pair)
 
 	// Get ticker for the currency pair
 	tickers, _, err := client.SpotApi.ListTickers(ctx, &gateapi.ListTickersOpts{
@@ -96,7 +96,7 @@ func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
 	}
 
 	if len(tickers) == 0 {
-		return nil, fmt.Errorf("no ticker found for %s", symbol)
+		return nil, fmt.Errorf("no ticker found for %s", pair.Symbol())
 	}
 
 	price, err := numerical.NewFromString(tickers[0].Last)
@@ -105,7 +105,7 @@ func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
 	}
 
 	return &connector.Price{
-		Symbol:    symbol,
+		Symbol:    pair.Symbol(),
 		Price:     price,
 		Source:    types.GateSpot,
 		Timestamp: g.timeProvider.Now(),
@@ -113,7 +113,7 @@ func (g *gateSpot) FetchPrice(symbol string) (*connector.Price, error) {
 }
 
 // FetchOrderBook retrieves order book
-func (g *gateSpot) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector.OrderBook, error) {
+func (g *gateSpot) FetchOrderBook(pair portfolio.Pair, depth int) (*connector.OrderBook, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -124,7 +124,7 @@ func (g *gateSpot) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector
 	}
 
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol.Symbol())
+	currencyPair := g.GetSpotSymbol(pair)
 
 	orderBook, _, err := client.SpotApi.ListOrderBook(ctx, currencyPair, &gateapi.ListOrderBookOpts{
 		Limit: optional.NewInt32(int32(depth)),
@@ -156,6 +156,7 @@ func (g *gateSpot) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector
 	}
 
 	return &connector.OrderBook{
+		Pair:      pair,
 		Bids:      bids,
 		Asks:      asks,
 		Timestamp: g.timeProvider.Now(),
@@ -163,7 +164,7 @@ func (g *gateSpot) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector
 }
 
 // FetchRecentTrades retrieves recent public trades for a symbol
-func (g *gateSpot) FetchRecentTrades(symbol string, limit int) ([]connector.Trade, error) {
+func (g *gateSpot) FetchRecentTrades(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -174,7 +175,7 @@ func (g *gateSpot) FetchRecentTrades(symbol string, limit int) ([]connector.Trad
 	}
 
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol)
+	currencyPair := g.GetSpotSymbol(pair)
 
 	// Fetch public trades
 	gateTrades, _, err := client.SpotApi.ListTrades(ctx, currencyPair, &gateapi.ListTradesOpts{
@@ -215,8 +216,8 @@ func (g *gateSpot) FetchRecentTrades(symbol string, limit int) ([]connector.Trad
 
 		trades = append(trades, connector.Trade{
 			ID:        trade.Id,
-			Symbol:    symbol,
-			Exchange:  "gate",
+			Pair:      pair,
+			Exchange:  g.GetConnectorInfo().Name,
 			Price:     price,
 			Quantity:  quantity,
 			Side:      side,
@@ -225,14 +226,4 @@ func (g *gateSpot) FetchRecentTrades(symbol string, limit int) ([]connector.Trad
 	}
 
 	return trades, nil
-}
-
-// GetPerpSymbol returns the perpetual symbol format (not used in spot)
-func (g *gateSpot) GetPerpSymbol(asset portfolio.Asset) string {
-	return asset.Symbol()
-}
-
-// GetSpotSymbol returns the spot symbol format
-func (g *gateSpot) GetSpotSymbol(asset portfolio.Asset) string {
-	return g.formatSymbol(asset.Symbol())
 }

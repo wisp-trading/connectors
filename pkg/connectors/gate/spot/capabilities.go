@@ -27,6 +27,5 @@ func (g *gateSpot) GetConnectorInfo() *connector.Info {
 			connector.OrderTypeLimit,
 			connector.OrderTypeMarket,
 		},
-		QuoteCurrency: "USDT",
 	}
 }

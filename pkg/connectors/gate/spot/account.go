@@ -2,16 +2,15 @@ package spot
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/antihax/optional"
 	"github.com/gate/gateapi-go/v7"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-// GetAccountBalance retrieves the account balance for spot trading
-func (g *gateSpot) GetAccountBalance() (*connector.AccountBalance, error) {
+func (g *gateSpot) GetBalance(asset portfolio.Asset) (*connector.AssetBalance, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -23,49 +22,79 @@ func (g *gateSpot) GetAccountBalance() (*connector.AccountBalance, error) {
 
 	ctx := g.spotClient.GetAPIContext()
 
-	// Get spot account balances
+	accountResponse, _, err := client.SpotApi.ListSpotAccounts(ctx, &gateapi.ListSpotAccountsOpts{
+		Currency: optional.NewString(asset.Symbol()),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get spot account for asset %s: %w", asset, err)
+	}
+
+	if len(accountResponse) == 0 {
+		return nil, fmt.Errorf("no account found for asset %s", asset)
+	}
+
+	account := accountResponse[0]
+
+	available, _ := numerical.NewFromString(account.Available)
+	locked, _ := numerical.NewFromString(account.Locked)
+	total := available.Add(locked)
+
+	return &connector.AssetBalance{
+		Asset:     portfolio.NewAsset(account.Currency),
+		Free:      available,
+		Locked:    locked,
+		Total:     total,
+		UpdatedAt: g.timeProvider.Now(),
+	}, nil
+}
+
+// GetBalances retrieves the account balance for spot trading
+func (g *gateSpot) GetBalances() ([]connector.AssetBalance, error) {
+	if !g.initialized {
+		return nil, fmt.Errorf("connector not initialized")
+	}
+
+	client, err := g.spotClient.GetSpotApi()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get spot API client: %w", err)
+	}
+
+	ctx := g.spotClient.GetAPIContext()
+
 	accounts, _, err := client.SpotApi.ListSpotAccounts(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get spot accounts: %w", err)
 	}
 
-	totalBalance := numerical.Zero()
-	availableBalance := numerical.Zero()
+	var balances []connector.AssetBalance
 
-	// Sum up all currency balances (converted to USDT equivalent would be ideal)
 	for _, account := range accounts {
-		if account.Currency == "USDT" {
-			available, _ := numerical.NewFromString(account.Available)
-			locked, _ := numerical.NewFromString(account.Locked)
-			totalBalance = totalBalance.Add(available).Add(locked)
-			availableBalance = availableBalance.Add(available)
+		available, _ := numerical.NewFromString(account.Available)
+		locked, _ := numerical.NewFromString(account.Locked)
+		total := available.Add(locked)
+
+		// Skip zero balances
+		if total.IsZero() {
+			continue
 		}
+
+		balance := connector.AssetBalance{
+			Asset:     portfolio.NewAsset(account.Currency),
+			Free:      available,
+			Locked:    locked,
+			Total:     total,
+			UpdatedAt: g.timeProvider.Now(),
+		}
+
+		balances = append(balances, balance)
 	}
 
-	balance := &connector.AccountBalance{
-		TotalBalance:     totalBalance,
-		AvailableBalance: availableBalance,
-		UsedMargin:       numerical.Zero(), // Spot doesn't use margin
-		UnrealizedPnL:    numerical.Zero(), // Spot doesn't have unrealized PnL
-		Currency:         "USDT",
-		UpdatedAt:        g.timeProvider.Now(),
-	}
-
-	return balance, nil
-}
-
-// GetPositions returns empty slice for spot (no positions in spot trading)
-func (g *gateSpot) GetPositions() ([]connector.Position, error) {
-	if !g.initialized {
-		return nil, fmt.Errorf("connector not initialized")
-	}
-
-	// Spot trading doesn't have positions
-	return []connector.Position{}, nil
+	return balances, nil
 }
 
 // GetOpenOrders retrieves all open orders
-func (g *gateSpot) GetOpenOrders() ([]connector.Order, error) {
+func (g *gateSpot) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -94,90 +123,35 @@ func (g *gateSpot) GetOpenOrders() ([]connector.Order, error) {
 	return connectorOrders, nil
 }
 
-// convertGateOrderToConnector converts Gate.io order to connector.Order
-func (g *gateSpot) convertGateOrderToConnector(gateOrder *gateapi.Order) connector.Order {
-	qty, _ := numerical.NewFromString(gateOrder.Amount)
-	price, _ := numerical.NewFromString(gateOrder.Price)
-	filledQty, _ := numerical.NewFromString(gateOrder.FilledAmount)
-	avgPrice, _ := numerical.NewFromString(gateOrder.AvgDealPrice)
-
-	// Parse timestamps (Gate uses string timestamps)
-	var createdAt, updatedAt time.Time
-	if gateOrder.CreateTimeMs > 0 {
-		createdAt = time.UnixMilli(gateOrder.CreateTimeMs)
-	}
-	if gateOrder.UpdateTimeMs > 0 {
-		updatedAt = time.UnixMilli(gateOrder.UpdateTimeMs)
+// GetTradingHistory retrieves trading history for a specific pair
+func (g *gateSpot) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
+	if !g.initialized {
+		return nil, fmt.Errorf("connector not initialized")
 	}
 
-	return connector.Order{
-		ID:           gateOrder.Id,
-		Symbol:       g.parseSymbol(gateOrder.CurrencyPair).Symbol(),
-		Status:       g.convertGateOrderStatus(gateOrder.Status),
-		Side:         g.convertGateOrderSide(gateOrder.Side),
-		Type:         g.convertGateOrderType(gateOrder.Type),
-		Quantity:     qty,
-		Price:        price,
-		FilledQty:    filledQty,
-		RemainingQty: qty.Sub(filledQty),
-		AvgPrice:     avgPrice,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
+	client, err := g.spotClient.GetSpotApi()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get spot API client: %w", err)
 	}
-}
 
-// convertGateOrderStatus converts Gate.io order status to connector.OrderStatus
-func (g *gateSpot) convertGateOrderStatus(status string) connector.OrderStatus {
-	switch status {
-	case "open":
-		return connector.OrderStatusOpen
-	case "closed":
-		return connector.OrderStatusFilled
-	case "cancelled":
-		return connector.OrderStatusCanceled
-	default:
-		return connector.OrderStatusOpen
+	ctx := g.spotClient.GetAPIContext()
+
+	currencyPair := g.GetSpotSymbol(pair)
+
+	trades, _, err := client.SpotApi.ListMyTrades(ctx, &gateapi.ListMyTradesOpts{
+		CurrencyPair: optional.NewString(currencyPair),
+		Limit:        optional.NewInt32(int32(limit)),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get trading history: %w", err)
 	}
-}
 
-// convertGateOrderSide converts Gate.io order side to connector.OrderSide
-func (g *gateSpot) convertGateOrderSide(side string) connector.OrderSide {
-	switch side {
-	case "buy":
-		return connector.OrderSideBuy
-	case "sell":
-		return connector.OrderSideSell
-	default:
-		return connector.OrderSideUnknown
+	connectorTrades := make([]connector.Trade, 0, len(trades))
+	for _, trade := range trades {
+		connectorTrade := g.convertGateTradeToConnector(&trade)
+		connectorTrades = append(connectorTrades, connectorTrade)
 	}
-}
 
-// convertGateOrderType converts Gate.io order type to connector.OrderType
-func (g *gateSpot) convertGateOrderType(orderType string) connector.OrderType {
-	switch orderType {
-	case "limit":
-		return connector.OrderTypeLimit
-	case "market":
-		return connector.OrderTypeMarket
-	default:
-		return connector.OrderTypeLimit
-	}
-}
-
-// formatSymbol converts symbol from Wisp format to Gate format
-// Example: ETH -> ETH_USDT
-func (g *gateSpot) formatSymbol(symbol string) string {
-	return symbol + "_USDT"
-}
-
-// parseSymbol converts Gate symbol format to Wisp format
-// Example: ETH_USDT -> ETH
-func (g *gateSpot) parseSymbol(gateSymbol string) portfolio.Asset {
-	// Simple implementation - split on underscore and take first part
-	for i, c := range gateSymbol {
-		if c == '_' {
-			return portfolio.NewAsset(gateSymbol[:i])
-		}
-	}
-	return portfolio.NewAsset(gateSymbol)
+	return connectorTrades, nil
 }
