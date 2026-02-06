@@ -8,16 +8,20 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
-// CreateAsset creates a portfolio.Asset for testing
-func CreateAsset(symbol string) portfolio.Asset {
-	return portfolio.NewAsset(
-		symbol,
+// CreatePair creates a portfolio.Asset for testing
+func CreatePair(symbol string) portfolio.Pair {
+	base := portfolio.NewAsset(symbol)
+	quote := portfolio.NewAsset("USDT")
+
+	return portfolio.NewPair(
+		base,
+		quote,
 	)
 }
 
 // MarketDataBehavior defines shared market data test behaviors
 // Use this in both spot and perp test files
-func MarketDataBehavior(getRunner func() BaseTestRunner, getSymbol func() string) {
+func MarketDataBehavior(getRunner func() BaseTestRunner, getPair func() portfolio.Pair) {
 
 	Describe("Market Data (Shared)", func() {
 
@@ -25,7 +29,7 @@ func MarketDataBehavior(getRunner func() BaseTestRunner, getSymbol func() string
 			It("should fetch current price", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getSymbol()
+				symbol := getPair()
 
 				price, err := conn.FetchPrice(symbol)
 				Expect(err).ToNot(HaveOccurred())
@@ -40,7 +44,7 @@ func MarketDataBehavior(getRunner func() BaseTestRunner, getSymbol func() string
 			It("should fetch historical klines", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getSymbol()
+				symbol := getPair()
 
 				klines, err := conn.FetchKlines(symbol, "1m", 10)
 				Expect(err).ToNot(HaveOccurred())
@@ -54,10 +58,9 @@ func MarketDataBehavior(getRunner func() BaseTestRunner, getSymbol func() string
 			It("should fetch order book", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getSymbol()
-				asset := CreateAsset(symbol)
+				pair := getPair()
 
-				ob, err := conn.FetchOrderBook(asset, 10)
+				ob, err := conn.FetchOrderBook(pair, 10)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ob).ToNot(BeNil())
 				Expect(ob.Bids).ToNot(BeEmpty())
@@ -71,7 +74,7 @@ func MarketDataBehavior(getRunner func() BaseTestRunner, getSymbol func() string
 			It("should fetch recent trades", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getSymbol()
+				symbol := getPair()
 
 				trades, err := conn.FetchRecentTrades(symbol, 10)
 				Expect(err).ToNot(HaveOccurred())
@@ -93,12 +96,12 @@ func AccountBehavior(getRunner func() BaseTestRunner) {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.AccountReader)
 
-				balance, err := conn.GetAccountBalance()
+				balance, err := conn.GetBalance(portfolio.NewAsset("USDC"))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(balance).ToNot(BeNil())
-				Expect(balance.Currency).ToNot(BeEmpty())
+				Expect(balance.Asset.Symbol()).ToNot(BeEmpty())
 
-				LogSuccess("Account Balance: %s %s", balance.TotalBalance.String(), balance.Currency)
+				LogSuccess("Account Balance: %s %s", balance.Total.String(), balance.Asset.Symbol())
 			})
 		})
 	})

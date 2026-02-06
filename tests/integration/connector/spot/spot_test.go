@@ -3,6 +3,7 @@ package spot_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 )
@@ -28,7 +29,7 @@ var _ = Describe("Spot Connector Tests", func() {
 	// Include shared behaviors
 	connector_test.MarketDataBehavior(
 		func() connector_test.BaseTestRunner { return runner },
-		func() string { return connector_test.GetSpotSymbol() }, // "ETH_USDT" format
+		func() portfolio.Pair { return connector_test.CreatePair("ETH") },
 	)
 
 	connector_test.AccountBehavior(
@@ -63,7 +64,7 @@ var _ = Describe("Spot Connector Tests", func() {
 		Context("OrderBook Subscription", func() {
 			It("should subscribe and receive updates", func() {
 				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreateAsset(connector_test.GetSpotSymbol())
+				asset := connector_test.CreatePair(connector_test.GetSpotSymbol())
 
 				err := wsConn.SubscribeOrderBook(asset)
 				Expect(err).ToNot(HaveOccurred())
@@ -78,7 +79,7 @@ var _ = Describe("Spot Connector Tests", func() {
 		Context("Klines Subscription", func() {
 			It("should subscribe and receive updates", func() {
 				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreateAsset(connector_test.GetSpotSymbol())
+				asset := connector_test.CreatePair(connector_test.GetSpotSymbol())
 
 				err := wsConn.SubscribeKlines(asset, "1m")
 				Expect(err).ToNot(HaveOccurred())
@@ -97,7 +98,7 @@ var _ = Describe("Spot Connector Tests", func() {
 				err := wsConn.SubscribeAccountBalance()
 				Expect(err).ToNot(HaveOccurred())
 
-				balanceCh := wsConn.AccountBalanceUpdates()
+				balanceCh := wsConn.AssetBalanceUpdates()
 				Expect(balanceCh).ToNot(BeNil())
 
 				connector_test.LogSuccess("Balance subscription active")

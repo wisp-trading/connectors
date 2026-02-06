@@ -3,6 +3,7 @@ package perp_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 )
@@ -28,7 +29,7 @@ var _ = Describe("Perp Connector Tests", func() {
 	// Include shared behaviors
 	connector_test.MarketDataBehavior(
 		func() connector_test.BaseTestRunner { return runner },
-		func() string { return runner.GetPerpSymbol(connector_test.CreateAsset("ETH")) },
+		func() portfolio.Pair { return connector_test.CreatePair("ETH") },
 	)
 
 	connector_test.AccountBehavior(
@@ -45,7 +46,7 @@ var _ = Describe("Perp Connector Tests", func() {
 		Context("FetchFundingRate", func() {
 			It("should fetch funding rate for asset", func() {
 				conn := runner.GetPerpConnector()
-				asset := connector_test.CreateAsset("ETH")
+				asset := connector_test.CreatePair("ETH")
 
 				fr, err := conn.FetchFundingRate(asset)
 				Expect(err).ToNot(HaveOccurred())
@@ -105,7 +106,7 @@ var _ = Describe("Perp Connector Tests", func() {
 		Context("Position Subscription", func() {
 			It("should subscribe to positions", func() {
 				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreateAsset("ETH")
+				asset := connector_test.CreatePair("ETH")
 
 				err := wsConn.SubscribePositions(asset)
 				Expect(err).ToNot(HaveOccurred())
@@ -120,7 +121,7 @@ var _ = Describe("Perp Connector Tests", func() {
 		Context("Funding Rate Subscription", func() {
 			It("should subscribe to funding rates", func() {
 				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreateAsset("ETH")
+				asset := connector_test.CreatePair("ETH")
 
 				err := wsConn.SubscribeFundingRates(asset)
 				Expect(err).ToNot(HaveOccurred())
@@ -135,7 +136,7 @@ var _ = Describe("Perp Connector Tests", func() {
 		Context("OrderBook Subscription", func() {
 			It("should subscribe and receive updates", func() {
 				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreateAsset("ETH")
+				asset := connector_test.CreatePair("ETH")
 
 				err := wsConn.SubscribeOrderBook(asset)
 				Expect(err).ToNot(HaveOccurred())
@@ -150,7 +151,7 @@ var _ = Describe("Perp Connector Tests", func() {
 		Context("Klines Subscription", func() {
 			It("should subscribe and receive updates", func() {
 				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreateAsset("ETH")
+				asset := connector_test.CreatePair("ETH")
 
 				err := wsConn.SubscribeKlines(asset, "1m")
 				Expect(err).ToNot(HaveOccurred())
