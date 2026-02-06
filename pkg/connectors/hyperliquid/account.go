@@ -6,40 +6,108 @@ import (
 
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-func (h *hyperliquid) GetAccountBalance() (*connector.AccountBalance, error) {
+func (h *hyperliquid) GetBalances() ([]connector.AssetBalance, error) {
+	// Delegate to GetMarginBalances and extract base AssetBalance
+	marginBalances, err := h.GetMarginBalances()
+	if err != nil {
+		return nil, err
+	}
+
+	balances := make([]connector.AssetBalance, len(marginBalances))
+	for i, mb := range marginBalances {
+		balances[i] = mb.AssetBalance
+	}
+	return balances, nil
+}
+
+func (h *hyperliquid) GetMarginBalances() ([]perp.AssetBalance, error) {
 	userState, err := h.marketData.GetUserState(h.config.AccountAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user state: %w", err)
 	}
 
-	balance := &connector.AccountBalance{
-		TotalBalance:     parseDecimal(userState.MarginSummary.AccountValue),
-		AvailableBalance: parseDecimal(userState.Withdrawable),
-		UsedMargin:       parseDecimal(userState.MarginSummary.TotalMarginUsed),
-		UnrealizedPnL:    parseDecimal(userState.MarginSummary.TotalNtlPos),
-		Currency:         "USD",
-		UpdatedAt:        h.timeProvider.Now(),
+	balances := make([]perp.AssetBalance, 0, len(userState.AssetPositions)+1)
+
+	// Add USDC balance (the only withdrawable asset)
+	withdrawable := parseDecimal(userState.Withdrawable)
+	totalAccountValue := parseDecimal(userState.MarginSummary.AccountValue)
+	totalMarginUsed := parseDecimal(userState.MarginSummary.TotalMarginUsed)
+
+	balances = append(balances, perp.AssetBalance{
+		AssetBalance: connector.AssetBalance{
+			Asset:     portfolio.NewAsset("USDC"),
+			Free:      withdrawable,
+			Locked:    totalMarginUsed,
+			Total:     totalAccountValue,
+			UpdatedAt: h.timeProvider.Now(),
+		},
+		UsedMargin:    totalMarginUsed,
+		UnrealizedPnL: parseDecimal(userState.MarginSummary.TotalNtlPos),
+	})
+
+	// Add balance for each asset with an open position
+	for _, assetPos := range userState.AssetPositions {
+		pos := assetPos.Position
+
+		positionValue := parseDecimal(pos.PositionValue)
+		marginUsed := parseDecimal(pos.MarginUsed)
+		unrealizedPnl := parseDecimal(pos.UnrealizedPnl)
+
+		balances = append(balances, perp.AssetBalance{
+			AssetBalance: connector.AssetBalance{
+				Asset:     portfolio.NewAsset(pos.Coin),
+				Free:      numerical.Zero(),
+				Locked:    numerical.Zero(),
+				Total:     positionValue,
+				UpdatedAt: h.timeProvider.Now(),
+			},
+			UsedMargin:    marginUsed,
+			UnrealizedPnL: unrealizedPnl,
+		})
 	}
 
-	return balance, nil
+	return balances, nil
+}
+
+func (h *hyperliquid) GetBalance(asset portfolio.Asset) (*connector.AssetBalance, error) {
+	marginBalances, err := h.GetMarginBalances()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, mb := range marginBalances {
+		if mb.Asset.Symbol() == asset.Symbol() {
+			return &mb.AssetBalance, nil
+		}
+	}
+
+	// Asset not found - return zero balance
+	return &connector.AssetBalance{
+		Asset:     asset,
+		Free:      numerical.Zero(),
+		Locked:    numerical.Zero(),
+		Total:     numerical.Zero(),
+		UpdatedAt: h.timeProvider.Now(),
+	}, nil
 }
 
 // GetPositions retrieves all positions from UserState and remaps them to connector.Position
-func (h *hyperliquid) GetPositions() ([]connector.Position, error) {
+func (h *hyperliquid) GetPositions() ([]perp.Position, error) {
 	userState, err := h.marketData.GetUserState(h.config.AccountAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user state: %w", err)
 	}
 
 	if len(userState.AssetPositions) == 0 {
-		return []connector.Position{}, nil
+		return []perp.Position{}, nil
 	}
 
-	var positions []connector.Position
+	var positions []perp.Position
 
 	for _, assetPos := range userState.AssetPositions {
 		pos := assetPos.Position
@@ -71,9 +139,9 @@ func (h *hyperliquid) GetPositions() ([]connector.Position, error) {
 			side = connector.OrderSideBuy
 		}
 
-		positions = append(positions, connector.Position{
+		positions = append(positions, perp.Position{
 			Exchange:         types.Hyperliquid,
-			Symbol:           portfolio.NewAsset(pos.Coin),
+			Pair:             h.coinToPair(pos.Coin),
 			Side:             side,
 			Size:             positionSize.Abs(),
 			EntryPrice:       entryPrice,
@@ -90,8 +158,8 @@ func (h *hyperliquid) GetPositions() ([]connector.Position, error) {
 	return positions, nil
 }
 
-// GetTradingHistory retrieves trading history for the specified symbol
-func (h *hyperliquid) GetTradingHistory(symbol string, limit int) ([]connector.Trade, error) {
+// GetTradingHistory retrieves trading history for the specified pair
+func (h *hyperliquid) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
 	fills, err := h.marketData.GetUserFills(h.config.AccountAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user fills: %w", err)
@@ -100,7 +168,7 @@ func (h *hyperliquid) GetTradingHistory(symbol string, limit int) ([]connector.T
 	trades := make([]connector.Trade, 0, limit)
 	for _, fill := range fills {
 		// Only include fills for the requested symbol
-		if fill.Coin != symbol {
+		if fill.Coin != pair.Base().Symbol() {
 			continue
 		}
 
@@ -122,7 +190,7 @@ func (h *hyperliquid) GetTradingHistory(symbol string, limit int) ([]connector.T
 		trades = append(trades, connector.Trade{
 			ID:        fmt.Sprintf("%d", fill.Oid),
 			OrderID:   fmt.Sprintf("%d", fill.Oid),
-			Symbol:    fill.Coin,
+			Pair:      h.coinToPair(fill.Coin),
 			Side:      side,
 			Price:     price,
 			Quantity:  quantity,
