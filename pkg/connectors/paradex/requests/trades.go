@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/trishtzy/go-paradex/auth"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 
 	"github.com/trishtzy/go-paradex/client/orders"
 	"github.com/trishtzy/go-paradex/models"
@@ -127,10 +128,13 @@ func (s *Service) GetOrder(ctx context.Context, orderID string) (*models.Respons
 	return resp.Payload, nil
 }
 
-func (s *Service) GetOpenOrders(ctx context.Context, market *string) ([]*models.ResponsesOrderResp, error) {
+func (s *Service) FetchOpenOrders(pair ...portfolio.Pair) ([]*models.ResponsesOrderResp, error) {
+	ctx := context.Background()
 	orderParams := orders.NewGetOpenOrdersParams().WithContext(ctx)
-	if market != nil {
-		orderParams.SetMarket(market)
+
+	if len(pair) > 0 {
+		market := pair[0].Symbol()
+		orderParams.SetMarket(&market)
 	}
 
 	resp, err := s.client.API().Orders.GetOpenOrders(orderParams, s.client.AuthWriter(ctx))

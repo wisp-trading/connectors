@@ -7,15 +7,30 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
-func (p *paradex) FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error) {
-	return nil, fmt.Errorf("current funding rates not needed for MM strategy")
+func (p *paradex) SubscribeFundingRates(pair portfolio.Pair) error {
+	//TODO implement me
+	panic("implement me")
 }
 
-func (p *paradex) FetchFundingRate(asset portfolio.Asset) (*perp.FundingRate, error) {
-	return nil, fmt.Errorf("funding rate not needed for MM strategy")
+func (p *paradex) UnsubscribeFundingRates(pair portfolio.Pair) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *paradex) FundingRateUpdates() <-chan perp.FundingRate {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *paradex) FetchCurrentFundingRates() (map[portfolio.Pair]perp.FundingRate, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (p *paradex) FetchFundingRate(pair portfolio.Pair) (*perp.FundingRate, error) {
+	return nil, fmt.Errorf("not implemented")
 
 }
 
-func (p *paradex) FetchHistoricalFundingRates(asset portfolio.Asset, startTime, endTime int64) ([]perp.HistoricalFundingRate, error) {
-	return nil, fmt.Errorf("historical funding rates not needed for MM strategy")
+func (p *paradex) FetchHistoricalFundingRates(pair portfolio.Pair, startTime, endTime int64) ([]perp.HistoricalFundingRate, error) {
+	return nil, fmt.Errorf("not implemented")
 }

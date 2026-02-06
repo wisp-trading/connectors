@@ -2,6 +2,7 @@ package paradex
 
 import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 )
 
 func (p *paradex) GetKlineChannels() map[string]<-chan connector.Kline {
@@ -36,28 +37,28 @@ func (p *paradex) TradeUpdates() <-chan connector.Trade {
 	return p.tradeCh
 }
 
-func (p *paradex) PositionUpdates() <-chan connector.Position {
+func (p *paradex) PositionUpdates() <-chan perp.Position {
 	if p.wsService == nil {
-		ch := make(chan connector.Position)
+		ch := make(chan perp.Position)
 		close(ch)
 		return ch
 	}
 
 	// TODO: Implement actual position updates conversion
-	convertedChan := make(chan connector.Position, 100)
+	convertedChan := make(chan perp.Position, 100)
 	go p.convertPositionUpdates(convertedChan)
 	return convertedChan
 }
 
-func (p *paradex) AccountBalanceUpdates() <-chan connector.AccountBalance {
+func (p *paradex) AccountBalanceUpdates() <-chan connector.AssetBalance {
 	if p.wsService == nil {
-		ch := make(chan connector.AccountBalance)
+		ch := make(chan connector.AssetBalance)
 		close(ch)
 		return ch
 	}
 
 	// TODO: Implement actual account balance updates conversion
-	convertedChan := make(chan connector.AccountBalance, 100)
+	convertedChan := make(chan connector.AssetBalance, 100)
 	go p.convertAccountBalanceUpdates(convertedChan)
 	return convertedChan
 }
@@ -73,14 +74,14 @@ func (p *paradex) ErrorChannel() <-chan error {
 }
 
 // Stub converter methods - implement these when you need the functionality
-func (p *paradex) convertPositionUpdates(out chan<- connector.Position) {
+func (p *paradex) convertPositionUpdates(out chan<- perp.Position) {
 	defer close(out)
 	// TODO: Convert from paradex position format to connector.Position
 	// For now, just a placeholder that doesn't send anything
 	<-p.wsContext.Done()
 }
 
-func (p *paradex) convertAccountBalanceUpdates(out chan<- connector.AccountBalance) {
+func (p *paradex) convertAccountBalanceUpdates(out chan<- connector.AssetBalance) {
 	defer close(out)
 	// TODO: Convert from paradex balance format to connector.AccountBalance
 	// For now, just a placeholder that doesn't send anything
@@ -99,9 +100,15 @@ func (p *paradex) convertKlineUpdates(out chan<- connector.Kline) {
 				return
 			}
 
+			pair, err := p.PerpSymbolToPair(paradexKline.Symbol)
+			if err != nil {
+				p.appLogger.Error("Failed to convert symbol to pair: %v", err)
+				continue
+			}
+
 			// Convert from paradex KlineUpdate to connector.Kline
 			connectorKline := connector.Kline{
-				Symbol:      paradexKline.Symbol,
+				Pair:        pair,
 				Interval:    paradexKline.Interval,
 				OpenTime:    paradexKline.OpenTime,
 				Open:        paradexKline.Open,

@@ -1,18 +1,21 @@
 package paradex
 
 import (
-	"context"
 	"fmt"
 	"time"
 
+	"github.com/trishtzy/go-paradex/models"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex/requests"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-func (p *paradex) PlaceLimitOrder(symbol string, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {
+func (p *paradex) PlaceLimitOrder(pair portfolio.Pair, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {
+	market := p.GetPerpSymbol(pair)
+
 	orderReq := requests.PlaceOrderParams{
-		Market:    symbol + "-USD-PERP",
+		Market:    market,
 		Side:      string(side), // "BUY" or "SELL"
 		Size:      quantity.String(),
 		Price:     price.String(),
@@ -38,9 +41,11 @@ func (p *paradex) PlaceLimitOrder(symbol string, side connector.OrderSide, quant
 	}, nil
 }
 
-func (p *paradex) PlaceMarketOrder(symbol string, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
+func (p *paradex) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
+	market := p.GetPerpSymbol(pair)
+
 	orderReq := requests.PlaceOrderParams{
-		Market:    symbol,
+		Market:    market,
 		Side:      string(side),
 		Size:      quantity.String(),
 		OrderType: "MARKET",
@@ -65,24 +70,47 @@ func (p *paradex) PlaceMarketOrder(symbol string, side connector.OrderSide, quan
 	}, nil
 }
 
-func (p *paradex) CancelOrder(symbol, orderID string) (*connector.CancelResponse, error) {
-	p.tradingLogger.OrderLifecycle("Cancelling order %s for symbol %s", orderID, symbol)
+func (p *paradex) CancelOrder(orderID string, pair ...portfolio.Pair) (*connector.CancelResponse, error) {
+	var symbol string
+
+	if len(pair) > 0 {
+		symbol = pair[0].Symbol()
+	}
+
+	p.tradingLogger.OrderLifecycle(
+		"Cancelling paradex order %s for symbol %s",
+		orderID,
+		symbol,
+	)
+
 	err := p.paradexService.CancelOrder(p.ctx, orderID)
+
 	if err != nil {
 		p.tradingLogger.OrderLifecycle("Failed to cancel order %s for symbol %s: %v", orderID, symbol, err)
 		return nil, err
 	}
 
-	return &connector.CancelResponse{
-		OrderID: orderID,
-		Symbol:  symbol,
-		Status:  connector.OrderCancellationRequested,
-	}, nil
+	cancelResponse := &connector.CancelResponse{
+		OrderID:   orderID,
+		Status:    connector.OrderCancellationRequested,
+		Timestamp: p.timeProvider.Now(),
+	}
+
+	if len(pair) > 0 {
+		cancelResponse.Pair = pair[0]
+	}
+
+	p.tradingLogger.OrderLifecycle("Successfully requested cancellation for order %s on symbol %s", orderID, symbol)
+
+	return cancelResponse, nil
 }
 
-func (p *paradex) GetOpenOrders() ([]connector.Order, error) {
-	ctx := context.Background()
-	paradexOrders, err := p.paradexService.GetOpenOrders(ctx, nil)
+func (p *paradex) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
+	var paradexOrders []*models.ResponsesOrderResp
+	var err error
+
+	paradexOrders, err = p.paradexService.FetchOpenOrders(pair...)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get open orders from paradex: %w", err)
 	}
@@ -103,7 +131,7 @@ func (p *paradex) GetOpenOrders() ([]connector.Order, error) {
 	return orders, nil
 }
 
-func (p *paradex) GetOrderStatus(orderID string) (*connector.Order, error) {
+func (p *paradex) GetOrderStatus(orderID string, pair ...portfolio.Pair) (*connector.Order, error) {
 	order, err := p.paradexService.GetOrder(p.ctx, orderID)
 	if err != nil {
 		return nil, err
@@ -117,38 +145,4 @@ func (p *paradex) GetOrderStatus(orderID string) (*connector.Order, error) {
 	convertedOrder := p.convertParadexOrder(order)
 
 	return &convertedOrder, nil
-}
-
-// GetRawOrder returns the raw paradex order details
-func (p *paradex) GetRawOrder(ctx context.Context, orderID string) (interface{}, error) {
-	return p.paradexService.GetOrder(ctx, orderID)
-}
-
-// GetRawOpenOrders returns open orders with optional market filter
-func (p *paradex) GetRawOpenOrders(ctx context.Context, market *string) (interface{}, error) {
-	return p.paradexService.GetOpenOrders(ctx, market)
-}
-
-// GetAccountSummary returns the account summary
-func (p *paradex) GetAccountSummary(ctx context.Context) (interface{}, error) {
-	return p.paradexService.GetAccount(ctx)
-}
-
-// GetBalances returns account balances
-func (p *paradex) GetBalances(ctx context.Context) (interface{}, error) {
-	return p.paradexService.GetAssetBalances(ctx)
-}
-
-// GetUserPositions returns current positions
-func (p *paradex) GetUserPositions(ctx context.Context) (interface{}, error) {
-	return p.paradexService.GetUserPositions(ctx)
-}
-
-// GetTradeHistory returns trade history with optional market filter
-func (p *paradex) GetTradeHistory(ctx context.Context, market *string) (interface{}, error) {
-	return p.paradexService.GetTradeHistory(ctx, market, nil)
-}
-
-func (p *paradex) GetTradingHistory(symbol string, limit int) ([]connector.Trade, error) {
-	return nil, fmt.Errorf("trading history not needed for MM strategy")
 }

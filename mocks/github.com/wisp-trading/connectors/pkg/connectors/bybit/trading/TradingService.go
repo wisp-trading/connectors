@@ -145,7 +145,7 @@ func (_m *TradingService) GetOpenOrders() ([]connector.Order, error) {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetOpenOrders")
+		panic("no return value specified for FetchOpenOrders")
 	}
 
 	var r0 []connector.Order
@@ -170,14 +170,14 @@ func (_m *TradingService) GetOpenOrders() ([]connector.Order, error) {
 	return r0, r1
 }
 
-// TradingService_GetOpenOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOpenOrders'
+// TradingService_GetOpenOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FetchOpenOrders'
 type TradingService_GetOpenOrders_Call struct {
 	*mock.Call
 }
 
 // GetOpenOrders is a helper method to define mock.On call
 func (_e *TradingService_Expecter) GetOpenOrders() *TradingService_GetOpenOrders_Call {
-	return &TradingService_GetOpenOrders_Call{Call: _e.mock.On("GetOpenOrders")}
+	return &TradingService_GetOpenOrders_Call{Call: _e.mock.On("FetchOpenOrders")}
 }
 
 func (_c *TradingService_GetOpenOrders_Call) Run(run func()) *TradingService_GetOpenOrders_Call {

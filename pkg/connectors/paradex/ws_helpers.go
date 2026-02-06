@@ -4,20 +4,21 @@ import (
 	padexmodel "github.com/trishtzy/go-paradex/models"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex/websocket"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
-
-	"strings"
 )
 
 func (p *paradex) convertOrderBookUpdates(output chan<- connector.OrderBook) {
 	defer close(output)
 
 	for wsUpdate := range p.wsService.OrderbookUpdates() {
-		asset := p.parseAssetFromSymbol(wsUpdate.Symbol)
+		pair, err := p.PerpSymbolToPair(wsUpdate.Symbol)
+		if err != nil {
+			p.appLogger.Error("Failed to convert symbol to pair: %v", err)
+			continue
+		}
 
 		connectorOrderBook := connector.OrderBook{
-			Asset:     asset,
+			Pair:      pair,
 			Bids:      p.convertWSPriceLevels(wsUpdate.Bids),
 			Asks:      p.convertWSPriceLevels(wsUpdate.Asks),
 			Timestamp: wsUpdate.Timestamp,
@@ -46,11 +47,17 @@ func (p *paradex) convertTradeUpdates(output chan<- connector.Trade) {
 	defer close(output)
 
 	for wsUpdate := range p.wsService.TradeUpdates() {
+		pair, err := p.PerpSymbolToPair(wsUpdate.Symbol)
+		if err != nil {
+			p.appLogger.Error("Failed to convert symbol to pair: %v", err)
+			continue
+		}
+		
 		side := padexmodel.ResponsesOrderSide(wsUpdate.Side)
 
 		connectorTrade := connector.Trade{
 			ID:        wsUpdate.TradeID,
-			Symbol:    wsUpdate.Symbol,
+			Pair:      pair,
 			Price:     numerical.NewFromFloat(wsUpdate.Price),
 			Quantity:  numerical.NewFromFloat(wsUpdate.Quantity),
 			Side:      p.convertOrderSide(side),
@@ -65,13 +72,4 @@ func (p *paradex) convertTradeUpdates(output chan<- connector.Trade) {
 			return
 		}
 	}
-}
-
-func (p *paradex) parseAssetFromSymbol(symbol string) portfolio.Asset {
-	// Parse symbols like "BTC-USD-PERP" to extract "BTC"
-	parts := strings.Split(symbol, "-")
-	if len(parts) > 0 {
-		return portfolio.NewAsset(parts[0])
-	}
-	return portfolio.NewAsset(symbol)
 }

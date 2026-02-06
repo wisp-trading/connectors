@@ -44,14 +44,13 @@ type paradex struct {
 }
 
 // Ensure paradex implements all interfaces at compile time
-var _ connector.Connector = (*paradex)(nil)
-var _ perp.Connector = (*paradex)(nil)
+var _ perp.WebSocketConnector = (*paradex)(nil)
 
 func NewParadex(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) perp.Connector {
+) perp.WebSocketConnector {
 	return &paradex{
 		paradexService:    nil, // Will be created during initialization
 		wsService:         nil, // Will be created during initialization
