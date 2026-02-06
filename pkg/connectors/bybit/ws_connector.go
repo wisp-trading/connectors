@@ -31,8 +31,8 @@ func (b *bybit) Disconnect() error {
 	return b.realTime.Disconnect()
 }
 
-func (b *bybit) SubscribeOrderBook(asset portfolio.Asset, instrument connector.Instrument) error {
-	return b.realTime.SubscribeOrderBook(asset, instrument)
+func (b *bybit) SubscribeOrderBook(pair portfolio.Pair, instrument connector.Instrument) error {
+	return b.realTime.SubscribeOrderBook(pair, instrument)
 }
 
 func (b *bybit) UnsubscribeOrderBook(asset portfolio.Asset, instrument connector.Instrument) error {

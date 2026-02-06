@@ -35,10 +35,9 @@ type bybit struct {
 	klineMu       sync.RWMutex
 
 	// WebSocket channels
-	tradeCh    chan connector.Trade
-	positionCh chan connector.Position
-	balanceCh  chan connector.AccountBalance
-	errorCh    chan error
+	tradeCh   chan connector.Trade
+	balanceCh chan connector.AssetBalance
+	errorCh   chan error
 
 	// Subscription tracking
 	subscriptions map[string]int
@@ -54,7 +53,7 @@ func NewBybit(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) perp.Connector {
+) perp.WebSocketConnector {
 	return &bybit{
 		trading:       tradingService,
 		marketData:    marketDataService,

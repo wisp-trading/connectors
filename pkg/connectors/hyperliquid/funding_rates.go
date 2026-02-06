@@ -9,21 +9,21 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]perp.FundingRate, error) {
+func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Pair]perp.FundingRate, error) {
 	contexts, err := h.marketData.GetAllAssetContexts()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get asset contexts: %w", err)
 	}
 
-	fundingRates := make(map[portfolio.Asset]perp.FundingRate)
+	fundingRates := make(map[portfolio.Pair]perp.FundingRate)
 
 	for _, ctx := range contexts {
-		asset := portfolio.NewAsset(ctx.Name)
+		pair := h.coinToPair(ctx.Name)
 
 		funding, err := numerical.NewFromString(ctx.Funding)
 		if err != nil {
-			h.appLogger.Warn("Invalid funding rate, skipping asset",
-				"asset", ctx.Name,
+			h.appLogger.Warn("Invalid funding rate, skipping pair",
+				"pair", ctx.Name,
 				"funding", ctx.Funding,
 				"error", err)
 			continue
@@ -31,8 +31,8 @@ func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]perp.Fundi
 
 		markPrice, err := numerical.NewFromString(ctx.MarkPrice)
 		if err != nil {
-			h.appLogger.Warn("Invalid mark price, skipping asset",
-				"asset", ctx.Name,
+			h.appLogger.Warn("Invalid mark price, skipping pair",
+				"pair", ctx.Name,
 				"markPrice", ctx.MarkPrice,
 				"error", err)
 			continue
@@ -40,14 +40,15 @@ func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]perp.Fundi
 
 		oraclePrice, err := numerical.NewFromString(ctx.OraclePrice)
 		if err != nil {
-			h.appLogger.Warn("Invalid oracle price, skipping asset",
-				"asset", ctx.Name,
+			h.appLogger.Warn("Invalid oracle price, skipping pair",
+				"pair", ctx.Name,
 				"oraclePrice", ctx.OraclePrice,
 				"error", err)
 			continue
 		}
 
-		fundingRates[asset] = perp.FundingRate{
+		fundingRates[pair] = perp.FundingRate{
+			Pair:            pair,
 			CurrentRate:     funding,
 			Timestamp:       h.timeProvider.Now(),
 			MarkPrice:       markPrice,
@@ -59,25 +60,26 @@ func (h *hyperliquid) FetchCurrentFundingRates() (map[portfolio.Asset]perp.Fundi
 	return fundingRates, nil
 }
 
-func (h *hyperliquid) FetchFundingRate(asset portfolio.Asset) (*perp.FundingRate, error) {
-	ctx, err := h.marketData.GetAssetContext(asset.Symbol())
+func (h *hyperliquid) FetchFundingRate(pair portfolio.Pair) (*perp.FundingRate, error) {
+	symbol := pair.Base().Symbol()
+	ctx, err := h.marketData.GetAssetContext(symbol)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get asset context: %w", err)
 	}
 
 	funding, err := numerical.NewFromString(ctx.Funding)
 	if err != nil {
-		return nil, fmt.Errorf("invalid funding rate for %s: %w", asset.Symbol(), err)
+		return nil, fmt.Errorf("invalid funding rate for %s: %w", symbol, err)
 	}
 
 	markPrice, err := numerical.NewFromString(ctx.MarkPrice)
 	if err != nil {
-		return nil, fmt.Errorf("invalid mark price for %s: %w", asset.Symbol(), err)
+		return nil, fmt.Errorf("invalid mark price for %s: %w", symbol, err)
 	}
 
 	oraclePrice, err := numerical.NewFromString(ctx.OraclePrice)
 	if err != nil {
-		return nil, fmt.Errorf("invalid oracle price for %s: %w", asset.Symbol(), err)
+		return nil, fmt.Errorf("invalid oracle price for %s: %w", symbol, err)
 	}
 
 	return &perp.FundingRate{
@@ -89,8 +91,8 @@ func (h *hyperliquid) FetchFundingRate(asset portfolio.Asset) (*perp.FundingRate
 	}, nil
 }
 
-func (h *hyperliquid) FetchHistoricalFundingRates(symbol portfolio.Asset, startTime, endTime int64) ([]perp.HistoricalFundingRate, error) {
-	rawData, err := h.marketData.GetHistoricalFundingRates(symbol.Symbol(), startTime, endTime)
+func (h *hyperliquid) FetchHistoricalFundingRates(pair portfolio.Pair, startTime, endTime int64) ([]perp.HistoricalFundingRate, error) {
+	rawData, err := h.marketData.GetHistoricalFundingRates(pair.Base().Symbol(), startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +102,7 @@ func (h *hyperliquid) FetchHistoricalFundingRates(symbol portfolio.Asset, startT
 		fundingRate, err := numerical.NewFromString(entry.FundingRate)
 
 		if err != nil {
-			return nil, fmt.Errorf("invalid funding rate %s for symbol %s: %w", entry.FundingRate, symbol.Symbol(), err)
+			return nil, fmt.Errorf("invalid funding rate %s for symbol %s: %w", entry.FundingRate, pair.Base().Symbol(), err)
 		}
 
 		rates = append(rates, perp.HistoricalFundingRate{

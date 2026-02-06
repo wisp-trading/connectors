@@ -28,8 +28,8 @@ type hyperliquid struct {
 
 	// WebSocket channels
 	tradeCh       chan connector.Trade
-	positionCh    chan connector.Position
-	balanceCh     chan connector.AccountBalance
+	positionCh    chan perp.Position
+	balanceCh     chan connector.AssetBalance
 	fundingRateCh chan perp.FundingRate
 	errorCh       chan error
 
@@ -72,8 +72,8 @@ func NewHyperliquid(
 		timeProvider:      timeProvider,
 		initialized:       false,
 		tradeCh:           make(chan connector.Trade, 100),
-		positionCh:        make(chan connector.Position, 100),
-		balanceCh:         make(chan connector.AccountBalance, 100),
+		positionCh:        make(chan perp.Position, 100),
+		balanceCh:         make(chan connector.AssetBalance, 100),
 		fundingRateCh:     make(chan perp.FundingRate, 100),
 		orderBookChannels: make(map[string]chan connector.OrderBook),
 		klineChannels:     make(map[string]chan connector.Kline),

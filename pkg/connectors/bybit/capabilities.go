@@ -16,19 +16,6 @@ func (b *bybit) SupportsRealTimeData() bool {
 	return true
 }
 
-// SupportsHistoricalData returns whether historical data is supported
-func (b *bybit) SupportsHistoricalData() bool {
-	return b.marketData != nil
-}
-
-func (b *bybit) SupportsPerpetuals() bool {
-	return true
-}
-
-func (b *bybit) SupportsSpot() bool {
-	return true
-}
-
 // GetConnectorInfo returns metadata about the exchange
 func (b *bybit) GetConnectorInfo() *connector.Info {
 	return &connector.Info{

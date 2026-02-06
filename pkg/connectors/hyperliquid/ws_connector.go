@@ -8,6 +8,7 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // StartWebSocket starts the WebSocket connection for real-time data
@@ -76,12 +77,12 @@ func (h *hyperliquid) TradeUpdates() <-chan connector.Trade {
 }
 
 // PositionUpdates returns a channel for position updates
-func (h *hyperliquid) PositionUpdates() <-chan connector.Position {
+func (h *hyperliquid) PositionUpdates() <-chan perp.Position {
 	return h.positionCh
 }
 
 // AccountBalanceUpdates returns a channel for account balance updates
-func (h *hyperliquid) AccountBalanceUpdates() <-chan connector.AccountBalance {
+func (h *hyperliquid) AssetBalanceUpdates() <-chan connector.AssetBalance {
 	return h.balanceCh
 }
 
@@ -104,12 +105,12 @@ func (h *hyperliquid) ErrorChannel() <-chan error {
 }
 
 // SubscribeOrderBook subscribes to order book updates for an asset
-func (h *hyperliquid) SubscribeOrderBook(asset portfolio.Asset) error {
+func (h *hyperliquid) SubscribeOrderBook(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	// Create dedicated channel for this asset if it doesn't exist
 	h.orderBookMu.Lock()
@@ -138,7 +139,7 @@ func (h *hyperliquid) SubscribeOrderBook(asset portfolio.Asset) error {
 		}
 
 		orderBook := connector.OrderBook{
-			Asset:     asset,
+			Pair:      pair,
 			Timestamp: obMsg.Timestamp,
 			Bids:      bids,
 			Asks:      asks,
@@ -166,12 +167,12 @@ func (h *hyperliquid) SubscribeOrderBook(asset portfolio.Asset) error {
 }
 
 // UnsubscribeOrderBook unsubscribes from order book updates
-func (h *hyperliquid) UnsubscribeOrderBook(asset portfolio.Asset) error {
+func (h *hyperliquid) UnsubscribeOrderBook(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	h.subMu.Lock()
 	subID, exists := h.subscriptions["orderbook:"+symbol]
@@ -186,18 +187,18 @@ func (h *hyperliquid) UnsubscribeOrderBook(asset portfolio.Asset) error {
 }
 
 // SubscribeTrades subscribes to trade updates for an asset
-func (h *hyperliquid) SubscribeTrades(asset portfolio.Asset) error {
+func (h *hyperliquid) SubscribeTrades(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	subID, err := h.realTime.SubscribeToTrades(symbol, func(trades []websocket.TradeMessage) {
 		for _, trade := range trades {
 			select {
 			case h.tradeCh <- connector.Trade{
-				Symbol:    trade.Coin,
+				Pair:      h.coinToPair(symbol),
 				Exchange:  types.Hyperliquid,
 				Price:     trade.Price,
 				Quantity:  trade.Quantity,
@@ -223,12 +224,12 @@ func (h *hyperliquid) SubscribeTrades(asset portfolio.Asset) error {
 }
 
 // UnsubscribeTrades unsubscribes from trade updates
-func (h *hyperliquid) UnsubscribeTrades(asset portfolio.Asset) error {
+func (h *hyperliquid) UnsubscribeTrades(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	h.subMu.Lock()
 	subID, exists := h.subscriptions["trades:"+symbol]
@@ -243,12 +244,12 @@ func (h *hyperliquid) UnsubscribeTrades(asset portfolio.Asset) error {
 }
 
 // SubscribePositions subscribes to position updates
-func (h *hyperliquid) SubscribePositions(asset portfolio.Asset) error {
+func (h *hyperliquid) SubscribePositions(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	subID, err := h.realTime.SubscribeToPositions(h.config.AccountAddress, func(posMsg *websocket.PositionMessage) {
 		if posMsg.Coin != symbol {
@@ -261,8 +262,8 @@ func (h *hyperliquid) SubscribePositions(asset portfolio.Asset) error {
 		}
 
 		select {
-		case h.positionCh <- connector.Position{
-			Symbol:        asset,
+		case h.positionCh <- perp.Position{
+			Pair:          pair,
 			Exchange:      types.Hyperliquid,
 			Side:          side,
 			Size:          posMsg.Size.Abs(),
@@ -290,12 +291,12 @@ func (h *hyperliquid) SubscribePositions(asset portfolio.Asset) error {
 }
 
 // UnsubscribePositions unsubscribes from position updates
-func (h *hyperliquid) UnsubscribePositions(asset portfolio.Asset) error {
+func (h *hyperliquid) UnsubscribePositions(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	h.subMu.Lock()
 	_, exists := h.subscriptions["positions:"+symbol]
@@ -315,15 +316,14 @@ func (h *hyperliquid) SubscribeAccountBalance() error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
-
 	subID, err := h.realTime.SubscribeToAccountBalance(h.config.AccountAddress, func(balMsg *websocket.AccountBalanceMessage) {
 		select {
-		case h.balanceCh <- connector.AccountBalance{
-			TotalBalance:     balMsg.TotalAccountValue,
-			AvailableBalance: balMsg.Withdrawable,
-			UsedMargin:       balMsg.TotalMarginUsed,
-			Currency:         "USD",
-			UpdatedAt:        balMsg.Timestamp,
+		case h.balanceCh <- connector.AssetBalance{
+			Asset:     portfolio.NewAsset("USDC"),
+			Free:      numerical.Zero(),
+			Locked:    numerical.Zero(),
+			Total:     balMsg.TotalAccountValue,
+			UpdatedAt: h.timeProvider.Now(),
 		}:
 		default:
 			select {
@@ -362,12 +362,12 @@ func (h *hyperliquid) UnsubscribeAccountBalance() error {
 }
 
 // SubscribeKlines subscribes to kline updates for an asset
-func (h *hyperliquid) SubscribeKlines(asset portfolio.Asset, interval string) error {
+func (h *hyperliquid) SubscribeKlines(pair portfolio.Pair, interval string) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 	channelKey := fmt.Sprintf("%s:%s", symbol, interval)
 
 	// Create dedicated channel for this subscription
@@ -384,7 +384,7 @@ func (h *hyperliquid) SubscribeKlines(asset portfolio.Asset, interval string) er
 		}
 
 		kline := connector.Kline{
-			Symbol:    symbol,
+			Pair:      pair,
 			Interval:  klineMsg.Interval,
 			OpenTime:  klineMsg.OpenTime,
 			Open:      klineMsg.Open,
@@ -415,12 +415,12 @@ func (h *hyperliquid) SubscribeKlines(asset portfolio.Asset, interval string) er
 }
 
 // UnsubscribeKlines unsubscribes from kline updates
-func (h *hyperliquid) UnsubscribeKlines(asset portfolio.Asset, interval string) error {
+func (h *hyperliquid) UnsubscribeKlines(pair portfolio.Pair, interval string) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	h.subMu.Lock()
 	key := "klines:" + symbol + ":" + interval
@@ -435,12 +435,12 @@ func (h *hyperliquid) UnsubscribeKlines(asset portfolio.Asset, interval string) 
 	return h.realTime.UnsubscribeFromKlines(symbol, interval, subID)
 }
 
-func (h *hyperliquid) SubscribeFundingRates(asset portfolio.Asset) error {
+func (h *hyperliquid) SubscribeFundingRates(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	subID, err := h.realTime.SubscribeToFundingRates(symbol, func(frMsg *websocket.FundingRateMessage) {
 		select {
@@ -470,12 +470,12 @@ func (h *hyperliquid) SubscribeFundingRates(asset portfolio.Asset) error {
 }
 
 // UnsubscribeFundingRates unsubscribes from funding rate updates
-func (h *hyperliquid) UnsubscribeFundingRates(asset portfolio.Asset) error {
+func (h *hyperliquid) UnsubscribeFundingRates(pair portfolio.Pair) error {
 	if !h.initialized {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	symbol := h.normaliseAssetName(asset)
+	symbol := h.normaliseAssetName(pair.Base())
 
 	h.subMu.Lock()
 	key := "funding:" + symbol

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	bybit "github.com/bybit-exchange/bybit.go.api"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
@@ -19,22 +20,6 @@ type Config struct {
 	BaseURL   string
 }
 
-type RealTimeService interface {
-	Initialize(config *Config) error
-	Connect() error
-	Disconnect() error
-	SubscribeOrderBook(asset portfolio.Asset, instrument connector.Instrument) error
-	UnsubscribeOrderBook(asset portfolio.Asset, instrument connector.Instrument) error
-	SubscribeTrades(asset portfolio.Asset, instrument connector.Instrument) error
-	UnsubscribeTrades(asset portfolio.Asset, instrument connector.Instrument) error
-	SubscribePositions(asset portfolio.Asset, instrument connector.Instrument) error
-	UnsubscribePositions(asset portfolio.Asset, instrument connector.Instrument) error
-	SubscribeAccountBalance() error
-	UnsubscribeAccountBalance() error
-	SubscribeKlines(asset portfolio.Asset, interval string) error
-	UnsubscribeKlines(asset portfolio.Asset, interval string) error
-}
-
 type realTimeService struct {
 	websocket     *bybit.WebSocket
 	logger        logging.ApplicationLogger
@@ -46,7 +31,7 @@ type realTimeService struct {
 func NewRealTimeService(
 	logger logging.ApplicationLogger,
 	timeProvider temporal.TimeProvider,
-) RealTimeService {
+) perp.Connector {
 	return &realTimeService{
 		logger:        logger,
 		timeProvider:  timeProvider,

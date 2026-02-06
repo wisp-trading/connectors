@@ -16,10 +16,12 @@ require (
 	github.com/sonirico/go-hyperliquid v0.5.0
 	github.com/stretchr/testify v1.11.1
 	github.com/trishtzy/go-paradex v0.1.3
-	github.com/wisp-trading/sdk v0.0.8
+	github.com/wisp-trading/sdk v0.0.9-0.20260205083312-894515b7b197
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1
 )
+
+replace github.com/wisp-trading/sdk => ../sdk
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect

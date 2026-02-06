@@ -16,19 +16,6 @@ func (h *hyperliquid) SupportsRealTimeData() bool {
 	return true
 }
 
-// SupportsHistoricalData returns whether historical data is supported
-func (h *hyperliquid) SupportsHistoricalData() bool {
-	return h.marketData != nil
-}
-
-func (h *hyperliquid) SupportsPerpetuals() bool {
-	return true
-}
-
-func (h *hyperliquid) SupportsSpot() bool {
-	return false
-}
-
 // GetConnectorInfo returns metadata about the exchange
 func (h *hyperliquid) GetConnectorInfo() *connector.Info {
 	return &connector.Info{
@@ -40,6 +27,6 @@ func (h *hyperliquid) GetConnectorInfo() *connector.Info {
 			connector.OrderTypeLimit,
 			connector.OrderTypeMarket,
 		},
-		QuoteCurrency: "USD",
+		QuoteCurrency: "USDC",
 	}
 }

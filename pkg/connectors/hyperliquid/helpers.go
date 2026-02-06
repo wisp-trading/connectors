@@ -15,6 +15,13 @@ func (h *hyperliquid) normaliseAssetName(asset portfolio.Asset) string {
 	return strings.ToUpper(asset.Symbol())
 }
 
+func (h *hyperliquid) coinToPair(coin string) portfolio.Pair {
+	return portfolio.NewPair(
+		portfolio.NewAsset(strings.ToUpper(coin)),
+		portfolio.NewAsset("USD"),
+	)
+}
+
 // extractOrderID extracts order ID from trading service response
 func (h *hyperliquid) extractOrderID(result interface{}) string {
 	// TODO: Implement based on actual trading service response structure

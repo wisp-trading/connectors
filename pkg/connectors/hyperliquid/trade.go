@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // PlaceLimitOrder places a limit order on Hyperliquid
-func (h *hyperliquid) PlaceLimitOrder(symbol string, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {
+func (h *hyperliquid) PlaceLimitOrder(pair portfolio.Pair, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {
 	if !h.SupportsTradingOperations() {
 		return nil, fmt.Errorf("trading operations not supported")
 	}
@@ -19,9 +20,9 @@ func (h *hyperliquid) PlaceLimitOrder(symbol string, side connector.OrderSide, q
 	var err error
 
 	if side == connector.OrderSideBuy {
-		result, err = h.trading.PlaceBuyLimitOrder(symbol, quantity.InexactFloat64(), price.InexactFloat64())
+		result, err = h.trading.PlaceBuyLimitOrder(pair.Base().Symbol(), quantity.InexactFloat64(), price.InexactFloat64())
 	} else {
-		result, err = h.trading.PlaceSellLimitOrder(symbol, quantity.InexactFloat64(), price.InexactFloat64())
+		result, err = h.trading.PlaceSellLimitOrder(pair.Base().Symbol(), quantity.InexactFloat64(), price.InexactFloat64())
 	}
 
 	if err != nil {
@@ -30,7 +31,7 @@ func (h *hyperliquid) PlaceLimitOrder(symbol string, side connector.OrderSide, q
 
 	return &connector.OrderResponse{
 		OrderID:   h.extractOrderID(result),
-		Symbol:    symbol,
+		Symbol:    pair.Symbol(),
 		Status:    connector.OrderStatusNew,
 		Side:      side,
 		Type:      connector.OrderTypeLimit,
@@ -41,7 +42,7 @@ func (h *hyperliquid) PlaceLimitOrder(symbol string, side connector.OrderSide, q
 }
 
 // PlaceMarketOrder places a market order on Hyperliquid
-func (h *hyperliquid) PlaceMarketOrder(symbol string, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
+func (h *hyperliquid) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
 	if !h.SupportsTradingOperations() {
 		return nil, fmt.Errorf("trading operations not supported")
 	}
@@ -50,9 +51,9 @@ func (h *hyperliquid) PlaceMarketOrder(symbol string, side connector.OrderSide, 
 	var err error
 
 	if side == connector.OrderSideBuy {
-		result, err = h.trading.PlaceBuyMarketOrder(symbol, quantity.InexactFloat64(), h.config.DefaultSlippage)
+		result, err = h.trading.PlaceBuyMarketOrder(pair.Base().Symbol(), quantity.InexactFloat64(), h.config.DefaultSlippage)
 	} else {
-		result, err = h.trading.PlaceSellMarketOrder(symbol, quantity.InexactFloat64(), h.config.DefaultSlippage)
+		result, err = h.trading.PlaceSellMarketOrder(pair.Base().Symbol(), quantity.InexactFloat64(), h.config.DefaultSlippage)
 	}
 
 	if err != nil {
@@ -61,7 +62,7 @@ func (h *hyperliquid) PlaceMarketOrder(symbol string, side connector.OrderSide, 
 
 	return &connector.OrderResponse{
 		OrderID:   h.extractOrderID(result),
-		Symbol:    symbol,
+		Symbol:    pair.Symbol(),
 		Status:    connector.OrderStatusNew,
 		Side:      side,
 		Type:      connector.OrderTypeMarket,
@@ -71,7 +72,7 @@ func (h *hyperliquid) PlaceMarketOrder(symbol string, side connector.OrderSide, 
 }
 
 // CancelOrder cancels an existing order on Hyperliquid
-func (h *hyperliquid) CancelOrder(symbol, orderID string) (*connector.CancelResponse, error) {
+func (h *hyperliquid) CancelOrder(orderID string, pair ...portfolio.Pair) (*connector.CancelResponse, error) {
 	if !h.SupportsTradingOperations() {
 		return nil, fmt.Errorf("trading operations not supported")
 	}
@@ -80,6 +81,12 @@ func (h *hyperliquid) CancelOrder(symbol, orderID string) (*connector.CancelResp
 	if err != nil {
 		return nil, fmt.Errorf("invalid order ID format: %w", err)
 	}
+
+	if len(pair) == 0 {
+		return nil, fmt.Errorf("pair must be provided to cancel order")
+	}
+
+	symbol := pair[0].Base().Symbol()
 
 	_, err = h.trading.CancelOrderByID(symbol, oid)
 	if err != nil {
@@ -95,7 +102,7 @@ func (h *hyperliquid) CancelOrder(symbol, orderID string) (*connector.CancelResp
 }
 
 // GetOpenOrders retrieves current open orders
-func (h *hyperliquid) GetOpenOrders() ([]connector.Order, error) {
+func (h *hyperliquid) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
 	orders, err := h.marketData.GetOpenOrders(h.config.AccountAddress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get open orders: %w", err)
@@ -105,7 +112,7 @@ func (h *hyperliquid) GetOpenOrders() ([]connector.Order, error) {
 	for _, order := range orders {
 		connectorOrder := connector.Order{
 			ID:        fmt.Sprintf("%d", order.Oid),
-			Symbol:    order.Coin,
+			Pair:      h.coinToPair(order.Coin),
 			Side:      connector.FromString(order.Side),
 			Quantity:  numerical.NewFromFloat(order.Size),
 			Price:     numerical.NewFromFloat(order.LimitPx),
@@ -118,6 +125,6 @@ func (h *hyperliquid) GetOpenOrders() ([]connector.Order, error) {
 }
 
 // GetOrderStatus retrieves the status of a specific order
-func (h *hyperliquid) GetOrderStatus(orderID string) (*connector.Order, error) {
+func (h *hyperliquid) GetOrderStatus(orderID string, pair ...portfolio.Pair) (*connector.Order, error) {
 	return nil, fmt.Errorf("GetOrderStatus not yet implemented for Hyperliquid")
 }
