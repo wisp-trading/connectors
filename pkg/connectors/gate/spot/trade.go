@@ -5,11 +5,12 @@ import (
 
 	gateapi "github.com/gate/gateapi-go/v7"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // PlaceLimitOrder places a limit order on Gate.io Spot
-func (g *gateSpot) PlaceLimitOrder(symbol string, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {
+func (g *gateSpot) PlaceLimitOrder(pair portfolio.Pair, side connector.OrderSide, quantity, price numerical.Decimal) (*connector.OrderResponse, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -20,7 +21,7 @@ func (g *gateSpot) PlaceLimitOrder(symbol string, side connector.OrderSide, quan
 	}
 
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol)
+	currencyPair := g.GetSpotSymbol(pair)
 
 	order := gateapi.Order{
 		CurrencyPair: currencyPair,
@@ -37,7 +38,7 @@ func (g *gateSpot) PlaceLimitOrder(symbol string, side connector.OrderSide, quan
 
 	return &connector.OrderResponse{
 		OrderID:   result.Id,
-		Symbol:    symbol,
+		Symbol:    pair.Symbol(),
 		Status:    g.convertGateOrderStatus(result.Status),
 		Side:      side,
 		Type:      connector.OrderTypeLimit,
@@ -48,13 +49,13 @@ func (g *gateSpot) PlaceLimitOrder(symbol string, side connector.OrderSide, quan
 }
 
 // PlaceMarketOrder places a market order on Gate.io Spot
-func (g *gateSpot) PlaceMarketOrder(symbol string, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
+func (g *gateSpot) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
 
 	// For market orders, fetch current price and apply slippage
-	currentPrice, err := g.FetchPrice(symbol)
+	currentPrice, err := g.FetchPrice(pair)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch current price: %w", err)
 	}
@@ -77,7 +78,7 @@ func (g *gateSpot) PlaceMarketOrder(symbol string, side connector.OrderSide, qua
 	}
 
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol)
+	currencyPair := g.GetSpotSymbol(pair)
 
 	order := gateapi.Order{
 		CurrencyPair: currencyPair,
@@ -95,7 +96,7 @@ func (g *gateSpot) PlaceMarketOrder(symbol string, side connector.OrderSide, qua
 
 	return &connector.OrderResponse{
 		OrderID:   result.Id,
-		Symbol:    symbol,
+		Symbol:    pair.Symbol(),
 		Status:    g.convertGateOrderStatus(result.Status),
 		Side:      side,
 		Type:      connector.OrderTypeMarket,
@@ -105,7 +106,7 @@ func (g *gateSpot) PlaceMarketOrder(symbol string, side connector.OrderSide, qua
 }
 
 // CancelOrder cancels an existing order on Gate.io
-func (g *gateSpot) CancelOrder(symbol, orderID string) (*connector.CancelResponse, error) {
+func (g *gateSpot) CancelOrder(orderID string, pair ...portfolio.Pair) (*connector.CancelResponse, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -115,8 +116,12 @@ func (g *gateSpot) CancelOrder(symbol, orderID string) (*connector.CancelRespons
 		return nil, fmt.Errorf("failed to get spot API client: %w", err)
 	}
 
+	if len(pair) == 0 {
+		return nil, fmt.Errorf("pair is required to cancel order")
+	}
+
 	ctx := g.spotClient.GetAPIContext()
-	currencyPair := g.formatSymbol(symbol)
+	currencyPair := g.GetSpotSymbol(pair[0])
 
 	_, _, err = client.SpotApi.CancelOrder(ctx, orderID, currencyPair, nil)
 	if err != nil {
@@ -124,15 +129,15 @@ func (g *gateSpot) CancelOrder(symbol, orderID string) (*connector.CancelRespons
 	}
 
 	return &connector.CancelResponse{
+		Pair:      pair[0],
 		OrderID:   orderID,
-		Symbol:    symbol,
 		Status:    connector.OrderStatusCanceled,
 		Timestamp: g.timeProvider.Now(),
 	}, nil
 }
 
 // GetOrderStatus retrieves the status of a specific order
-func (g *gateSpot) GetOrderStatus(orderID string) (*connector.Order, error) {
+func (g *gateSpot) GetOrderStatus(orderID string, pair ...portfolio.Pair) (*connector.Order, error) {
 	if !g.initialized {
 		return nil, fmt.Errorf("connector not initialized")
 	}
@@ -144,22 +149,17 @@ func (g *gateSpot) GetOrderStatus(orderID string) (*connector.Order, error) {
 
 	ctx := g.spotClient.GetAPIContext()
 
-	// Note: Gate.io requires currency_pair for GetOrder
-	// We'll need to iterate through potential pairs or store it
-	// For now, we'll try with a common pair pattern
-	order, _, err := client.SpotApi.GetOrder(ctx, orderID, "", &gateapi.GetOrderOpts{})
+	if len(pair) == 0 {
+		return nil, fmt.Errorf("pair is required to get order status")
+	}
+
+	currencyPair := g.GetSpotSymbol(pair[0])
+
+	order, _, err := client.SpotApi.GetOrder(ctx, orderID, currencyPair, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order status: %w", err)
 	}
 
 	connectorOrder := g.convertGateOrderToConnector(&order)
 	return &connectorOrder, nil
-}
-
-// Helper function to convert connector.OrderSide to Gate.io side string for requests
-func convertSide(side connector.OrderSide) string {
-	if side == connector.OrderSideBuy {
-		return "buy"
-	}
-	return "sell"
 }

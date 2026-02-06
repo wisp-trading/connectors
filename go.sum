@@ -228,10 +228,6 @@ github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IU
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
-github.com/wisp-trading/sdk v0.0.8 h1:83d/KDS8MxK+JkE/RXem2uAKPI4s/l5YT25uUVJU1LE=
-github.com/wisp-trading/sdk v0.0.8/go.mod h1:xGW/k69puJaj8uMmKPM8eoD+jbY7DWySCo972OZToWs=
-github.com/wisp-trading/sdk v0.0.9-0.20260205083312-894515b7b197 h1:BzBPyGHM9+QX85CkSQrVwMtQXuis5hemQHdKV2XPDS0=
-github.com/wisp-trading/sdk v0.0.9-0.20260205083312-894515b7b197/go.mod h1:xGW/k69puJaj8uMmKPM8eoD+jbY7DWySCo972OZToWs=
 go.mongodb.org/mongo-driver v1.17.4 h1:jUorfmVzljjr0FLzYQsGP8cgN/qzzxlY9Vh0C9KFXVw=
 go.mongodb.org/mongo-driver v1.17.4/go.mod h1:Hy04i7O2kC4RS06ZrhPRqj/u4DTYkFDAAccj+rVKqgQ=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
