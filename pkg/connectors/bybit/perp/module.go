@@ -1,9 +1,8 @@
-package bybit
+package perp
 
 import (
-	"github.com/wisp-trading/connectors/pkg/connectors/bybit/data"
-	"github.com/wisp-trading/connectors/pkg/connectors/bybit/data/real_time"
-	"github.com/wisp-trading/connectors/pkg/connectors/bybit/trading"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
@@ -11,12 +10,12 @@ import (
 )
 
 var Module = fx.Options(
+	websocket.WebSocketModule,
 	fx.Provide(
-		trading.NewTradingService,
-		data.NewMarketDataService,
-		real_time.NewRealTimeService,
+		adaptor.NewPerpClient,
 		fx.Annotate(
 			NewBybit,
+			fx.ParamTags(``, ``, ``, ``, ``), // No special tags - use auto-wiring
 			fx.ResultTags(`name:"bybit"`),
 		),
 	),

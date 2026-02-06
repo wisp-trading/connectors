@@ -1,4 +1,4 @@
-package bybit
+package perp
 
 import (
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
@@ -27,6 +27,5 @@ func (b *bybit) GetConnectorInfo() *connector.Info {
 			connector.OrderTypeLimit,
 			connector.OrderTypeMarket,
 		},
-		QuoteCurrency: "USDT",
 	}
 }

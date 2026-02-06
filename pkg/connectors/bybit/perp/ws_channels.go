@@ -1,12 +1,15 @@
-package bybit
+package perp
 
-import "github.com/wisp-trading/sdk/pkg/types/connector"
+import (
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
+)
 
-func (b *bybit) AccountBalanceUpdates() <-chan connector.AccountBalance {
+func (b *bybit) AccountBalanceUpdates() <-chan connector.AssetBalance {
 	return b.balanceCh
 }
 
-func (b *bybit) PositionUpdates() <-chan connector.Position {
+func (b *bybit) PositionUpdates() <-chan perp.Position {
 	return b.positionCh
 }
 

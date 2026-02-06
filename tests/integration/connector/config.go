@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
-	"github.com/wisp-trading/connectors/pkg/connectors/bybit"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
 	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
@@ -110,9 +110,9 @@ func getParadexConfig() *paradex.Config {
 }
 
 // getBybitConfig creates a Bybit config from environment variables
-func getBybitConfig() *bybit.Config {
+func getBybitConfig() *perp.Config {
 	testnet, _ := strconv.ParseBool(os.Getenv("BYBIT_TESTNET"))
-	return &bybit.Config{
+	return &perp.Config{
 		APIKey:    os.Getenv("BYBIT_API_KEY"),
 		APISecret: os.Getenv("BYBIT_API_SECRET"),
 		IsTestnet: testnet,
