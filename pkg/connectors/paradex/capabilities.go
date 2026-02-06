@@ -19,12 +19,26 @@ func (p *paradex) GetConnectorInfo() *connector.Info {
 			connector.OrderTypeLimit,
 			connector.OrderTypeMarket,
 		},
-		QuoteCurrency: "USD",
+		QuoteCurrency: "USDC",
 	}
 }
 
-func (p *paradex) GetPerpSymbol(symbol portfolio.Asset) string {
-	return fmt.Sprintf("%s-USD-PERP", symbol.Symbol())
+func (p *paradex) GetPerpSymbol(pair portfolio.Pair) string {
+	return fmt.Sprintf("%s-USD-PERP", pair.Base().Symbol())
+}
+
+func (p *paradex) PerpSymbolToPair(symbol string) (portfolio.Pair, error) {
+	var base string
+
+	_, err := fmt.Sscanf(symbol, "%s-USD-PERP", &base)
+	if err != nil {
+		return portfolio.Pair{}, fmt.Errorf("invalid perp symbol format: %w", err)
+	}
+
+	return portfolio.NewPair(
+		portfolio.NewAsset(base),
+		portfolio.NewAsset("USDC"),
+	), nil
 }
 
 func (p *paradex) SupportsTradingOperations() bool {

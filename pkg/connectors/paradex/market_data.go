@@ -5,12 +5,15 @@ import (
 	"time"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-func (p *paradex) FetchPrice(symbol string) (*connector.Price, error) {
-	price, err := p.paradexService.GetPrice(p.ctx, symbol)
+func (p *paradex) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
+	price, err := p.paradexService.GetPrice(p.ctx, p.GetPerpSymbol(pair))
+
+	symbol := pair.Symbol()
 
 	if err != nil {
 		p.appLogger.Error("Failed to fetch price", "symbol", symbol, "error", err)
@@ -41,11 +44,11 @@ func (p *paradex) FetchPrice(symbol string) (*connector.Price, error) {
 
 }
 
-func (p *paradex) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector.OrderBook, error) {
-	symbolStr := p.GetPerpSymbol(symbol)
+func (p *paradex) FetchOrderBook(pair portfolio.Pair, depth int) (*connector.OrderBook, error) {
+	symbol := p.GetPerpSymbol(pair)
 	depthInt := int64(depth)
 
-	orderBook, err := p.paradexService.GetOrderBook(p.ctx, symbolStr, &depthInt)
+	orderBook, err := p.paradexService.GetOrderBook(p.ctx, symbol, &depthInt)
 	if err != nil {
 		return nil, err
 	}
@@ -77,18 +80,18 @@ func (p *paradex) FetchOrderBook(symbol portfolio.Asset, depth int) (*connector.
 	}
 
 	return &connector.OrderBook{
-		Asset:     symbol,
+		Pair:      pair,
 		Bids:      bids,
 		Asks:      asks,
 		Timestamp: timestamp,
 	}, nil
 }
 
-func (p *paradex) FetchRecentTrades(symbol string, limit int) ([]connector.Trade, error) {
-	return nil, fmt.Errorf("klines not needed for MM strategy")
+func (p *paradex) FetchRecentTrades(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
+	return nil, fmt.Errorf("recent trades not implemented")
 }
 
-func (p *paradex) FetchKlines(symbol, interval string, limit int) ([]connector.Kline, error) {
+func (p *paradex) FetchKlines(pair portfolio.Pair, interval string, limit int) ([]connector.Kline, error) {
 	// Convert interval string (e.g., "5m", "1h") to resolution in minutes
 	resolution, err := parseIntervalToMinutes(interval)
 	if err != nil {
@@ -105,17 +108,17 @@ func (p *paradex) FetchKlines(symbol, interval string, limit int) ([]connector.K
 	endMs := endTime.UnixMilli()
 
 	// Fetch klines from paradex
-	klineData, err := p.paradexService.GetKlines(p.ctx, symbol, resolution, startMs, endMs)
+	klineData, err := p.paradexService.GetKlines(p.ctx, p.GetPerpSymbol(pair), resolution, startMs, endMs)
 	if err != nil {
-		p.appLogger.Error("Failed to fetch klines", "symbol", symbol, "interval", interval, "error", err)
-		return nil, fmt.Errorf("failed to fetch klines for %s: %w", symbol, err)
+		p.appLogger.Error("Failed to fetch klines", "symbol", pair.Symbol(), "interval", interval, "error", err)
+		return nil, fmt.Errorf("failed to fetch klines for %s: %w", pair.Symbol(), err)
 	}
 
 	// Convert to connector.Kline format
 	klines := make([]connector.Kline, 0, len(klineData))
 	for _, k := range klineData {
 		klines = append(klines, connector.Kline{
-			Symbol:   symbol,
+			Pair:     pair,
 			Interval: interval,
 			OpenTime: time.UnixMilli(k.Timestamp),
 			Open:     k.Open,
@@ -155,7 +158,7 @@ func parseIntervalToMinutes(interval string) (int, error) {
 	}
 }
 
-func (p *paradex) FetchRiskFundBalance(symbol string) (*connector.RiskFundBalance, error) {
+func (p *paradex) FetchRiskFundBalance(symbol string) (*perp.RiskFundBalance, error) {
 	return nil, fmt.Errorf("risk fund balance not needed for MM strategy")
 }
 

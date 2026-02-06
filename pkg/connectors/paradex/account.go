@@ -1,15 +1,15 @@
 package paradex
 
 import (
-	"context"
 	"time"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-func (p *paradex) GetAccountBalance() (*connector.AccountBalance, error) {
+func (p *paradex) GetBalance(asset portfolio.Asset) (*connector.AssetBalance, error) {
 	account, err := p.paradexService.GetAccount(p.ctx)
 	if err != nil {
 		return nil, err
@@ -17,41 +17,90 @@ func (p *paradex) GetAccountBalance() (*connector.AccountBalance, error) {
 
 	// Parse all needed fields
 	accountValue, _ := numerical.NewFromString(account.AccountValue)
-	totalCollateral, _ := numerical.NewFromString(account.TotalCollateral)
 	freeCollateral, _ := numerical.NewFromString(account.FreeCollateral)
 	initialMargin, _ := numerical.NewFromString(account.InitialMarginRequirement)
+
 	currency := account.SettlementAsset
 	if currency == "" {
-		currency = "USD"
+		currency = "USDC"
 	}
 
-	// Calculations
-	usedMargin := initialMargin
-	unrealizedPnL := accountValue.Sub(totalCollateral)
+	// Locked = used margin (initial margin requirement)
+	locked := initialMargin
+	// Free = free collateral
+	free := freeCollateral
+	// Total = account value (includes unrealized PnL)
+	total := accountValue
 
-	updatedAt := time.Now()
+	updatedAt := p.timeProvider.Now()
 	if account.UpdatedAt > 0 {
 		updatedAt = time.UnixMilli(account.UpdatedAt)
 	}
 
-	return &connector.AccountBalance{
-		TotalBalance:     accountValue,   // account_value (includes unrealized PnL)
-		AvailableBalance: freeCollateral, // free_collateral
-		UsedMargin:       usedMargin,     // initial_margin_requirement
-		UnrealizedPnL:    unrealizedPnL,  // account_value - total_collateral
-		Currency:         currency,
-		UpdatedAt:        updatedAt,
+	return &connector.AssetBalance{
+		Asset:     portfolio.NewAsset(currency),
+		Free:      free,   // Free collateral
+		Locked:    locked, // Initial margin requirement
+		Total:     total,  // Account value
+		UpdatedAt: updatedAt,
 	}, nil
 }
 
-func (p *paradex) GetPositions() ([]connector.Position, error) {
+func (p *paradex) GetBalances() ([]connector.AssetBalance, error) {
+	balance, err := p.GetBalance(portfolio.NewAsset("USDC"))
+	if err != nil {
+		return nil, err
+	}
+
+	return []connector.AssetBalance{*balance}, nil
+}
+
+func (p *paradex) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
+	symbol := p.GetPerpSymbol(pair)
+	limit64 := int64(limit)
+	tradesResp, err := p.paradexService.GetTradeHistory(p.ctx, &symbol, &limit64)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []connector.Trade
+	for _, trade := range tradesResp.Results {
+		size, _ := numerical.NewFromString(trade.Size)
+		price, _ := numerical.NewFromString(trade.Price)
+		fee, _ := numerical.NewFromString(trade.Fee)
+		timestamp := time.UnixMilli(trade.CreatedAt)
+
+		result = append(result, connector.Trade{
+			ID:        trade.ID,
+			Pair:      pair,
+			Exchange:  p.GetConnectorInfo().Name,
+			Side:      p.convertOrderSide(trade.Side.ResponsesOrderSide),
+			Quantity:  size,
+			Price:     price,
+			Fee:       fee,
+			Timestamp: timestamp,
+		})
+	}
+
+	return result, nil
+}
+
+func (p *paradex) GetPositions() ([]perp.Position, error) {
 	positionsResp, err := p.paradexService.GetUserPositions(p.ctx) // returns *models.ResponsesGetPositionsResp
 	if err != nil {
 		return nil, err
 	}
 
-	var result []connector.Position
+	var result []perp.Position
 	for _, pos := range positionsResp.Results {
+		pair, err := p.PerpSymbolToPair(pos.Market)
+
+		if err != nil {
+			// If we can't parse the symbol, skip this position
+			continue
+		}
+
 		size, _ := numerical.NewFromString(pos.Size)
 		entryPrice, _ := numerical.NewFromString(pos.AverageEntryPrice)
 		unrealizedPnL, _ := numerical.NewFromString(pos.UnrealizedPnl)
@@ -62,8 +111,8 @@ func (p *paradex) GetPositions() ([]connector.Position, error) {
 		realizedPnL, _ := numerical.NewFromString(pos.RealizedPositionalPnl)
 		updatedAt := time.UnixMilli(pos.LastUpdatedAt)
 
-		result = append(result, connector.Position{
-			Symbol:        portfolio.NewAsset(pos.Market),
+		result = append(result, perp.Position{
+			Pair:          pair,
 			Exchange:      p.GetConnectorInfo().Name,
 			Side:          connector.OrderSide(pos.Side),
 			Size:          size,
@@ -78,12 +127,7 @@ func (p *paradex) GetPositions() ([]connector.Position, error) {
 	return result, nil
 }
 
-// GetSubAccounts returns all sub-accounts for the current account
-func (p *paradex) GetSubAccounts(ctx context.Context) (interface{}, error) {
-	return p.paradexService.GetSubAccounts(ctx)
-}
-
-// GetAccountInfo returns account information
-func (p *paradex) GetAccountInfo(ctx context.Context) (interface{}, error) {
-	return p.paradexService.GetAccountInfo(ctx)
+func (p *paradex) GetMarginBalances() ([]perp.AssetBalance, error) {
+	//TODO implement me
+	panic("implement me")
 }
