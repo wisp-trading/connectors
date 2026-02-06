@@ -30,6 +30,10 @@ func (g *gateSpot) GetBalance(asset portfolio.Asset) (*connector.AssetBalance, e
 		return nil, fmt.Errorf("failed to get spot account for asset %s: %w", asset, err)
 	}
 
+	if len(accountResponse) == 0 {
+		return nil, fmt.Errorf("no account found for asset %s", asset)
+	}
+
 	account := accountResponse[0]
 
 	available, _ := numerical.NewFromString(account.Available)

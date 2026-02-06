@@ -1,6 +1,7 @@
 package spot
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -15,14 +16,14 @@ func (g *gateSpot) GetSpotSymbol(pair portfolio.Pair) string {
 	return pair.Base().Symbol() + "_" + pair.Quote().Symbol()
 }
 
-func (g *gateSpot) getWispPair(currencyPair string) portfolio.Pair {
+func (g *gateSpot) getWispPair(currencyPair string) (portfolio.Pair, error) {
 	// Gate.io uses "BTC_USDT" format for currency pairs
 	parts := strings.Split(currencyPair, "_")
 	if len(parts) != 2 {
-		return portfolio.Pair{}
+		return portfolio.Pair{}, fmt.Errorf("invalid currency pair format: %s", currencyPair)
 	}
 
-	return portfolio.NewPair(portfolio.NewAsset(parts[0]), portfolio.NewAsset(parts[1]))
+	return portfolio.NewPair(portfolio.NewAsset(parts[0]), portfolio.NewAsset(parts[1])), nil
 }
 
 // Helper function to convert connector.OrderSide to Gate.io side string for requests
@@ -49,9 +50,15 @@ func (g *gateSpot) convertGateOrderToConnector(gateOrder *gateapi.Order) connect
 		updatedAt = time.UnixMilli(gateOrder.UpdateTimeMs)
 	}
 
+	pair, err := g.getWispPair(gateOrder.CurrencyPair)
+
+	if err != nil {
+		g.appLogger.Error(err.Error())
+	}
+
 	return connector.Order{
 		ID:           gateOrder.Id,
-		Pair:         g.getWispPair(gateOrder.CurrencyPair),
+		Pair:         pair,
 		Status:       g.convertGateOrderStatus(gateOrder.Status),
 		Side:         g.convertGateOrderSide(gateOrder.Side),
 		Type:         g.convertGateOrderType(gateOrder.Type),
@@ -118,10 +125,16 @@ func (g *gateSpot) convertGateTradeToConnector(trade *gateapi.Trade) connector.T
 		}
 	}
 
+	pair, err := g.getWispPair(trade.CurrencyPair)
+
+	if err != nil {
+		g.appLogger.Error(err.Error())
+	}
+
 	return connector.Trade{
 		ID:        trade.Id,
 		OrderID:   trade.OrderId,
-		Pair:      g.getWispPair(trade.CurrencyPair),
+		Pair:      pair,
 		Exchange:  g.GetConnectorInfo().Name,
 		Price:     price,
 		Quantity:  quantity,

@@ -216,7 +216,7 @@ func (g *gateSpot) GetKlineChannels() map[string]<-chan connector.Kline {
 // AssetBalanceUpdates subscribes to balance updates
 func (g *gateSpot) AssetBalanceUpdates() <-chan connector.AssetBalance {
 	if !g.initialized {
-		g.appLogger.Error("Connector not initialized for AccountBalanceUpdates")
+		g.appLogger.Error("Connector not initialized for AssetBalanceUpdates")
 		return g.balanceCh
 	}
 
