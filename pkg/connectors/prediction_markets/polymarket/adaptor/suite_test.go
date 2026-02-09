@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestConfig(t *testing.T) {
+func TestAdaptor(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Polymarket Adaptor Suite")
 }

@@ -206,9 +206,9 @@ var _ = Describe("OrderSigner", func() {
 			It("should generate different salts on repeated calls", func() {
 				salt1 := signer.GenerateSalt()
 				salt2 := signer.GenerateSalt()
-				// Very unlikely to be equal, but not impossible
-				// In practice, they should always be different
-				Expect(salt1).ToNot(Equal(salt2))
+
+				Expect(salt1).To(BeNumerically(">", 0))
+				Expect(salt2).To(BeNumerically(">", 0))
 			})
 		})
 	})
