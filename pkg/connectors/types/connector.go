@@ -9,6 +9,7 @@ const (
 	Paradex     connector.ExchangeName = "paradex"
 	Bybit       connector.ExchangeName = "bybit"
 	GateSpot    connector.ExchangeName = "gate_spot"
+	Polymarket  connector.ExchangeName = "polymarket"
 )
 
 var AllConnectors = []connector.ExchangeName{
@@ -16,4 +17,5 @@ var AllConnectors = []connector.ExchangeName{
 	Paradex,
 	Bybit,
 	GateSpot,
+	Polymarket,
 }
