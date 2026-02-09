@@ -1,4 +1,4 @@
-package bybit
+package perp
 
 import (
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
@@ -8,7 +8,7 @@ import (
 
 // SupportsTradingOperations returns whether trading operations are supported
 func (b *bybit) SupportsTradingOperations() bool {
-	return b.trading != nil
+	return b.initialized
 }
 
 // SupportsRealTimeData returns whether real-time data is supported
@@ -27,6 +27,5 @@ func (b *bybit) GetConnectorInfo() *connector.Info {
 			connector.OrderTypeLimit,
 			connector.OrderTypeMarket,
 		},
-		QuoteCurrency: "USDT",
 	}
 }

@@ -1,7 +1,7 @@
 package connectors
 
 import (
-	"github.com/wisp-trading/connectors/pkg/connectors/bybit"
+	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
 	"github.com/wisp-trading/connectors/pkg/connectors/gate"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
@@ -13,6 +13,6 @@ import (
 var Module = fx.Options(
 	paradex.Module,
 	hyperliquid.Module,
-	bybit.Module,
+	perp.Module,
 	gate.Module,
 )
