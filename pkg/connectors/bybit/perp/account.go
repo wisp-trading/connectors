@@ -82,34 +82,6 @@ func (b *bybit) GetBalance(asset portfolio.Asset) (*connector.AssetBalance, erro
 	return nil, fmt.Errorf("balance not found for asset: %s", asset.Symbol())
 }
 
-func (b *bybit) parseAssetBalance(data map[string]interface{}) *perp.AssetBalance {
-	balance := &perp.AssetBalance{
-		AssetBalance: connector.AssetBalance{
-			UpdatedAt: b.timeProvider.Now(),
-		},
-	}
-
-	if coin, ok := data["coin"].(string); ok {
-		balance.Asset = portfolio.NewAsset(coin)
-	}
-	if walletBalance, ok := data["walletBalance"].(string); ok {
-		if val, err := numerical.NewFromString(walletBalance); err == nil {
-			balance.Total = val
-		}
-	}
-	if availableToWithdraw, ok := data["availableToWithdraw"].(string); ok {
-		if val, err := numerical.NewFromString(availableToWithdraw); err == nil {
-			balance.Free = val
-		}
-	}
-	if locked, ok := data["locked"].(string); ok {
-		if val, err := numerical.NewFromString(locked); err == nil {
-			balance.Locked = val
-		}
-	}
-
-	return balance
-}
 func (b *bybit) GetPositions() ([]perp.Position, error) {
 	client, err := b.client.GetClient()
 
@@ -147,63 +119,7 @@ func (b *bybit) GetPositions() ([]perp.Position, error) {
 	return positions, nil
 }
 
-func (b *bybit) parsePosition(data map[string]interface{}) perp.Position {
-	pos := perp.Position{
-		UpdatedAt: b.timeProvider.Now(),
-	}
-
-	if symbol, ok := data["symbol"].(string); ok {
-		// Extract base symbol from "BTCUSDT" format
-		baseSymbol := symbol
-		quoteSymbol := "USDT"
-		if len(symbol) > 4 && symbol[len(symbol)-4:] == "USDT" {
-			baseSymbol = symbol[:len(symbol)-4]
-		}
-		pos.Pair = portfolio.NewPair(portfolio.NewAsset(baseSymbol), portfolio.NewAsset(quoteSymbol))
-	}
-	if side, ok := data["side"].(string); ok {
-		pos.Side = connector.OrderSide(side)
-	}
-	if size, ok := data["size"].(string); ok {
-		if val, err := numerical.NewFromString(size); err == nil {
-			pos.Size = val
-		}
-	}
-	if avgPrice, ok := data["avgPrice"].(string); ok {
-		if val, err := numerical.NewFromString(avgPrice); err == nil {
-			pos.EntryPrice = val
-		}
-	}
-	if markPrice, ok := data["markPrice"].(string); ok {
-		if val, err := numerical.NewFromString(markPrice); err == nil {
-			pos.MarkPrice = val
-		}
-	}
-	if unrealizedPnl, ok := data["unrealisedPnl"].(string); ok {
-		if val, err := numerical.NewFromString(unrealizedPnl); err == nil {
-			pos.UnrealizedPnL = val
-		}
-	}
-	if cumRealisedPnl, ok := data["cumRealisedPnl"].(string); ok {
-		if val, err := numerical.NewFromString(cumRealisedPnl); err == nil {
-			pos.RealizedPnL = val
-		}
-	}
-	if leverage, ok := data["leverage"].(string); ok {
-		if val, err := numerical.NewFromString(leverage); err == nil {
-			pos.Leverage = val
-		}
-	}
-	if liqPrice, ok := data["liqPrice"].(string); ok {
-		if val, err := numerical.NewFromString(liqPrice); err == nil {
-			pos.LiquidationPrice = val
-		}
-	}
-
-	return pos
-}
-
-func (b *bybit) GetTradingHistory(symbol string, limit int) ([]connector.Trade, error) {
+func (b *bybit) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
 	client, err := b.client.GetClient()
 
 	if err != nil {
@@ -212,7 +128,7 @@ func (b *bybit) GetTradingHistory(symbol string, limit int) ([]connector.Trade, 
 
 	params := map[string]interface{}{
 		"category": "linear",
-		"symbol":   symbol,
+		"symbol":   b.GetPerpSymbol(pair),
 		"limit":    limit,
 	}
 
@@ -229,7 +145,7 @@ func (b *bybit) GetTradingHistory(symbol string, limit int) ([]connector.Trade, 
 				for _, item := range listData {
 					if tradeData, ok := item.(map[string]interface{}); ok {
 						trade := connector.Trade{
-							Symbol:    symbol,
+							Pair:      pair,
 							Timestamp: b.timeProvider.Now(),
 						}
 

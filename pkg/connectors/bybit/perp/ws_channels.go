@@ -17,6 +17,10 @@ func (b *bybit) TradeUpdates() <-chan connector.Trade {
 	return b.tradeCh
 }
 
+func (b *bybit) FundingRateUpdates() <-chan perp.FundingRate {
+	return b.fundingRateCh
+}
+
 // GetOrderBookChannels returns all active orderbook channels
 func (b *bybit) GetOrderBookChannels() map[string]<-chan connector.OrderBook {
 	b.orderBookMu.RLock()
@@ -55,5 +59,5 @@ func (b *bybit) ErrorUpdates() <-chan error {
 
 // IsWebSocketConnected returns whether the WebSocket is connected
 func (b *bybit) IsWebSocketConnected() bool {
-	return b.initialized && b.realTime != nil
+	return b.initialized
 }

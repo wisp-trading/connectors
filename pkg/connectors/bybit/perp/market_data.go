@@ -47,45 +47,6 @@ func (b *bybit) FetchKlines(pair portfolio.Pair, interval string, limit int) ([]
 	return klines, nil
 }
 
-func (b *bybit) parseKline(data []interface{}) connector.Kline {
-	kline := connector.Kline{}
-
-	if len(data) >= 7 {
-		if openTimeStr, ok := data[0].(string); ok {
-			if timestamp, err := strconv.ParseInt(openTimeStr, 10, 64); err == nil {
-				kline.OpenTime = time.Unix(timestamp/1000, (timestamp%1000)*1000000)
-			}
-		}
-		if openStr, ok := data[1].(string); ok {
-			if val, err := strconv.ParseFloat(openStr, 64); err == nil {
-				kline.Open = val
-			}
-		}
-		if highStr, ok := data[2].(string); ok {
-			if val, err := strconv.ParseFloat(highStr, 64); err == nil {
-				kline.High = val
-			}
-		}
-		if lowStr, ok := data[3].(string); ok {
-			if val, err := strconv.ParseFloat(lowStr, 64); err == nil {
-				kline.Low = val
-			}
-		}
-		if closeStr, ok := data[4].(string); ok {
-			if val, err := strconv.ParseFloat(closeStr, 64); err == nil {
-				kline.Close = val
-			}
-		}
-		if volumeStr, ok := data[5].(string); ok {
-			if val, err := strconv.ParseFloat(volumeStr, 64); err == nil {
-				kline.Volume = val
-			}
-		}
-	}
-
-	return kline
-}
-
 func (b *bybit) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
 	client, err := b.client.GetClient()
 

@@ -92,17 +92,21 @@ func (b *bybit) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, 
 	}, nil
 }
 
-func (b *bybit) CancelOrder(pair portfolio.Pair, orderID string) (*connector.CancelResponse, error) {
+func (b *bybit) CancelOrder(orderId string, pair ...portfolio.Pair) (*connector.CancelResponse, error) {
 	client, err := b.client.GetClient()
 
 	if err != nil {
 		return nil, fmt.Errorf("client not configured: %w", err)
 	}
 
+	if len(pair) == 0 {
+		return nil, fmt.Errorf("pair is required to cancel order")
+	}
+
 	params := map[string]interface{}{
 		"category": "linear",
-		"symbol":   b.GetPerpSymbol(pair),
-		"orderId":  orderID,
+		"symbol":   b.GetPerpSymbol(pair[0]),
+		"orderId":  orderId,
 	}
 
 	_, err = client.NewUtaBybitServiceWithParams(params).CancelOrder(context.Background())
@@ -112,12 +116,12 @@ func (b *bybit) CancelOrder(pair portfolio.Pair, orderID string) (*connector.Can
 
 	return &connector.CancelResponse{
 
-		OrderID:   orderID,
+		OrderID:   orderId,
 		Timestamp: b.timeProvider.Now(),
 	}, nil
 }
 
-func (b *bybit) GetOpenOrders() ([]connector.Order, error) {
+func (b *bybit) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
 	client, err := b.client.GetClient()
 
 	if err != nil {
@@ -181,27 +185,4 @@ func (b *bybit) GetOrderStatus(orderID string, pair ...portfolio.Pair) (*connect
 	}
 
 	return nil, fmt.Errorf("order not found")
-}
-
-func (b *bybit) parseTrade(data map[string]interface{}, pair portfolio.Pair) connector.Trade {
-	trade := connector.Trade{
-		Pair:      pair,
-		Timestamp: b.timeProvider.Now(),
-	}
-
-	if side, ok := data["side"].(string); ok {
-		trade.Side = connector.OrderSide(side)
-	}
-	if price, ok := data["price"].(string); ok {
-		if val, err := numerical.NewFromString(price); err == nil {
-			trade.Price = val
-		}
-	}
-	if quantity, ok := data["size"].(string); ok {
-		if val, err := numerical.NewFromString(quantity); err == nil {
-			trade.Quantity = val
-		}
-	}
-
-	return trade
 }

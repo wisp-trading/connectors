@@ -10,7 +10,6 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
@@ -34,10 +33,11 @@ type bybit struct {
 	klineMu       sync.RWMutex
 
 	// WebSocket channels
-	tradeCh    chan connector.Trade
-	positionCh chan perp.Position
-	balanceCh  chan connector.AssetBalance
-	errorCh    chan error
+	tradeCh       chan connector.Trade
+	positionCh    chan perp.Position
+	balanceCh     chan connector.AssetBalance
+	fundingRateCh chan perp.FundingRate
+	errorCh       chan error
 
 	// Subscription tracking
 	subscriptions map[string]int
@@ -132,8 +132,4 @@ func (b *bybit) IsInitialized() bool {
 
 func (b *bybit) Name() string {
 	return "Bybit"
-}
-
-func (b *bybit) GetPerpSymbol(pair portfolio.Pair) string {
-	return pair.Base().Symbol() + pair.Quote().Symbol()
 }

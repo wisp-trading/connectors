@@ -31,6 +31,14 @@ func (b *bybit) Disconnect() error {
 	return b.realTime.Disconnect()
 }
 
+func (b *bybit) SubscribeFundingRates(pair portfolio.Pair) error {
+
+}
+func (b *bybit) UnsubscribeFundingRates(pair portfolio.Pair) error {
+	b.wsService.UnsubscribeFromAccountBalance()
+
+}
+
 func (b *bybit) SubscribeOrderBook(pair portfolio.Pair, instrument connector.Instrument) error {
 	return b.realTime.SubscribeOrderBook(pair, instrument)
 }
@@ -56,7 +64,7 @@ func (b *bybit) SubscribeAccountBalance() error {
 }
 
 func (b *bybit) UnsubscribeAccountBalance() error {
-	return b.realTime.UnsubscribeAccountBalance()
+	b.wsService.UnsubscribeFromAccountBalance()
 }
 
 func (b *bybit) UnsubscribePositions(asset portfolio.Asset, instrument connector.Instrument) error {

@@ -5,7 +5,6 @@ import (
 )
 
 // RealTimeService defines the WebSocket interface for Bybit Perpetual real-time data
-// Following Gate.io pattern: callback-based subscriptions, NOT channels
 type RealTimeService interface {
 	Connect(wsURL string) error
 	Disconnect() error

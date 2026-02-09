@@ -8,7 +8,7 @@ import (
 
 // SupportsTradingOperations returns whether trading operations are supported
 func (b *bybit) SupportsTradingOperations() bool {
-	return b.trading != nil
+	return b.initialized
 }
 
 // SupportsRealTimeData returns whether real-time data is supported
