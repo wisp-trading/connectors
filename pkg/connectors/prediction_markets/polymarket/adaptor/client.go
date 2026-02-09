@@ -127,13 +127,14 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, order OrderRequest) (
 		Expiration:    order.Expiration,
 	}
 
-	order.Salt = c.signer.GenerateSalt()
+	orderToSign.Salt = c.signer.GenerateSalt()
 
 	signature, err := c.signer.SignOrder(orderToSign)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign order: %w", err)
 	}
 	order.Signature = signature
+	order.Salt = orderToSign.Salt
 
 	// Make HTTP request
 	var response OrderResponse

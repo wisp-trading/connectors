@@ -85,10 +85,10 @@ var _ = Describe("OrderSigner", func() {
 	})
 
 	Describe("SignOrder", func() {
-		var order *adaptor.Order
+		var order adaptor.Order
 
 		BeforeEach(func() {
-			order = &adaptor.Order{
+			order = adaptor.Order{
 				Salt:          1234567890,
 				Maker:         "0x1234567890123456789012345678901234567890",
 				Signer:        "0x1234567890123456789012345678901234567890",
@@ -138,7 +138,7 @@ var _ = Describe("OrderSigner", func() {
 
 		Context("when given nil order", func() {
 			It("should return an error", func() {
-				signature, err := signer.SignOrder(nil)
+				signature, err := signer.SignOrder(adaptor.Order{})
 				Expect(err).To(HaveOccurred())
 				Expect(signature).To(BeEmpty())
 				Expect(err.Error()).To(ContainSubstring("order cannot be nil"))
@@ -199,13 +199,13 @@ var _ = Describe("OrderSigner", func() {
 	Describe("GenerateSalt", func() {
 		Context("when called", func() {
 			It("should generate a salt value", func() {
-				salt := adaptor.GenerateSalt()
+				salt := signer.GenerateSalt()
 				Expect(salt).To(BeNumerically(">", 0))
 			})
 
 			It("should generate different salts on repeated calls", func() {
-				salt1 := adaptor.GenerateSalt()
-				salt2 := adaptor.GenerateSalt()
+				salt1 := signer.GenerateSalt()
+				salt2 := signer.GenerateSalt()
 				// Very unlikely to be equal, but not impossible
 				// In practice, they should always be different
 				Expect(salt1).ToNot(Equal(salt2))
