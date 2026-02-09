@@ -101,6 +101,6 @@ func (tr *PerpTestRunner) GetWebSocketCapable() connector.WebSocketCapable {
 // Perp-specific helpers
 
 // GetPerpSymbol returns the perp symbol for an asset
-func (tr *PerpTestRunner) GetPerpSymbol(asset portfolio.Asset) string {
+func (tr *PerpTestRunner) GetPerpSymbol(asset portfolio.Pair) string {
 	return tr.conn.GetPerpSymbol(asset)
 }
