@@ -114,7 +114,6 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, order OrderRequest) (
 
 	// Sign the order
 	orderToSign := Order{
-		Salt:          order.Salt,
 		Maker:         order.Maker,
 		Signer:        order.Signer,
 		Taker:         order.Taker,
@@ -127,6 +126,8 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, order OrderRequest) (
 		SignatureType: order.SignatureType,
 		Expiration:    order.Expiration,
 	}
+
+	order.Salt = c.signer.GenerateSalt()
 
 	signature, err := c.signer.SignOrder(orderToSign)
 	if err != nil {
@@ -222,12 +223,14 @@ func (c *polymarketClient) GetOpenOrders(ctx context.Context, assetID string) ([
 }
 
 // doRequest performs an HTTP request with authentication
+// doRequest performs an HTTP request with L2 authentication
 func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint string, body interface{}, result interface{}) error {
 	c.mu.RLock()
 	baseURL := c.baseURL
 	apiKey := c.apiKey
 	apiSecret := c.apiSecret
 	passphrase := c.passphrase
+	signer := c.signer
 	c.mu.RUnlock()
 
 	// Build URL
@@ -235,11 +238,13 @@ func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint strin
 
 	// Prepare request body
 	var reqBody io.Reader
+	var bodyStr string
 	if body != nil {
 		jsonData, err := json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
+		bodyStr = string(jsonData)
 		reqBody = bytes.NewBuffer(jsonData)
 	}
 
@@ -253,10 +258,23 @@ func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint strin
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	// Add authentication headers
+	// Add L1 authentication headers
 	req.Header.Set("POLY_API_KEY", apiKey)
 	req.Header.Set("POLY_SECRET", apiSecret)
 	req.Header.Set("POLY_PASSPHRASE", passphrase)
+
+	// Add L2 authentication headers
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	// Message format: timestamp + method + path + body
+	message := timestamp + method + endpoint + bodyStr
+	signature, err := signer.SignMessage(message)
+	if err != nil {
+		return fmt.Errorf("failed to sign request: %w", err)
+	}
+
+	req.Header.Set("POLY_SIGNATURE", signature)
+	req.Header.Set("POLY_TIMESTAMP", timestamp)
+	req.Header.Set("POLY_ADDRESS", signer.GetAddress())
 
 	// Execute request
 	resp, err := c.httpClient.Do(req)

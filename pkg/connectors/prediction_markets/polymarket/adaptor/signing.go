@@ -182,7 +182,7 @@ func (s *OrderSigner) GetAddress() string {
 }
 
 // GenerateSalt generates a random salt value for orders
-func GenerateSalt() int64 {
+func (s *OrderSigner) GenerateSalt() int64 {
 	// Use current timestamp + secure random value for uniqueness
 	randomBytes := make([]byte, 8)
 	_, _ = rand.Read(randomBytes)
