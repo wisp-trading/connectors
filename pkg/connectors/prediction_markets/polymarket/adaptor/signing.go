@@ -89,11 +89,7 @@ func NewOrderSigner(privateKeyHex string, chainID int) (*OrderSigner, error) {
 }
 
 // SignOrder signs a Polymarket order using EIP-712
-func (s *OrderSigner) SignOrder(order *Order) (string, error) {
-	if order == nil {
-		return "", fmt.Errorf("order cannot be nil")
-	}
-
+func (s *OrderSigner) SignOrder(order Order) (string, error) {
 	// Validate required fields
 	if order.Maker == "" {
 		return "", fmt.Errorf("order maker is required")
