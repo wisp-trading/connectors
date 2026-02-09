@@ -492,7 +492,7 @@ func (_m *MarketDataService) GetOpenOrders(user string) ([]hyperliquid.OpenOrder
 	ret := _m.Called(user)
 
 	if len(ret) == 0 {
-		panic("no return value specified for FetchOpenOrders")
+		panic("no return value specified for GetOpenOrders")
 	}
 
 	var r0 []hyperliquid.OpenOrder
@@ -517,7 +517,7 @@ func (_m *MarketDataService) GetOpenOrders(user string) ([]hyperliquid.OpenOrder
 	return r0, r1
 }
 
-// MarketDataService_GetOpenOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FetchOpenOrders'
+// MarketDataService_GetOpenOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOpenOrders'
 type MarketDataService_GetOpenOrders_Call struct {
 	*mock.Call
 }
@@ -525,7 +525,7 @@ type MarketDataService_GetOpenOrders_Call struct {
 // GetOpenOrders is a helper method to define mock.On call
 //   - user string
 func (_e *MarketDataService_Expecter) GetOpenOrders(user interface{}) *MarketDataService_GetOpenOrders_Call {
-	return &MarketDataService_GetOpenOrders_Call{Call: _e.mock.On("FetchOpenOrders", user)}
+	return &MarketDataService_GetOpenOrders_Call{Call: _e.mock.On("GetOpenOrders", user)}
 }
 
 func (_c *MarketDataService_GetOpenOrders_Call) Run(run func(user string)) *MarketDataService_GetOpenOrders_Call {
