@@ -10,7 +10,7 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-func (b *bybit) GetBalances() ([]*perp.AssetBalance, error) {
+func (b *bybit) GetBalances() ([]connector.AssetBalance, error) {
 	client, err := b.client.GetClient()
 	if err != nil {
 		return nil, fmt.Errorf("client not configured: %w", err)
@@ -25,7 +25,7 @@ func (b *bybit) GetBalances() ([]*perp.AssetBalance, error) {
 		return nil, fmt.Errorf("failed to get wallet balance: %w", err)
 	}
 
-	var balances []*perp.AssetBalance
+	var balances []connector.AssetBalance
 
 	if result != nil && result.Result != nil {
 		if resultData, ok := result.Result.(map[string]interface{}); ok {
@@ -35,7 +35,7 @@ func (b *bybit) GetBalances() ([]*perp.AssetBalance, error) {
 						for _, c := range coinData {
 							if coinInfo, ok := c.(map[string]interface{}); ok {
 								balance := b.parseAssetBalance(coinInfo)
-								balances = append(balances, balance)
+								balances = append(balances, balance.AssetBalance)
 							}
 						}
 					}
@@ -209,13 +209,38 @@ func (b *bybit) FetchRecentTrades(pair portfolio.Pair, limit int) ([]connector.T
 }
 
 func (b *bybit) GetMarginBalances() ([]perp.AssetBalance, error) {
-	balances, err := b.GetBalances()
+	client, err := b.client.GetClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("client not configured: %w", err)
 	}
-	result := make([]perp.AssetBalance, len(balances))
-	for i, b := range balances {
-		result[i] = *b
+
+	params := map[string]interface{}{
+		"accountType": "UNIFIED",
 	}
-	return result, nil
+
+	result, err := client.NewUtaBybitServiceWithParams(params).GetAccountWallet(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallet balance: %w", err)
+	}
+
+	var balances []perp.AssetBalance
+
+	if result != nil && result.Result != nil {
+		if resultData, ok := result.Result.(map[string]interface{}); ok {
+			if listData, ok := resultData["list"].([]interface{}); ok && len(listData) > 0 {
+				if accountData, ok := listData[0].(map[string]interface{}); ok {
+					if coinData, ok := accountData["coin"].([]interface{}); ok {
+						for _, c := range coinData {
+							if coinInfo, ok := c.(map[string]interface{}); ok {
+								balance := b.parseAssetBalance(coinInfo)
+								balances = append(balances, *balance)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return balances, nil
 }

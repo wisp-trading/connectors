@@ -12,6 +12,7 @@ type Config struct {
 	APIKey          string  `json:"api_key"`
 	APISecret       string  `json:"api_secret"`
 	BaseURL         string  `json:"base_url,omitempty"`
+	WebSocketURL    string  `json:"websocket_url,omitempty"` // WebSocket URL
 	IsTestnet       bool    `json:"is_testnet,omitempty"`
 	DefaultSlippage float64 `json:"default_slippage,omitempty"` // Default 0.005 (0.5%)
 }
@@ -27,7 +28,7 @@ func (c Config) ExchangeName() connector.ExchangeName {
 }
 
 // Validate checks if the configuration is valid
-func (c Config) Validate() error {
+func (c *Config) Validate() error {
 	if c.APIKey == "" {
 		return fmt.Errorf("api_key is required")
 	}
@@ -46,6 +47,15 @@ func (c Config) Validate() error {
 			c.BaseURL = "https://api-testnet.bybit.com"
 		} else {
 			c.BaseURL = "https://api.bybit.com"
+		}
+	}
+
+	// Set default WebSocket URL
+	if c.WebSocketURL == "" {
+		if c.IsTestnet {
+			c.WebSocketURL = "wss://stream-testnet.bybit.com/v5/private"
+		} else {
+			c.WebSocketURL = "wss://stream.bybit.com/v5/private"
 		}
 	}
 

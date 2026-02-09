@@ -3,8 +3,6 @@ package perp
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"

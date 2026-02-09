@@ -85,8 +85,12 @@ func (b *bybit) Initialize(config connector.Config) error {
 		return fmt.Errorf("invalid config type for Bybit connector: expected *bybit.Config, got %T", config)
 	}
 
-	// Configure the client with runtime config (single configuration point)
-	if err := b.client.Configure(bybitConfig.APIKey, bybitConfig.APISecret, bybitConfig.BaseURL); err != nil {
+	if err := b.client.Configure(
+		bybitConfig.APIKey,
+		bybitConfig.APISecret,
+		bybitConfig.BaseURL,
+		bybitConfig.IsTestnet,
+	); err != nil {
 		return fmt.Errorf("failed to configure client: %w", err)
 	}
 
