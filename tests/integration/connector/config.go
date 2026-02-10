@@ -11,6 +11,7 @@ import (
 	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
+	polymarketconfig "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
@@ -126,5 +127,47 @@ func getGateSpotConfig() *gatespot.Config {
 		APIKey:     os.Getenv("GATE_API_KEY"),
 		APISecret:  os.Getenv("GATE_API_SECRET"),
 		UseTestnet: testnet,
+	}
+}
+
+// ========================================
+// PREDICTION MARKET CONNECTOR CONFIGURATION
+// ========================================
+const (
+	testPredictionMarketConnectorName = types.Polymarket
+	testPredictionMarketTokenID       = "21742633143463906290569050155826241533067272736897614950488156847949938836455" // Example token ID
+)
+
+// GetTestPredictionMarketConnectorName returns the prediction market connector name for tests
+func GetTestPredictionMarketConnectorName() connector.ExchangeName {
+	return testPredictionMarketConnectorName
+}
+
+// GetPredictionMarketTokenID returns the token ID for tests
+func GetPredictionMarketTokenID() string {
+	return testPredictionMarketTokenID
+}
+
+// GetPredictionMarketConnectorConfig returns the config for the prediction market connector under test
+func GetPredictionMarketConnectorConfig() connector.Config {
+	return getPolymarketConfig()
+}
+
+// getPolymarketConfig creates a Polymarket config from environment variables
+func getPolymarketConfig() *polymarketconfig.Config {
+	chainID, _ := strconv.Atoi(os.Getenv("POLYMARKET_CHAIN_ID"))
+	signatureType, _ := strconv.Atoi(os.Getenv("POLYMARKET_SIGNATURE_TYPE"))
+
+	return &polymarketconfig.Config{
+		APIKey:        os.Getenv("POLYMARKET_API_KEY"),
+		APISecret:     os.Getenv("POLYMARKET_API_SECRET"),
+		Passphrase:    os.Getenv("POLYMARKET_PASSPHRASE"),
+		PrivateKey:    os.Getenv("POLYMARKET_PRIVATE_KEY"),
+		FunderAddress: os.Getenv("POLYMARKET_FUNDER_ADDRESS"),
+		BaseURL:       os.Getenv("POLYMARKET_BASE_URL"),
+		GammaURL:      os.Getenv("POLYMARKET_GAMMA_URL"),
+		WebSocketURL:  os.Getenv("POLYMARKET_WEBSOCKET_URL"),
+		ChainID:       chainID,
+		SignatureType: signatureType,
 	}
 }
