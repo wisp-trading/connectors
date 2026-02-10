@@ -135,7 +135,13 @@ func getGateSpotConfig() *gatespot.Config {
 // ========================================
 const (
 	testPredictionMarketConnectorName = types.Polymarket
-	testPredictionMarketTokenID       = "21742633143463906290569050155826241533067272736897614950488156847949938836455" // Example token ID
+)
+
+var (
+	testPredictionMarketTokenIDs = []string{
+		"70308501195956323589797156800521969197358506986152833648253437673484286051597",
+		"77385393614263738045377442390679465888613338149607876972436340566574399345181",
+	}
 )
 
 // GetTestPredictionMarketConnectorName returns the prediction market connector name for tests
@@ -143,9 +149,9 @@ func GetTestPredictionMarketConnectorName() connector.ExchangeName {
 	return testPredictionMarketConnectorName
 }
 
-// GetPredictionMarketTokenID returns the token ID for tests
-func GetPredictionMarketTokenID() string {
-	return testPredictionMarketTokenID
+// GetPredictionMarketTokenIDs returns the token ID for tests
+func GetPredictionMarketTokenIDs() []string {
+	return testPredictionMarketTokenIDs
 }
 
 // GetPredictionMarketConnectorConfig returns the config for the prediction market connector under test

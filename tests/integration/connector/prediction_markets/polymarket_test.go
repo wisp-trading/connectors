@@ -36,18 +36,36 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 		Context("PlaceLimitOrder", func() {
 			It("should place a limit order successfully", func() {
 				conn := runner.GetPredictionMarketConnector()
-				tokenID := connector_test.GetPredictionMarketTokenID()
+				tokenID := connector_test.GetPredictionMarketTokenIDs()
 
 				makerAmount, _ := numerical.NewFromString("10.0")
 				takerAmount, _ := numerical.NewFromString("5.0")
 
+				market := prediction.Market{
+					MarketId:    "0xb51ef0ffaaca4559f39359ae9793cba168b1b1fa2376b696b3046d6a27bce6be",
+					Slug:        "test-market-slug",
+					Exchange:    connector.ExchangeName("Polymarket"),
+					OutcomeType: prediction.OutcomeTypeBinary,
+					Outcomes: []prediction.Outcome{
+						{
+							OutcomeId: tokenID[0],
+							Name:      "Yes",
+						},
+						{
+							OutcomeId: tokenID[1],
+							Name:      "No",
+						},
+					},
+					Active: true,
+					Closed: false,
+				}
+
 				// Create a limit order
 				// Create a limit order
 				order := prediction.LimitOrder{
-					Pair:         prediction.PredictionPair{}, // TODO: Set appropriate pair values
-					MakerAddress: "",                          // TODO: Set maker address from test config
-					TakerAddress: "",                          // TODO: Set taker address or empty for public order
-					TokenID:      tokenID,
+					Market:       market,
+					MakerAddress: "", // TODO: Set maker address from test config
+					TakerAddress: "", // TODO: Set taker address or empty for public order
 					MakerAmount:  makerAmount,
 					TakerAmount:  takerAmount,
 					Side:         connector.OrderSideBuy,
