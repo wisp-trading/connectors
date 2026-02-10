@@ -1,40 +1,36 @@
 package adaptor
 
-import "time"
+import (
+	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+)
 
-// OrderRequest represents a request to place an order on Polymarket
+// Order represents a Polymarket CLOB order for signing
 type OrderRequest struct {
 	Salt          int64  `json:"salt"`
-	Maker         string `json:"maker" validate:"required,eth_addr"`
-	Signer        string `json:"signer" validate:"required,eth_addr"`
-	Taker         string `json:"taker" validate:"required,eth_addr"`
-	TokenID       string `json:"tokenId" validate:"required"`
-	MakerAmount   string `json:"makerAmount" validate:"required"`
-	TakerAmount   string `json:"takerAmount" validate:"required"`
-	Side          string `json:"side" validate:"required,oneof=BUY SELL"`
+	Maker         string `json:"maker"`
+	Signer        string `json:"signer"`
+	Taker         string `json:"taker"`
+	TokenID       string `json:"tokenId"`
+	MakerAmount   string `json:"makerAmount"`
+	TakerAmount   string `json:"takerAmount"`
+	Side          string `json:"side"`
 	FeeRateBps    string `json:"feeRateBps"`
 	Nonce         string `json:"nonce"`
 	SignatureType int    `json:"signatureType"`
-	Expiration    int64  `json:"expiration"`
 	Signature     string `json:"signature"`
+	Expiration    int64  `json:"expiration"`
 }
 
-// OrderResponse represents the response from placing an order
-type OrderResponse struct {
-	OrderID       string    `json:"orderID"`
-	MarketID      string    `json:"marketID,omitempty"`
-	AssetID       string    `json:"assetID"`
-	Owner         string    `json:"owner"`
-	Type          string    `json:"type"`
-	Side          string    `json:"side"`
-	Price         string    `json:"price"`
-	OriginalSize  string    `json:"originalSize"`
-	Size          string    `json:"size"`
-	SizeFilled    string    `json:"sizeFilled"`
-	SizeRemaining string    `json:"sizeRemaining"`
-	Status        string    `json:"status"`
-	CreatedAt     time.Time `json:"created_at"`
-	LastUpdated   time.Time `json:"last_updated,omitempty"`
+func (OrderRequest) FromLimitOrder(order prediction.LimitOrder) OrderRequest {
+	return OrderRequest{
+		Maker:       order.MakerAddress,
+		Taker:       order.TakerAddress,
+		TokenID:     order.TokenID,
+		MakerAmount: order.MakerAmount.String(),
+		TakerAmount: order.TakerAmount.String(),
+		Side:        string(order.Side),
+		Expiration:  order.Expiration,
+	}
 }
 
 // CancelOrderRequest represents a request to cancel an order

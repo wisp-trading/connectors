@@ -15,22 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
-// Order represents a Polymarket CLOB order for signing
-type Order struct {
-	Salt          int64  `json:"salt"`
-	Maker         string `json:"maker"`
-	Signer        string `json:"signer"`
-	Taker         string `json:"taker"`
-	TokenID       string `json:"tokenId"`
-	MakerAmount   string `json:"makerAmount"`
-	TakerAmount   string `json:"takerAmount"`
-	Side          string `json:"side"`
-	FeeRateBps    string `json:"feeRateBps"`
-	Nonce         string `json:"nonce"`
-	SignatureType int    `json:"signatureType"`
-	Expiration    int64  `json:"expiration"`
-}
-
 // OrderSigner handles EIP-712 signing for Polymarket orders
 type OrderSigner struct {
 	privateKey *ecdsa.PrivateKey

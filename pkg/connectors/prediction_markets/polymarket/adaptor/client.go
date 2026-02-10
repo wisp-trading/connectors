@@ -10,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
+	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
 const (
@@ -27,15 +28,15 @@ const (
 
 // PolymarketClient wraps Polymarket CLOB API with lazy configuration
 type PolymarketClient interface {
-	Configure(config *polymarket.Config) error
+	Configure(config *config.Config) error
 	IsConfigured() bool
 
-	// Trading (requires authentication)
-	PlaceOrder(ctx context.Context, order OrderRequest) (*OrderResponse, error)
+	// Trading
+	PlaceOrder(ctx context.Context, order prediction.LimitOrder) error
 	CancelOrder(ctx context.Context, orderID string) (*CancelOrderResponse, error)
 	CancelAllOrders(ctx context.Context, req CancelAllOrdersRequest) (*CancelAllOrdersResponse, error)
-	GetOrder(ctx context.Context, orderID string) (*OrderResponse, error)
-	GetOpenOrders(ctx context.Context, assetID string) ([]OrderResponse, error)
+	GetOrder(ctx context.Context, orderID string) error
+	GetOpenOrders(ctx context.Context, assetID string) error
 }
 
 // polymarketClient implementation
@@ -61,7 +62,7 @@ func NewPolymarketClient() PolymarketClient {
 }
 
 // Configure sets up the client with runtime config
-func (c *polymarketClient) Configure(config *polymarket.Config) error {
+func (c *polymarketClient) Configure(config *config.Config) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -102,47 +103,37 @@ func (c *polymarketClient) IsConfigured() bool {
 }
 
 // PlaceOrder places an order on Polymarket
-func (c *polymarketClient) PlaceOrder(ctx context.Context, order OrderRequest) (*OrderResponse, error) {
+func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction.LimitOrder) error {
 	if !c.IsConfigured() {
-		return nil, fmt.Errorf("client not configured")
+		return fmt.Errorf("client not configured")
 	}
 
-	// Validate order using validator tags
-	if err := ValidateStruct(order); err != nil {
-		return nil, fmt.Errorf("invalid order: %w", err)
+	order := OrderRequest{}.FromLimitOrder(limitOrder)
+
+	if limitOrder.IsMaker {
+		order.Maker = c.signer.address.String()
+	} else {
+		order.Taker = c.signer.address.String()
 	}
 
-	// Sign the order
-	orderToSign := Order{
-		Maker:         order.Maker,
-		Signer:        order.Signer,
-		Taker:         order.Taker,
-		TokenID:       order.TokenID,
-		MakerAmount:   order.MakerAmount,
-		TakerAmount:   order.TakerAmount,
-		Side:          order.Side,
-		FeeRateBps:    order.FeeRateBps,
-		Nonce:         order.Nonce,
-		SignatureType: order.SignatureType,
-		Expiration:    order.Expiration,
-	}
+	order.Salt = c.signer.GenerateSalt()
+	order.Signer = c.signer.address.String()
+	order.SignatureType = 712
 
-	orderToSign.Salt = c.signer.GenerateSalt()
-
-	signature, err := c.signer.SignOrder(orderToSign)
+	signature, err := c.signer.SignOrder(order)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign order: %w", err)
+		return fmt.Errorf("failed to sign order: %w", err)
 	}
+
 	order.Signature = signature
-	order.Salt = orderToSign.Salt
 
 	// Make HTTP request
-	var response OrderResponse
+	var response interface{}
 	if err := c.doRequest(ctx, "POST", ordersEndpoint, order, &response); err != nil {
-		return nil, fmt.Errorf("failed to place order: %w", err)
+		return fmt.Errorf("failed to place order: %w", err)
 	}
 
-	return &response, nil
+	return nil
 }
 
 // CancelOrder cancels an order by ID
@@ -185,29 +176,29 @@ func (c *polymarketClient) CancelAllOrders(ctx context.Context, req CancelAllOrd
 }
 
 // GetOrder retrieves an order by ID
-func (c *polymarketClient) GetOrder(ctx context.Context, orderID string) (*OrderResponse, error) {
+func (c *polymarketClient) GetOrder(ctx context.Context, orderID string) error {
 	if !c.IsConfigured() {
-		return nil, fmt.Errorf("client not configured")
+		return fmt.Errorf("client not configured")
 	}
 
 	if orderID == "" {
-		return nil, fmt.Errorf("orderID is required")
+		return fmt.Errorf("orderID is required")
 	}
 
 	endpoint := fmt.Sprintf("%s/%s", getOrderEndpoint, orderID)
 
-	var response OrderResponse
+	var response interface{}
 	if err := c.doRequest(ctx, "GET", endpoint, nil, &response); err != nil {
-		return nil, fmt.Errorf("failed to get order: %w", err)
+		return fmt.Errorf("failed to get order: %w", err)
 	}
 
-	return &response, nil
+	return nil
 }
 
 // GetOpenOrders retrieves all open orders for an asset
-func (c *polymarketClient) GetOpenOrders(ctx context.Context, assetID string) ([]OrderResponse, error) {
+func (c *polymarketClient) GetOpenOrders(ctx context.Context, assetID string) error {
 	if !c.IsConfigured() {
-		return nil, fmt.Errorf("client not configured")
+		return fmt.Errorf("client not configured")
 	}
 
 	endpoint := getOpenOrdersEndpoint
@@ -215,12 +206,12 @@ func (c *polymarketClient) GetOpenOrders(ctx context.Context, assetID string) ([
 		endpoint = fmt.Sprintf("%s?assetID=%s", endpoint, assetID)
 	}
 
-	var response []OrderResponse
+	var response []interface{}
 	if err := c.doRequest(ctx, "GET", endpoint, nil, &response); err != nil {
-		return nil, fmt.Errorf("failed to get open orders: %w", err)
+		return fmt.Errorf("failed to get open orders: %w", err)
 	}
 
-	return response, nil
+	return nil
 }
 
 // doRequest performs an HTTP request with authentication

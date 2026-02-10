@@ -9,14 +9,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 )
 
 var _ = Describe("PolymarketClient", func() {
 	var (
 		client     adaptor.PolymarketClient
-		config     *polymarket.Config
+		config     *config.Config
 		mockServer *httptest.Server
 		privateKey string
 	)
@@ -33,7 +33,7 @@ var _ = Describe("PolymarketClient", func() {
 		}))
 
 		// Create test config
-		config = &polymarket.Config{
+		config = &config.Config{
 			BaseURL:       mockServer.URL,
 			APIKey:        "test-api-key",
 			APISecret:     "test-api-secret",

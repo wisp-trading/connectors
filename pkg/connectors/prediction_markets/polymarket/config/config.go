@@ -1,4 +1,4 @@
-package polymarket
+package config
 
 import (
 	"fmt"
