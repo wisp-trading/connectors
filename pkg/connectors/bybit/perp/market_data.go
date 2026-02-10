@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
@@ -150,8 +151,8 @@ func (b *bybit) FetchOrderBook(pair portfolio.Pair, depth int) (*connector.Order
 }
 
 // FetchContracts implements perp.Connector interface
-func (b *bybit) FetchContracts() ([]connector.ContractInfo, error) {
+func (b *bybit) FetchContracts() ([]perp.ContractInfo, error) {
 	// Bybit doesn't have a direct contract info endpoint
 	// Return empty slice for now
-	return []connector.ContractInfo{}, nil
+	return []perp.ContractInfo{}, nil
 }

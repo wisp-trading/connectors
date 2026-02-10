@@ -17,12 +17,22 @@ func (p *polymarket) PlaceLimitOrder(order prediction.LimitOrder) (*connector.Or
 	//	return nil, fmt.Errorf("invalid order: %w", err)
 	//}
 
-	err := p.client.PlaceOrder(ctx, order)
+	err := p.clobClient.PlaceOrder(ctx, order)
 	if err != nil {
 		return nil, err
 	}
 
 	return nil, nil
+}
+
+func (p *polymarket) PlaceLimitOrders(orders []prediction.LimitOrder) ([]*connector.OrderResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *polymarket) GetOutcome(marketID, outcomeID string) prediction.Outcome {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (p *polymarket) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {

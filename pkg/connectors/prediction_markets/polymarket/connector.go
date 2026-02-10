@@ -6,17 +6,18 @@ import (
 	"sync"
 
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex/websocket"
-	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/clob"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/gamma"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
 
 type polymarket struct {
-	client        adaptor.PolymarketClient
+	clobClient    clob.PolymarketClient
+	gammaClient   gamma.GammaClient
 	config        *config.Config
 	appLogger     logging.ApplicationLogger
 	tradingLogger logging.TradingLogger
@@ -70,11 +71,13 @@ func NewPolymarket(
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
+	gammaClient gamma.GammaClient,
 ) prediction.Connector {
-	client := adaptor.NewPolymarketClient()
+	clobClient := clob.NewPolymarketClient()
 
 	return &polymarket{
-		client:            client,
+		clobClient:        clobClient,
+		gammaClient:       gammaClient,
 		wsService:         nil, // Will be created during initialization
 		config:            nil, // Will be set during initialization
 		appLogger:         appLogger,
@@ -99,7 +102,7 @@ func (p *polymarket) Initialize(conf connector.Config) error {
 		return fmt.Errorf("invalid conf type for Polymarket connector: expected *polymarket.Config, got %T", conf)
 	}
 
-	err := p.client.Configure(polymarketConfig)
+	err := p.clobClient.Configure(polymarketConfig)
 	if err != nil {
 		return err
 	}
@@ -113,9 +116,4 @@ func (p *polymarket) Initialize(conf connector.Config) error {
 // IsInitialized implements Initializable interface
 func (p *polymarket) IsInitialized() bool {
 	return p.initialized
-}
-
-// GetPredictionPair
-func (p *polymarket) GetPredictionPair(marketID, outcomeID string) prediction.PredictionPair {
-	return prediction.NewPredictionPair(marketID, outcomeID, portfolio.NewAsset("USDC"))
 }

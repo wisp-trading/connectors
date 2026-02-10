@@ -166,6 +166,16 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				Skip("Order book not yet implemented")
 			})
 		})
+
+		Context("FetchMarket", func() {
+			It("should fetch market details", func() {
+				conn := runner.GetPredictionMarketConnector()
+				slug := "us-strike-on-somalia-by-february-14"
+
+				conn.GetMarket(slug)
+
+			})
+		})
 	})
 
 	// ========================================

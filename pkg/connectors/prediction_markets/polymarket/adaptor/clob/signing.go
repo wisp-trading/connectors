@@ -1,4 +1,4 @@
-package adaptor
+package clob
 
 import (
 	"crypto/ecdsa"
@@ -73,7 +73,7 @@ func NewOrderSigner(privateKeyHex string, chainID int) (*OrderSigner, error) {
 }
 
 // SignOrder signs a Polymarket order using EIP-712
-func (s *OrderSigner) SignOrder(order Order) (string, error) {
+func (s *OrderSigner) SignOrder(order OrderRequest) (string, error) {
 	// Validate required fields
 	if order.Maker == "" {
 		return "", fmt.Errorf("order maker is required")

@@ -1,4 +1,4 @@
-package adaptor
+package clob
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
@@ -21,6 +22,8 @@ const (
 	cancelAllEndpoint     = "/orders" // DELETE /orders with params
 	getOrderEndpoint      = "/orders" // GET /orders/:orderID
 	getOpenOrdersEndpoint = "/orders" // GET /orders with params
+
+	getMarketEndpoint = "/markets?slug=" // GET market by slug
 
 	// HTTP timeouts
 	defaultTimeout = 30 * time.Second
@@ -283,7 +286,7 @@ func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint strin
 
 	// Check status code
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var errResp ErrorResponse
+		var errResp adaptor.ErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil {
 			return fmt.Errorf("API error (status %d): %s - %s", resp.StatusCode, errResp.Error, errResp.Message)
 		}

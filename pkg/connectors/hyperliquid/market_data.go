@@ -212,6 +212,6 @@ func (h *hyperliquid) FetchRiskFundBalance(symbol string) (*perp.RiskFundBalance
 }
 
 // FetchContracts retrieves available contract information
-func (h *hyperliquid) FetchContracts() ([]connector.ContractInfo, error) {
+func (h *hyperliquid) FetchContracts() ([]perp.ContractInfo, error) {
 	return nil, fmt.Errorf("FetchContracts not implemented for Hyperliquid")
 }
