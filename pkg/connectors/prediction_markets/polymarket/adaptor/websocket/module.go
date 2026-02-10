@@ -1,0 +1,256 @@
+package websocket
+
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
+	"github.com/wisp-trading/connectors/pkg/websocket/base"
+	"github.com/wisp-trading/connectors/pkg/websocket/connection"
+	"github.com/wisp-trading/connectors/pkg/websocket/performance"
+	"github.com/wisp-trading/connectors/pkg/websocket/security"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"go.uber.org/fx"
+)
+
+const (
+	// PolymarketWSURL is the default WebSocket URL for Polymarket CLOB
+	PolymarketWSURL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+)
+
+// AuthProvider implements CLOB authentication for WebSocket connections
+type authProvider struct {
+	apiKey     string
+	apiSecret  string
+	passphrase string
+}
+
+func (a *authProvider) GetAuthHeaders(_ context.Context) (http.Header, error) {
+	headers := make(http.Header)
+	headers.Set("POLY_API_KEY", a.apiKey)
+	headers.Set("POLY_SECRET", a.apiSecret)
+	headers.Set("POLY_PASSPHRASE", a.passphrase)
+	return headers, nil
+}
+
+func (a *authProvider) IsAuthenticated() bool {
+	return a.apiKey != "" && a.apiSecret != "" && a.passphrase != ""
+}
+
+func (a *authProvider) Refresh(_ context.Context) error {
+	// CLOB API keys don't expire, no refresh needed
+	return nil
+}
+
+func (a *authProvider) GetTokenExpiry() time.Time {
+	// Return far future date since keys don't expire
+	return time.Now().Add(365 * 24 * time.Hour)
+}
+
+// NewAuthManager creates auth manager for Polymarket CLOB
+func NewAuthManager(cfg *config.Config, logger logging.ApplicationLogger) security.AuthManager {
+	authProvider := &authProvider{
+		apiKey:     cfg.APIKey,
+		apiSecret:  cfg.APISecret,
+		passphrase: cfg.Passphrase,
+	}
+	return security.NewAuthManager(authProvider, logger)
+}
+
+// NewValidationConfig creates validation configuration
+func NewValidationConfig() security.ValidationConfig {
+	return security.ValidationConfig{
+		MaxMessageSize: 65536,
+		AllowedTypes: map[string]bool{
+			"market":     true,
+			"book":       true,
+			"trade":      true,
+			"user_order": true,
+			"user_trade": true,
+			"last_price": true,
+			"ticker":     true,
+		},
+		TypeField: "event_type",
+	}
+}
+
+// NewMessageValidator creates message validator
+func NewMessageValidator(valConfig security.ValidationConfig) security.MessageValidator {
+	return security.NewMessageValidator(valConfig)
+}
+
+// NewRateLimiter creates rate limiter
+func NewRateLimiter() security.RateLimiter {
+	return security.NewRateLimiter(1000, 100)
+}
+
+// NewMetrics creates metrics instance
+func NewMetrics() performance.Metrics {
+	return performance.NewMetrics()
+}
+
+// NewCircuitBreaker creates circuit breaker
+func NewCircuitBreaker() performance.CircuitBreaker {
+	return performance.NewCircuitBreaker(3, 30*time.Second)
+}
+
+// NewConnectionConfig creates connection configuration
+func NewConnectionConfig(cfg *config.Config) connection.Config {
+	connCfg := connection.DefaultConfig()
+	connCfg.URL = cfg.WebSocketURL
+	connCfg.EnableHealthMonitoring = true
+	connCfg.EnableHealthPings = true
+	connCfg.HealthCheckInterval = 30 * time.Second
+	return connCfg
+}
+
+// NewConnectionManager creates connection manager
+func NewConnectionManager(
+	config connection.Config,
+	authManager security.AuthManager,
+	metrics performance.Metrics,
+	logger logging.ApplicationLogger,
+	dialer connection.WebSocketDialer,
+) connection.ConnectionManager {
+	return connection.NewConnectionManager(config, authManager, metrics, logger, dialer)
+}
+
+// NewReconnectionStrategy creates reconnection strategy
+func NewReconnectionStrategy() connection.ReconnectionStrategy {
+	return connection.NewExponentialBackoffStrategy(
+		5*time.Second,
+		60*time.Second,
+		10,
+	)
+}
+
+// NewReconnectManager creates reconnect manager
+func NewReconnectManager(
+	connManager connection.ConnectionManager,
+	strategy connection.ReconnectionStrategy,
+	logger logging.ApplicationLogger,
+) connection.ReconnectManager {
+	return connection.NewReconnectManager(connManager, strategy, logger)
+}
+
+// NewBaseServiceConfig creates base service configuration
+func NewBaseServiceConfig(cfg *config.Config) base.Config {
+	return base.Config{
+		URL:            cfg.WebSocketURL,
+		ReconnectDelay: 5 * time.Second,
+		MaxReconnects:  10,
+		PingInterval:   30 * time.Second,
+		PongTimeout:    10 * time.Second,
+		MaxMessageSize: 65536,
+	}
+}
+
+// NewBaseService creates base service
+func NewBaseService(
+	config base.Config,
+	logger logging.ApplicationLogger,
+	validator security.MessageValidator,
+	rateLimiter security.RateLimiter,
+	metrics performance.Metrics,
+	circuitBreaker performance.CircuitBreaker,
+) base.BaseService {
+	return base.NewBaseService(
+		config,
+		logger,
+		validator,
+		rateLimiter,
+		metrics,
+		circuitBreaker,
+	)
+}
+
+// WebSocketModule provides all real-time WebSocket dependencies for Polymarket
+var WebSocketModule = fx.Module("polymarket_websocket",
+	fx.Provide(
+		fx.Annotate(
+			NewAuthManager,
+			fx.ResultTags(`name:"polymarket_auth_manager"`),
+		),
+		fx.Annotate(
+			NewValidationConfig,
+			fx.ResultTags(`name:"polymarket_validation"`),
+		),
+		fx.Annotate(
+			NewMessageValidator,
+			fx.ParamTags(`name:"polymarket_validation"`),
+			fx.ResultTags(`name:"polymarket_validator"`),
+		),
+		fx.Annotate(
+			NewRateLimiter,
+			fx.ResultTags(`name:"polymarket_rate_limiter"`),
+		),
+		fx.Annotate(
+			NewMetrics,
+			fx.ResultTags(`name:"polymarket_metrics"`),
+		),
+		fx.Annotate(
+			NewCircuitBreaker,
+			fx.ResultTags(`name:"polymarket_circuit_breaker"`),
+		),
+		fx.Annotate(
+			NewConnectionConfig,
+			fx.ResultTags(`name:"polymarket_connection_config"`),
+		),
+		fx.Annotate(
+			connection.NewGorillaDialer,
+			fx.ParamTags(`name:"polymarket_connection_config"`),
+			fx.ResultTags(`name:"polymarket_dialer"`),
+		),
+		fx.Annotate(
+			NewConnectionManager,
+			fx.ParamTags(
+				`name:"polymarket_connection_config"`,
+				`name:"polymarket_auth_manager"`,
+				`name:"polymarket_metrics"`,
+				``,
+				`name:"polymarket_dialer"`,
+			),
+			fx.ResultTags(`name:"polymarket_connection_manager"`),
+		),
+		fx.Annotate(
+			NewReconnectionStrategy,
+			fx.ResultTags(`name:"polymarket_strategy"`),
+		),
+		fx.Annotate(
+			NewReconnectManager,
+			fx.ParamTags(
+				`name:"polymarket_connection_manager"`,
+				`name:"polymarket_strategy"`,
+				``,
+			),
+			fx.ResultTags(`name:"polymarket_reconnect_manager"`),
+		),
+		fx.Annotate(
+			NewBaseServiceConfig,
+			fx.ResultTags(`name:"polymarket_base_config"`),
+		),
+		fx.Annotate(
+			NewBaseService,
+			fx.ParamTags(
+				`name:"polymarket_base_config"`,
+				``,
+				`name:"polymarket_validator"`,
+				`name:"polymarket_rate_limiter"`,
+				`name:"polymarket_metrics"`,
+				`name:"polymarket_circuit_breaker"`,
+			),
+			fx.ResultTags(`name:"polymarket_base_service"`),
+		),
+		fx.Annotate(
+			NewWebSocketService,
+			fx.ParamTags(
+				`name:"polymarket_connection_manager"`,
+				`name:"polymarket_reconnect_manager"`,
+				`name:"polymarket_base_service"`,
+				``,
+			),
+			fx.As(new(PolymarketWebsocket)),
+		),
+	),
+)

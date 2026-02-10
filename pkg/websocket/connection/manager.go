@@ -134,7 +134,7 @@ func (cm *connectionManager) doConnect() error {
 		return fmt.Errorf("invalid WebSocket URL: %w", err)
 	}
 
-	if u.Scheme != "wss" {
+	if !cm.config.SkipTLSVerify && u.Scheme != "wss" {
 		return fmt.Errorf("insecure WebSocket scheme: %s (must be wss)", u.Scheme)
 	}
 
