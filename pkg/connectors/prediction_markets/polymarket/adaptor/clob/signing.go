@@ -1,4 +1,4 @@
-package adaptor
+package clob
 
 import (
 	"crypto/ecdsa"
@@ -14,22 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
-
-// Order represents a Polymarket CLOB order for signing
-type Order struct {
-	Salt          int64  `json:"salt"`
-	Maker         string `json:"maker"`
-	Signer        string `json:"signer"`
-	Taker         string `json:"taker"`
-	TokenID       string `json:"tokenId"`
-	MakerAmount   string `json:"makerAmount"`
-	TakerAmount   string `json:"takerAmount"`
-	Side          string `json:"side"`
-	FeeRateBps    string `json:"feeRateBps"`
-	Nonce         string `json:"nonce"`
-	SignatureType int    `json:"signatureType"`
-	Expiration    int64  `json:"expiration"`
-}
 
 // OrderSigner handles EIP-712 signing for Polymarket orders
 type OrderSigner struct {
@@ -89,7 +73,7 @@ func NewOrderSigner(privateKeyHex string, chainID int) (*OrderSigner, error) {
 }
 
 // SignOrder signs a Polymarket order using EIP-712
-func (s *OrderSigner) SignOrder(order Order) (string, error) {
+func (s *OrderSigner) SignOrder(order OrderRequest) (string, error) {
 	// Validate required fields
 	if order.Maker == "" {
 		return "", fmt.Errorf("order maker is required")
