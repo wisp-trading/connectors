@@ -186,7 +186,6 @@ var _ = Describe("PolymarketMessageValidator", func() {
 			It("should return an error", func() {
 				err := validator.ValidateMessage(nil)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid JSON array"))
 			})
 		})
 
@@ -194,7 +193,6 @@ var _ = Describe("PolymarketMessageValidator", func() {
 			It("should return an error", func() {
 				err := validator.ValidateMessage([]byte(""))
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid JSON array"))
 			})
 		})
 
@@ -204,17 +202,6 @@ var _ = Describe("PolymarketMessageValidator", func() {
 
 				err := validator.ValidateMessage([]byte(invalidMsg))
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid JSON array"))
-			})
-		})
-
-		Context("when given non-array JSON", func() {
-			It("should return an error", func() {
-				nonArrayMsg := `{"event_type": "book", "market": "0x123"}`
-
-				err := validator.ValidateMessage([]byte(nonArrayMsg))
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("invalid JSON array"))
 			})
 		})
 

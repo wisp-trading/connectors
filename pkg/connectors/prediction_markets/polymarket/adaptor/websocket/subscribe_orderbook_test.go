@@ -62,7 +62,7 @@ var _ = Describe("OrderBook Subscription", func() {
 				receivedBooks = append(receivedBooks, book)
 			})
 
-			// Send orderbook message from server
+			// Send orderbook message from server wrapped in array (Polymarket format)
 			msg := map[string]interface{}{
 				"event_type": "book",
 				"asset_id":   assetID,
@@ -73,7 +73,9 @@ var _ = Describe("OrderBook Subscription", func() {
 				"hash":       "test123",
 			}
 
-			msgBytes, err := json.Marshal(msg)
+			// Polymarket sends messages as JSON arrays
+			msgArray := []interface{}{msg}
+			msgBytes, err := json.Marshal(msgArray)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = testServer.SendMessage(msgBytes)
@@ -107,7 +109,7 @@ var _ = Describe("OrderBook Subscription", func() {
 				called = true
 			})
 
-			// Send message for different asset
+			// Send message for different asset wrapped in array
 			msg := map[string]interface{}{
 				"event_type": "book",
 				"asset_id":   differentAssetID,
@@ -117,7 +119,8 @@ var _ = Describe("OrderBook Subscription", func() {
 				"timestamp":  "2026-02-10T08:30:00Z",
 			}
 
-			msgBytes, _ := json.Marshal(msg)
+			msgArray := []interface{}{msg}
+			msgBytes, _ := json.Marshal(msgArray)
 			testServer.SendMessage(msgBytes)
 
 			Consistently(func() bool {
@@ -151,7 +154,8 @@ var _ = Describe("OrderBook Subscription", func() {
 				"timestamp":  "2026-02-10T08:30:00Z",
 			}
 
-			msgBytes, _ := json.Marshal(msg)
+			msgArray := []interface{}{msg}
+			msgBytes, _ := json.Marshal(msgArray)
 			testServer.SendMessage(msgBytes)
 
 			Consistently(func() bool {

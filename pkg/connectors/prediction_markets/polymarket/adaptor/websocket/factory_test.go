@@ -1,19 +1,12 @@
 package websocket_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
 )
-
-func TestWebSocketFactory(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "WebSocket Factory Suite")
-}
 
 var _ = Describe("WebSocketServiceFactory", func() {
 	var (

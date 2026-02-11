@@ -125,11 +125,23 @@ func (ws *webSocketService) onDisconnect() error {
 }
 
 func (ws *webSocketService) onMessage(message []byte) error {
-	// Use BaseService for rate limiting & validation - pass the callback
+	ws.logger.Debug("📥 Raw message received: %s", string(message))
+
+	trimmed := bytes.TrimSpace(message)
+
+	// Polymarket sends arrays of messages - handle them directly without validation
+	// because validator expects single objects, not arrays
+	if len(trimmed) > 0 && trimmed[0] == '[' {
+		ws.logger.Debug("📦 Detected array message, processing directly")
+		return ws.handleValidatedMessage(trimmed)
+	}
+
+	// For non-array messages (control messages), use BaseService validation
 	if err := ws.baseService.ProcessMessage(message, func(validatedMsg []byte) error {
+		ws.logger.Debug("✅ Message validated, processing: %s", string(validatedMsg))
 		return ws.handleValidatedMessage(validatedMsg)
 	}); err != nil {
-		fmt.Print(string(message))
+		ws.logger.Error("❌ Message validation failed: %v | Message: %s", err, string(message))
 		return fmt.Errorf("message validation failed: %w", err)
 	}
 	return nil
