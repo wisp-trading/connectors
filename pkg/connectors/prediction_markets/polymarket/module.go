@@ -1,7 +1,7 @@
 package polymarket
 
 import (
-	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/gamma"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
@@ -10,8 +10,8 @@ import (
 
 // Module is the Polymarket Spot connector module
 var Module = fx.Options(
+	adaptor.Module,
 	fx.Provide(
-		gamma.NewPolymarketClient,
 		fx.Annotate(
 			NewPolymarket,
 			fx.ParamTags(``, ``, ``, ``, ``), // No special tags - use auto-wiring
@@ -25,6 +25,6 @@ var Module = fx.Options(
 )
 
 // registerPolymarket registers the Polymarket Spot connector with the SDK's ConnectorRegistry
-func registerPolymarket(polymarketConn prediction.Connector, reg registry.ConnectorRegistry) {
+func registerPolymarket(polymarketConn prediction.WebSocketConnector, reg registry.ConnectorRegistry) {
 	reg.RegisterPredictionMarketConnector(types.Polymarket, polymarketConn)
 }

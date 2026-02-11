@@ -68,3 +68,7 @@ func LogInfo(format string, args ...interface{}) {
 func LogDebug(format string, args ...interface{}) {
 	fmt.Printf("[DEBUG] "+format+"\n", args...)
 }
+
+func LogError(format string, args ...interface{}) {
+	fmt.Printf("[ERROR] "+format+"\n", args...)
+}

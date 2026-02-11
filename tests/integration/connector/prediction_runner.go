@@ -82,10 +82,26 @@ func (tr *PredictionMarketTestRunner) HasWebSocketSupport() bool {
 }
 
 // GetWebSocketCapable returns the base WebSocket capability
-func (tr *PredictionMarketTestRunner) GetWebSocketCapable() connector.WebSocketCapable {
-	wsCapable, ok := tr.conn.(connector.WebSocketCapable)
+func (tr *PredictionMarketTestRunner) GetWebSocketCapable() prediction.WebSocketConnector {
+	wsCapable, ok := tr.conn.(prediction.WebSocketConnector)
 	if !ok {
 		return nil
 	}
 	return wsCapable
+}
+
+// VerifyOrderBookData waits for order book data from channel with timeout
+func (tr *PredictionMarketTestRunner) VerifyOrderBookData(
+	obChan <-chan connector.OrderBook,
+	timeout time.Duration,
+) connector.OrderBook {
+	select {
+	case ob, ok := <-obChan:
+		if !ok {
+			return connector.OrderBook{}
+		}
+		return ob
+	case <-time.After(timeout):
+		return connector.OrderBook{}
+	}
 }

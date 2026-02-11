@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/paradex/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/clob"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/gamma"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
@@ -18,15 +18,14 @@ import (
 type polymarket struct {
 	clobClient    clob.PolymarketClient
 	gammaClient   gamma.GammaClient
+	wsFactory     websocket.WebSocketServiceFactory // Factory to create WS service at runtime
+	wsClient      websocket.PolymarketWebsocket     // Created lazily from factory
 	config        *config.Config
 	appLogger     logging.ApplicationLogger
 	tradingLogger logging.TradingLogger
 	timeProvider  temporal.TimeProvider
 	ctx           context.Context
 	initialized   bool
-
-	// WebSocket service
-	wsService websockets.WebSocketService
 
 	// WebSocket state management
 	wsContext context.Context
@@ -35,11 +34,11 @@ type polymarket struct {
 
 	tradeCh chan connector.Trade
 
-	// Separate channels per orderbook subscription (key: "BTC", "ETH", etc.)
+	// Separate channels per outcome subscription (key: "btc-updown-4h:YES-USDC")
 	orderBookChannels map[string]chan connector.OrderBook
 	orderBookMu       sync.RWMutex
 
-	// Separate channels per kline subscription (key: "BTC:1m", "ETH:5m", etc.)
+	// Separate channels per outcome subscription for klines (key: "btc-updown-4h:YES-USDC")
 	klineChannels map[string]chan connector.Kline
 	klineMu       sync.RWMutex
 }
@@ -72,13 +71,15 @@ func NewPolymarket(
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
 	gammaClient gamma.GammaClient,
-) prediction.Connector {
+	wsFactory websocket.WebSocketServiceFactory, // Factory injected by fx
+) prediction.WebSocketConnector {
 	clobClient := clob.NewPolymarketClient()
 
 	return &polymarket{
 		clobClient:        clobClient,
+		wsFactory:         wsFactory, // Store factory, not service
+		wsClient:          nil,       // Will be created in Initialize()
 		gammaClient:       gammaClient,
-		wsService:         nil, // Will be created during initialization
 		config:            nil, // Will be set during initialization
 		appLogger:         appLogger,
 		tradingLogger:     tradingLogger,
@@ -102,10 +103,18 @@ func (p *polymarket) Initialize(conf connector.Config) error {
 		return fmt.Errorf("invalid conf type for Polymarket connector: expected *polymarket.Config, got %T", conf)
 	}
 
+	// Configure CLOB client
 	err := p.clobClient.Configure(polymarketConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to configure CLOB client: %w", err)
 	}
+
+	// Create WebSocket service from factory with config
+	wsClient, err := p.wsFactory.CreateWebSocketService(polymarketConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create WebSocket service: %w", err)
+	}
+	p.wsClient = wsClient
 
 	p.config = polymarketConfig
 	p.initialized = true

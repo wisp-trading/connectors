@@ -1,4 +1,4 @@
-package adaptor
+package types
 
 // ErrorResponse represents an error response from the API
 type ErrorResponse struct {
