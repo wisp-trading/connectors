@@ -113,7 +113,7 @@ func (ws *WebSocketService) Connect(websocketUrl *string) error {
 	ws.logger.Info("🔌 Connecting to WebSocket: %s", ws.connManager.GetState())
 
 	// Connect - pass the websocket URL and a never-cancelling context
-	if err := ws.connManager.Connect(ws.ctx, websocketUrl); err != nil {
+	if err := ws.connManager.Connect(ws.ctx, nil, websocketUrl); err != nil {
 		ws.logger.Error("❌ Failed to connect to WebSocket: %v", err)
 		return fmt.Errorf("websocket connection failed: %w", err)
 	}

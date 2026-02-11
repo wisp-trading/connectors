@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/paradex/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/clob"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/gamma"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
@@ -16,17 +16,15 @@ import (
 )
 
 type polymarket struct {
-	clobClient    clob.PolymarketClient
-	gammaClient   gamma.GammaClient
-	config        *config.Config
-	appLogger     logging.ApplicationLogger
-	tradingLogger logging.TradingLogger
-	timeProvider  temporal.TimeProvider
-	ctx           context.Context
-	initialized   bool
-
-	// WebSocket service
-	wsService websockets.WebSocketService
+	clobClient      clob.PolymarketClient
+	gammaClient     gamma.GammaClient
+	websocketClient websocket.PolymarketWebsocket
+	config          *config.Config
+	appLogger       logging.ApplicationLogger
+	tradingLogger   logging.TradingLogger
+	timeProvider    temporal.TimeProvider
+	ctx             context.Context
+	initialized     bool
 
 	// WebSocket state management
 	wsContext context.Context
@@ -72,13 +70,14 @@ func NewPolymarket(
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
 	gammaClient gamma.GammaClient,
-) prediction.Connector {
+	websocketClient websocket.PolymarketWebsocket,
+) prediction.WebSocketConnector {
 	clobClient := clob.NewPolymarketClient()
 
 	return &polymarket{
 		clobClient:        clobClient,
+		websocketClient:   websocketClient,
 		gammaClient:       gammaClient,
-		wsService:         nil, // Will be created during initialization
 		config:            nil, // Will be set during initialization
 		appLogger:         appLogger,
 		tradingLogger:     tradingLogger,

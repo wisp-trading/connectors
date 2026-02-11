@@ -86,7 +86,7 @@ func (ws *webSocketService) Connect(wsURL string) error {
 	ws.logger.Info(fmt.Sprintf("🔌 Connecting to Polymarket WebSocket: %s", wsURL))
 
 	// Pass the URL to connection manager
-	if err := ws.connManager.Connect(ws.ctx, &wsURL); err != nil {
+	if err := ws.connManager.Connect(ws.ctx, nil, &wsURL); err != nil {
 		ws.logger.Error("❌ Failed to connect to WebSocket: %v", err)
 		return fmt.Errorf("websocket connection failed: %w", err)
 	}

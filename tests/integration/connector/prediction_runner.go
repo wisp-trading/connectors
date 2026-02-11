@@ -82,8 +82,8 @@ func (tr *PredictionMarketTestRunner) HasWebSocketSupport() bool {
 }
 
 // GetWebSocketCapable returns the base WebSocket capability
-func (tr *PredictionMarketTestRunner) GetWebSocketCapable() connector.WebSocketCapable {
-	wsCapable, ok := tr.conn.(connector.WebSocketCapable)
+func (tr *PredictionMarketTestRunner) GetWebSocketCapable() prediction.WebSocketConnector {
+	wsCapable, ok := tr.conn.(prediction.WebSocketConnector)
 	if !ok {
 		return nil
 	}

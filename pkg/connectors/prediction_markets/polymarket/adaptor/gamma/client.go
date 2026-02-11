@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/types"
 )
 
 const (
 	baseUrl           = "https://gamma-api.polymarket.com"
 	getMarketEndpoint = "/markets?slug=" // GET market by slug
-	
+
 	// HTTP timeouts
 	defaultTimeout = 30 * time.Second
 )
@@ -78,7 +78,7 @@ func (c *gammaClient) doRequest(ctx context.Context, method, endpoint string, bo
 
 	// Check status code
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var errResp adaptor.ErrorResponse
+		var errResp types.ErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil {
 			return fmt.Errorf("API error (status %d): %s - %s", resp.StatusCode, errResp.Error, errResp.Message)
 		}

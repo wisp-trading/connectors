@@ -221,7 +221,9 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 	Describe("WebSocket Subscriptions", func() {
 		Context("StartWebSocket", func() {
 			It("should establish WebSocket connection", func() {
-				Skip("WebSocket not yet implemented")
+				conn := runner.GetWebSocketCapable()
+				err := conn.StartWebSocket()
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 

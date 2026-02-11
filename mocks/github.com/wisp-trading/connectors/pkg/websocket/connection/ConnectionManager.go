@@ -23,17 +23,17 @@ func (_m *ConnectionManager) EXPECT() *ConnectionManager_Expecter {
 	return &ConnectionManager_Expecter{mock: &_m.Mock}
 }
 
-// Connect provides a mock function with given fields: ctx, websocketUrl
-func (_m *ConnectionManager) Connect(ctx context.Context, websocketUrl *string) error {
-	ret := _m.Called(ctx, websocketUrl)
+// Connect provides a mock function with given fields: ctx, config, websocketUrl
+func (_m *ConnectionManager) Connect(ctx context.Context, config *connection.Config, websocketUrl *string) error {
+	ret := _m.Called(ctx, config, websocketUrl)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Connect")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *string) error); ok {
-		r0 = rf(ctx, websocketUrl)
+	if rf, ok := ret.Get(0).(func(context.Context, *connection.Config, *string) error); ok {
+		r0 = rf(ctx, config, websocketUrl)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -48,14 +48,15 @@ type ConnectionManager_Connect_Call struct {
 
 // Connect is a helper method to define mock.On call
 //   - ctx context.Context
+//   - config *connection.Config
 //   - websocketUrl *string
-func (_e *ConnectionManager_Expecter) Connect(ctx interface{}, websocketUrl interface{}) *ConnectionManager_Connect_Call {
-	return &ConnectionManager_Connect_Call{Call: _e.mock.On("Connect", ctx, websocketUrl)}
+func (_e *ConnectionManager_Expecter) Connect(ctx interface{}, config interface{}, websocketUrl interface{}) *ConnectionManager_Connect_Call {
+	return &ConnectionManager_Connect_Call{Call: _e.mock.On("Connect", ctx, config, websocketUrl)}
 }
 
-func (_c *ConnectionManager_Connect_Call) Run(run func(ctx context.Context, websocketUrl *string)) *ConnectionManager_Connect_Call {
+func (_c *ConnectionManager_Connect_Call) Run(run func(ctx context.Context, config *connection.Config, websocketUrl *string)) *ConnectionManager_Connect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*string))
+		run(args[0].(context.Context), args[1].(*connection.Config), args[2].(*string))
 	})
 	return _c
 }
@@ -65,7 +66,7 @@ func (_c *ConnectionManager_Connect_Call) Return(_a0 error) *ConnectionManager_C
 	return _c
 }
 
-func (_c *ConnectionManager_Connect_Call) RunAndReturn(run func(context.Context, *string) error) *ConnectionManager_Connect_Call {
+func (_c *ConnectionManager_Connect_Call) RunAndReturn(run func(context.Context, *connection.Config, *string) error) *ConnectionManager_Connect_Call {
 	_c.Call.Return(run)
 	return _c
 }

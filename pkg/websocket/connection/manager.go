@@ -107,10 +107,15 @@ func (cm *connectionManager) SetCallbacks(
 
 func (cm *connectionManager) Connect(
 	ctx context.Context,
+	conf *Config,
 	websocketUrl *string,
 ) error {
 	cm.stateMutex.Lock()
 	defer cm.stateMutex.Unlock()
+
+	if conf != nil {
+		cm.config = *conf
+	}
 
 	if websocketUrl != nil {
 		cm.config.URL = *websocketUrl

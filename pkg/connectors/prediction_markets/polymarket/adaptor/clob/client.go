@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
+	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/types"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
@@ -286,7 +286,7 @@ func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint strin
 
 	// Check status code
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var errResp adaptor.ErrorResponse
+		var errResp types.ErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil {
 			return fmt.Errorf("API error (status %d): %s - %s", resp.StatusCode, errResp.Error, errResp.Message)
 		}

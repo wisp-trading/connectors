@@ -48,8 +48,8 @@ func (a *authProvider) GetTokenExpiry() time.Time {
 	return time.Now().Add(365 * 24 * time.Hour)
 }
 
-// NewAuthManager creates auth manager for Polymarket CLOB
-func NewAuthManager(cfg *config.Config, logger logging.ApplicationLogger) security.AuthManager {
+// newAuthManager creates auth manager for Polymarket CLOB
+func newAuthManager(cfg *config.Config, logger logging.ApplicationLogger) security.AuthManager {
 	authProvider := &authProvider{
 		apiKey:     cfg.APIKey,
 		apiSecret:  cfg.APISecret,
@@ -58,8 +58,8 @@ func NewAuthManager(cfg *config.Config, logger logging.ApplicationLogger) securi
 	return security.NewAuthManager(authProvider, logger)
 }
 
-// NewValidationConfig creates validation configuration
-func NewValidationConfig() security.ValidationConfig {
+// newValidationConfig creates validation configuration
+func newValidationConfig() security.ValidationConfig {
 	return security.ValidationConfig{
 		MaxMessageSize: 65536,
 		AllowedTypes: map[string]bool{
@@ -75,28 +75,28 @@ func NewValidationConfig() security.ValidationConfig {
 	}
 }
 
-// NewMessageValidator creates message validator
-func NewMessageValidator(valConfig security.ValidationConfig) security.MessageValidator {
+// newMessageValidator creates message validator
+func newMessageValidator(valConfig security.ValidationConfig) security.MessageValidator {
 	return security.NewMessageValidator(valConfig)
 }
 
-// NewRateLimiter creates rate limiter
-func NewRateLimiter() security.RateLimiter {
+// newRateLimiter creates rate limiter
+func newRateLimiter() security.RateLimiter {
 	return security.NewRateLimiter(1000, 100)
 }
 
-// NewMetrics creates metrics instance
-func NewMetrics() performance.Metrics {
+// newMetrics creates metrics instance
+func newMetrics() performance.Metrics {
 	return performance.NewMetrics()
 }
 
-// NewCircuitBreaker creates circuit breaker
-func NewCircuitBreaker() performance.CircuitBreaker {
+// newCircuitBreaker creates circuit breaker
+func newCircuitBreaker() performance.CircuitBreaker {
 	return performance.NewCircuitBreaker(3, 30*time.Second)
 }
 
-// NewConnectionConfig creates connection configuration
-func NewConnectionConfig(cfg *config.Config) connection.Config {
+// newConnectionConfig creates connection configuration
+func newConnectionConfig(cfg *config.Config) connection.Config {
 	connCfg := connection.DefaultConfig()
 	connCfg.URL = cfg.WebSocketURL
 	connCfg.EnableHealthMonitoring = true
@@ -105,8 +105,8 @@ func NewConnectionConfig(cfg *config.Config) connection.Config {
 	return connCfg
 }
 
-// NewConnectionManager creates connection manager
-func NewConnectionManager(
+// newConnectionManager creates connection manager
+func newConnectionManager(
 	config connection.Config,
 	authManager security.AuthManager,
 	metrics performance.Metrics,
@@ -125,8 +125,8 @@ func NewReconnectionStrategy() connection.ReconnectionStrategy {
 	)
 }
 
-// NewReconnectManager creates reconnect manager
-func NewReconnectManager(
+// newReconnectManager creates reconnect manager
+func newReconnectManager(
 	connManager connection.ConnectionManager,
 	strategy connection.ReconnectionStrategy,
 	logger logging.ApplicationLogger,
@@ -134,8 +134,8 @@ func NewReconnectManager(
 	return connection.NewReconnectManager(connManager, strategy, logger)
 }
 
-// NewBaseServiceConfig creates base service configuration
-func NewBaseServiceConfig(cfg *config.Config) base.Config {
+// newBaseServiceConfig creates base service configuration
+func newBaseServiceConfig(cfg *config.Config) base.Config {
 	return base.Config{
 		URL:            cfg.WebSocketURL,
 		ReconnectDelay: 5 * time.Second,
@@ -146,8 +146,8 @@ func NewBaseServiceConfig(cfg *config.Config) base.Config {
 	}
 }
 
-// NewBaseService creates base service
-func NewBaseService(
+// newBaseService creates base service
+func newBaseService(
 	config base.Config,
 	logger logging.ApplicationLogger,
 	validator security.MessageValidator,
@@ -169,32 +169,32 @@ func NewBaseService(
 var WebSocketModule = fx.Module("polymarket_websocket",
 	fx.Provide(
 		fx.Annotate(
-			NewAuthManager,
+			newAuthManager,
 			fx.ResultTags(`name:"polymarket_auth_manager"`),
 		),
 		fx.Annotate(
-			NewValidationConfig,
+			newValidationConfig,
 			fx.ResultTags(`name:"polymarket_validation"`),
 		),
 		fx.Annotate(
-			NewMessageValidator,
+			newMessageValidator,
 			fx.ParamTags(`name:"polymarket_validation"`),
 			fx.ResultTags(`name:"polymarket_validator"`),
 		),
 		fx.Annotate(
-			NewRateLimiter,
+			newRateLimiter,
 			fx.ResultTags(`name:"polymarket_rate_limiter"`),
 		),
 		fx.Annotate(
-			NewMetrics,
+			newMetrics,
 			fx.ResultTags(`name:"polymarket_metrics"`),
 		),
 		fx.Annotate(
-			NewCircuitBreaker,
+			newCircuitBreaker,
 			fx.ResultTags(`name:"polymarket_circuit_breaker"`),
 		),
 		fx.Annotate(
-			NewConnectionConfig,
+			newConnectionConfig,
 			fx.ResultTags(`name:"polymarket_connection_config"`),
 		),
 		fx.Annotate(
@@ -203,7 +203,7 @@ var WebSocketModule = fx.Module("polymarket_websocket",
 			fx.ResultTags(`name:"polymarket_dialer"`),
 		),
 		fx.Annotate(
-			NewConnectionManager,
+			newConnectionManager,
 			fx.ParamTags(
 				`name:"polymarket_connection_config"`,
 				`name:"polymarket_auth_manager"`,
@@ -218,7 +218,7 @@ var WebSocketModule = fx.Module("polymarket_websocket",
 			fx.ResultTags(`name:"polymarket_strategy"`),
 		),
 		fx.Annotate(
-			NewReconnectManager,
+			newReconnectManager,
 			fx.ParamTags(
 				`name:"polymarket_connection_manager"`,
 				`name:"polymarket_strategy"`,
@@ -227,11 +227,11 @@ var WebSocketModule = fx.Module("polymarket_websocket",
 			fx.ResultTags(`name:"polymarket_reconnect_manager"`),
 		),
 		fx.Annotate(
-			NewBaseServiceConfig,
+			newBaseServiceConfig,
 			fx.ResultTags(`name:"polymarket_base_config"`),
 		),
 		fx.Annotate(
-			NewBaseService,
+			newBaseService,
 			fx.ParamTags(
 				`name:"polymarket_base_config"`,
 				``,

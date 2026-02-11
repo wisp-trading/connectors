@@ -33,14 +33,14 @@ func (n *noOpAuthProvider) GetTokenExpiry() time.Time {
 	return time.Now().Add(24 * time.Hour)
 }
 
-// NewAuthManager creates auth manager (no-op for public channels)
-func NewAuthManager(logger logging.ApplicationLogger) security.AuthManager {
+// newAuthManager creates auth manager (no-op for public channels)
+func newAuthManager(logger logging.ApplicationLogger) security.AuthManager {
 	authProvider := &noOpAuthProvider{}
 	return security.NewAuthManager(authProvider, logger)
 }
 
-// NewValidationConfig creates validation configuration
-func NewValidationConfig() security.ValidationConfig {
+// newValidationConfig creates validation configuration
+func newValidationConfig() security.ValidationConfig {
 	return security.ValidationConfig{
 		MaxMessageSize: 65536,
 		AllowedTypes: map[string]bool{
@@ -53,36 +53,36 @@ func NewValidationConfig() security.ValidationConfig {
 	}
 }
 
-// NewMessageValidator creates message validator
-func NewMessageValidator(valConfig security.ValidationConfig) security.MessageValidator {
+// newMessageValidator creates message validator
+func newMessageValidator(valConfig security.ValidationConfig) security.MessageValidator {
 	return security.NewMessageValidator(valConfig)
 }
 
-// NewRateLimiter creates rate limiter
-func NewRateLimiter() security.RateLimiter {
+// newRateLimiter creates rate limiter
+func newRateLimiter() security.RateLimiter {
 	return security.NewRateLimiter(1000, 100)
 }
 
-// NewMetrics creates metrics instance
-func NewMetrics() performance.Metrics {
+// newMetrics creates metrics instance
+func newMetrics() performance.Metrics {
 	return performance.NewMetrics()
 }
 
-// NewCircuitBreaker creates circuit breaker
-func NewCircuitBreaker() performance.CircuitBreaker {
+// newCircuitBreaker creates circuit breaker
+func newCircuitBreaker() performance.CircuitBreaker {
 	return performance.NewCircuitBreaker(3, 30*time.Second)
 }
 
-// NewMessageParser creates message parser
-func NewMessageParser(
+// newMessageParser creates message parser
+func newMessageParser(
 	logger logging.ApplicationLogger,
 	timeProvider temporal.TimeProvider,
 ) MessageParser {
 	return NewParser(logger, timeProvider)
 }
 
-// NewConnectionConfig creates connection configuration
-func NewConnectionConfig() connection.Config {
+// newConnectionConfig creates connection configuration
+func newConnectionConfig() connection.Config {
 	cfg := connection.DefaultConfig()
 	cfg.URL = "wss://api.hyperliquid.xyz/ws"
 	cfg.EnableHealthMonitoring = true
@@ -91,8 +91,8 @@ func NewConnectionConfig() connection.Config {
 	return cfg
 }
 
-// NewConnectionManager creates connection manager
-func NewConnectionManager(
+// newConnectionManager creates connection manager
+func newConnectionManager(
 	config connection.Config,
 	authManager security.AuthManager,
 	metrics performance.Metrics,
@@ -102,8 +102,8 @@ func NewConnectionManager(
 	return connection.NewConnectionManager(config, authManager, metrics, logger, dialer)
 }
 
-// NewReconnectionStrategy creates reconnection strategy
-func NewReconnectionStrategy() connection.ReconnectionStrategy {
+// newReconnectionStrategy creates reconnection strategy
+func newReconnectionStrategy() connection.ReconnectionStrategy {
 	return connection.NewExponentialBackoffStrategy(
 		5*time.Second,
 		60*time.Second,
@@ -111,8 +111,8 @@ func NewReconnectionStrategy() connection.ReconnectionStrategy {
 	)
 }
 
-// NewReconnectManager creates reconnect manager
-func NewReconnectManager(
+// newReconnectManager creates reconnect manager
+func newReconnectManager(
 	connManager connection.ConnectionManager,
 	strategy connection.ReconnectionStrategy,
 	logger logging.ApplicationLogger,
@@ -120,8 +120,8 @@ func NewReconnectManager(
 	return connection.NewReconnectManager(connManager, strategy, logger)
 }
 
-// NewBaseServiceConfig creates base service configuration
-func NewBaseServiceConfig() base.Config {
+// newBaseServiceConfig creates base service configuration
+func newBaseServiceConfig() base.Config {
 	return base.Config{
 		URL:            "wss://api.hyperliquid.xyz/ws",
 		ReconnectDelay: 5 * time.Second,
@@ -155,36 +155,36 @@ func NewBaseService(
 var WebSocketModule = fx.Module("hyperliquid_websocket",
 	fx.Provide(
 		fx.Annotate(
-			NewAuthManager,
+			newAuthManager,
 			fx.ResultTags(`name:"hyperliquid_auth_manager"`),
 		),
 		fx.Annotate(
-			NewValidationConfig,
+			newValidationConfig,
 			fx.ResultTags(`name:"hyperliquid_validation"`),
 		),
 		fx.Annotate(
-			NewMessageValidator,
+			newMessageValidator,
 			fx.ParamTags(`name:"hyperliquid_validation"`),
 			fx.ResultTags(`name:"hyperliquid_validator"`),
 		),
 		fx.Annotate(
-			NewRateLimiter,
+			newRateLimiter,
 			fx.ResultTags(`name:"hyperliquid_rate_limiter"`),
 		),
 		fx.Annotate(
-			NewMetrics,
+			newMetrics,
 			fx.ResultTags(`name:"hyperliquid_metrics"`),
 		),
 		fx.Annotate(
-			NewCircuitBreaker,
+			newCircuitBreaker,
 			fx.ResultTags(`name:"hyperliquid_circuit_breaker"`),
 		),
 		fx.Annotate(
-			NewMessageParser,
+			newMessageParser,
 			fx.ResultTags(`name:"hyperliquid_parser"`),
 		),
 		fx.Annotate(
-			NewConnectionConfig,
+			newConnectionConfig,
 			fx.ResultTags(`name:"hyperliquid_connection_config"`),
 		),
 		fx.Annotate(
@@ -193,7 +193,7 @@ var WebSocketModule = fx.Module("hyperliquid_websocket",
 			fx.ResultTags(`name:"hyperliquid_dialer"`),
 		),
 		fx.Annotate(
-			NewConnectionManager,
+			newConnectionManager,
 			fx.ParamTags(
 				`name:"hyperliquid_connection_config"`,
 				`name:"hyperliquid_auth_manager"`,
@@ -204,11 +204,11 @@ var WebSocketModule = fx.Module("hyperliquid_websocket",
 			fx.ResultTags(`name:"hyperliquid_connection_manager"`),
 		),
 		fx.Annotate(
-			NewReconnectionStrategy,
+			newReconnectionStrategy,
 			fx.ResultTags(`name:"hyperliquid_strategy"`),
 		),
 		fx.Annotate(
-			NewReconnectManager,
+			newReconnectManager,
 			fx.ParamTags(
 				`name:"hyperliquid_connection_manager"`,
 				`name:"hyperliquid_strategy"`,
@@ -216,7 +216,7 @@ var WebSocketModule = fx.Module("hyperliquid_websocket",
 			fx.ResultTags(`name:"hyperliquid_reconnect_manager"`),
 		),
 		fx.Annotate(
-			NewBaseServiceConfig,
+			newBaseServiceConfig,
 			fx.ResultTags(`name:"hyperliquid_base_config"`),
 		),
 		fx.Annotate(
