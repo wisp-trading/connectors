@@ -22,8 +22,11 @@ func (p *polymarket) StartWebSocket() error {
 }
 
 func (p *polymarket) StopWebSocket() error {
-	//TODO implement me
-	panic("implement me")
+	if p.wsClient == nil {
+		return fmt.Errorf("websocket service not initialized")
+	}
+
+	return p.wsClient.Disconnect()
 }
 
 func (p *polymarket) IsWebSocketConnected() bool {
