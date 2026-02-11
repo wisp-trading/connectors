@@ -262,6 +262,23 @@ func (ws *webSocketService) removeSubscription(subscriptionID int) *Subscription
 	return handler
 }
 
-func (ws *webSocketService) onReconnectSuccess(i int) {
+func (ws *webSocketService) onReconnectSuccess(attempt int) {
+	ws.logger.Info("✅ Reconnection successful after %d attempts, resubscribing to markets", attempt)
 
+	// Resubscribe to all registered market callbacks
+	ws.orderBookMu.RLock()
+	marketIDs := make([]string, 0, len(ws.orderBookCallbacks))
+	for marketID := range ws.orderBookCallbacks {
+		marketIDs = append(marketIDs, marketID)
+	}
+	ws.orderBookMu.RUnlock()
+
+	// Resubscribe to each market
+	if len(marketIDs) > 0 {
+		if err := ws.subscribe("market", marketIDs); err != nil {
+			ws.logger.Error("Failed to resubscribe to markets after reconnection: %v", err)
+		} else {
+			ws.logger.Info("Resubscribed to %d markets after reconnection", len(marketIDs))
+		}
+	}
 }

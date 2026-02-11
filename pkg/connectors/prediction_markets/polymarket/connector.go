@@ -16,15 +16,16 @@ import (
 )
 
 type polymarket struct {
-	clobClient      clob.PolymarketClient
-	gammaClient     gamma.GammaClient
-	websocketClient websocket.PolymarketWebsocket
-	config          *config.Config
-	appLogger       logging.ApplicationLogger
-	tradingLogger   logging.TradingLogger
-	timeProvider    temporal.TimeProvider
-	ctx             context.Context
-	initialized     bool
+	clobClient    clob.PolymarketClient
+	gammaClient   gamma.GammaClient
+	wsFactory     websocket.WebSocketServiceFactory // Factory to create WS service at runtime
+	wsClient      websocket.PolymarketWebsocket     // Created lazily from factory
+	config        *config.Config
+	appLogger     logging.ApplicationLogger
+	tradingLogger logging.TradingLogger
+	timeProvider  temporal.TimeProvider
+	ctx           context.Context
+	initialized   bool
 
 	// WebSocket state management
 	wsContext context.Context
@@ -70,13 +71,14 @@ func NewPolymarket(
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
 	gammaClient gamma.GammaClient,
-	websocketClient websocket.PolymarketWebsocket,
+	wsFactory websocket.WebSocketServiceFactory, // Factory injected by fx
 ) prediction.WebSocketConnector {
 	clobClient := clob.NewPolymarketClient()
 
 	return &polymarket{
 		clobClient:        clobClient,
-		websocketClient:   websocketClient,
+		wsFactory:         wsFactory, // Store factory, not service
+		wsClient:          nil,       // Will be created in Initialize()
 		gammaClient:       gammaClient,
 		config:            nil, // Will be set during initialization
 		appLogger:         appLogger,
@@ -101,10 +103,18 @@ func (p *polymarket) Initialize(conf connector.Config) error {
 		return fmt.Errorf("invalid conf type for Polymarket connector: expected *polymarket.Config, got %T", conf)
 	}
 
+	// Configure CLOB client
 	err := p.clobClient.Configure(polymarketConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to configure CLOB client: %w", err)
 	}
+
+	// Create WebSocket service from factory with config
+	wsClient, err := p.wsFactory.CreateWebSocketService(polymarketConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create WebSocket service: %w", err)
+	}
+	p.wsClient = wsClient
 
 	p.config = polymarketConfig
 	p.initialized = true

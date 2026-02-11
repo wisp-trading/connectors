@@ -5,6 +5,7 @@ import (
 
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
@@ -30,4 +31,33 @@ func convertPriceLevels(levels []websocket.PriceLevel) ([]connector.PriceLevel, 
 	}
 
 	return result, nil
+}
+
+func convertToOrderBook(msg *websocket.OrderBookMessage) connector.OrderBook {
+	base := portfolio.NewAsset(msg.Market + ":" + msg.AssetID)
+	quote := portfolio.NewAsset("USDC")
+
+	orderbook := connector.OrderBook{
+		Pair: portfolio.NewPair(base, quote),
+		Bids: []connector.PriceLevel{},
+		Asks: []connector.PriceLevel{},
+	}
+
+	bids, err := convertPriceLevels(msg.Bids)
+	if err != nil {
+		fmt.Printf("Error converting bids: %v\n", err)
+		return orderbook
+	}
+
+	asks, err := convertPriceLevels(msg.Asks)
+
+	if err != nil {
+		fmt.Printf("Error converting asks: %v\n", err)
+		return orderbook
+	}
+
+	orderbook.Bids = bids
+	orderbook.Asks = asks
+
+	return orderbook
 }

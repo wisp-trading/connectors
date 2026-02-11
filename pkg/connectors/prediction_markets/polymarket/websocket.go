@@ -6,7 +6,6 @@ import (
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 func (p *polymarket) StartWebSocket() error {
@@ -14,12 +13,12 @@ func (p *polymarket) StartWebSocket() error {
 		return fmt.Errorf("connector not initialized")
 	}
 
-	if p.websocketClient == nil {
+	if p.wsClient == nil {
 		return fmt.Errorf("websocket service not initialized")
 	}
 
 	// Pass the WebSocket URL from config
-	return p.websocketClient.Connect(p.config.WebSocketURL)
+	return p.wsClient.Connect(p.config.WebSocketURL)
 }
 
 func (p *polymarket) StopWebSocket() error {
@@ -28,11 +27,11 @@ func (p *polymarket) StopWebSocket() error {
 }
 
 func (p *polymarket) IsWebSocketConnected() bool {
-	if p.websocketClient == nil {
+	if p.wsClient == nil {
 		return false
 	}
 
-	return p.websocketClient.IsConnected()
+	return p.wsClient.IsConnected()
 }
 
 func (p *polymarket) ErrorChannel() <-chan error {
@@ -40,63 +39,67 @@ func (p *polymarket) ErrorChannel() <-chan error {
 	panic("implement me")
 }
 
-func (p *polymarket) SubscribeMarketBook(market prediction.Market) {
+func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	if !p.IsWebSocketConnected() {
-		p.appLogger.Warn("Polymarket WebSocket not connected, cannot subscribe to market book")
-		return
+		return fmt.Errorf("websocket not connected")
 	}
 
-	p.websocketClient.SubscribeToMarketBook(market.MarketId, func(msg *websocket.OrderBookMessage) {
+	// Create channel for this market if it doesn't exist
+	p.orderBookMu.Lock()
+	if _, exists := p.orderBookChannels[market.MarketId]; !exists {
+		p.orderBookChannels[market.MarketId] = make(chan connector.OrderBook, 100)
+		p.appLogger.Info("Created order book channel for market %s", market.MarketId)
+	}
+	ch := p.orderBookChannels[market.MarketId]
+	p.orderBookMu.Unlock()
+
+	// Register callback with WebSocket service
+	p.wsClient.SubscribeToMarketBook(market.MarketId, func(msg *websocket.OrderBookMessage) {
 		orderBook := convertToOrderBook(msg)
 
-		// Send to the appropriate channel based on market ID
-		p.orderBookMu.RLock()
-		ch, exists := p.orderBookChannels[market.MarketId]
-		p.orderBookMu.RUnlock()
-
-		if exists {
-			ch <- orderBook
-		} else {
-			p.appLogger.Warn("No order book channel found for market %s", market.MarketId)
+		// Send to channel with non-blocking write
+		select {
+		case ch <- orderBook:
+			// Successfully sent
+		default:
+			p.appLogger.Warn("Order book channel full for market %s, dropping message", market.MarketId)
 		}
 	})
+
+	p.appLogger.Info("Subscribed to market book for market %s", market.MarketId)
+	return nil
 }
 
-func convertToOrderBook(msg *websocket.OrderBookMessage) connector.OrderBook {
-	base := portfolio.NewAsset(msg.Market + ":" + msg.AssetID)
-	quote := portfolio.NewAsset("USDC")
+func (p *polymarket) UnsubscribeOrderbook(market prediction.Market) error {
+	// Remove channel and close it
+	p.orderBookMu.Lock()
+	ch, exists := p.orderBookChannels[market.MarketId]
+	if exists {
+		close(ch)
+		delete(p.orderBookChannels, market.MarketId)
+	}
+	p.orderBookMu.Unlock()
 
-	orderbook := connector.OrderBook{
-		Pair: portfolio.NewPair(base, quote),
-		Bids: []connector.PriceLevel{},
-		Asks: []connector.PriceLevel{},
+	if !exists {
+		return fmt.Errorf("market %s not subscribed", market.MarketId)
 	}
 
-	bids, err := convertPriceLevels(msg.Bids)
-	if err != nil {
-		fmt.Printf("Error converting bids: %v\n", err)
-		return orderbook
-	}
+	// Unsubscribe from WebSocket service
+	p.wsClient.UnsubscribeFromMarketBook(market.MarketId)
+	p.appLogger.Info("Unsubscribed from market book for market %s", market.MarketId)
 
-	asks, err := convertPriceLevels(msg.Asks)
-
-	if err != nil {
-		fmt.Printf("Error converting asks: %v\n", err)
-		return orderbook
-	}
-
-	orderbook.Bids = bids
-	orderbook.Asks = asks
-
-	return orderbook
+	return nil
 }
 
-func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
-	//TODO implement me
-	panic("implement me")
-}
+func (p *polymarket) GetOrderbookChannels() map[string]<-chan connector.OrderBook {
+	p.orderBookMu.RLock()
+	defer p.orderBookMu.RUnlock()
 
-func (p *polymarket) GetMarketChannels() map[string]<-chan prediction.Market {
-	//TODO implement me
-	panic("implement me")
+	// Create a new map with read-only channels
+	result := make(map[string]<-chan connector.OrderBook, len(p.orderBookChannels))
+	for marketID, ch := range p.orderBookChannels {
+		result[marketID] = ch
+	}
+
+	return result
 }

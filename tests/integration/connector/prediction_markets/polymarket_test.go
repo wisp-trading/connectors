@@ -228,8 +228,34 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 		})
 
 		Context("SubscribeOrderBook", func() {
-			It("should subscribe to order book updates", func() {
-				Skip("WebSocket subscriptions not yet implemented")
+			It("should subscribe to order book updates and receive data", func() {
+				conn := runner.GetWebSocketCapable()
+				err := conn.StartWebSocket()
+				Expect(err).ToNot(HaveOccurred())
+
+				market := prediction.Market{
+					MarketId: "0x8fe41a4a4f5a2bec7259cfdade5d54f351f2e4203f12663ced36b1dda065fa13",
+				}
+
+				err = conn.SubscribeOrderBook(market)
+				if err != nil {
+					return
+				}
+				Expect(err).ToNot(HaveOccurred())
+
+				channels := conn.GetOrderbookChannels()
+				Expect(channels).ToNot(BeNil(), "Market channels should not be nil")
+
+				bookChan, exists := channels[market.MarketId]
+				Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
+				Expect(bookChan).ToNot(BeNil(), "Market book channel should not be nil")
+
+				// Wait for order book data with timeout
+				Eventually(bookChan, "30s", "1s").Should(Receive(
+					Not(BeNil()),
+				), "Should receive order book data within 30 seconds")
+
+				connector_test.LogSuccess("Received order book data for market %s", market.MarketId)
 			})
 		})
 
