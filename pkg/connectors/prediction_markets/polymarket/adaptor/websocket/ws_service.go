@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -128,30 +129,67 @@ func (ws *webSocketService) onMessage(message []byte) error {
 	if err := ws.baseService.ProcessMessage(message, func(validatedMsg []byte) error {
 		return ws.handleValidatedMessage(validatedMsg)
 	}); err != nil {
+		fmt.Print(string(message))
 		return fmt.Errorf("message validation failed: %w", err)
 	}
 	return nil
 }
 
 func (ws *webSocketService) handleValidatedMessage(message []byte) error {
-	// Parse Polymarket WebSocket message
-	var polyMsg map[string]interface{}
-	if err := json.Unmarshal(message, &polyMsg); err != nil {
-		return fmt.Errorf("failed to parse message: %w", err)
+	trimmed := bytes.TrimSpace(message)
+	if len(trimmed) == 0 {
+		return nil
 	}
 
-	// Check for subscription acknowledgment
-	if msgType, ok := polyMsg["type"].(string); ok {
-		if msgType == "subscribed" || msgType == "unsubscribed" {
-			ws.logger.Debug("Received %s acknowledgment", msgType)
-			return nil
+	// Handle PONG keepalive messages
+	trimmedUpper := bytes.ToUpper(trimmed)
+	if bytes.Equal(trimmedUpper, []byte("PONG")) {
+		ws.logger.Debug("Received PONG keepalive")
+		return nil
+	}
+
+	// Handle control messages (subscription acknowledgments)
+	if trimmed[0] == '{' {
+		var controlMsg map[string]interface{}
+		if err := json.Unmarshal(trimmed, &controlMsg); err != nil {
+			return fmt.Errorf("failed to parse control message: %w", err)
 		}
+
+		if msgType, ok := controlMsg["type"].(string); ok {
+			if msgType == "subscribed" || msgType == "unsubscribed" {
+				ws.logger.Info("Received subscription acknowledgment", "type", msgType)
+				return nil
+			}
+		}
+
+		ws.logger.Debug("Received control message", "message", controlMsg)
+		return nil
 	}
 
+	// Handle market data (JSON arrays)
+	if trimmed[0] == '[' {
+		var polyMsgs []map[string]interface{}
+		if err := json.Unmarshal(trimmed, &polyMsgs); err != nil {
+			return fmt.Errorf("failed to parse message array: %w", err)
+		}
+
+		// Process each message in the array
+		for i, polyMsg := range polyMsgs {
+			if err := ws.processSingleMessage(polyMsg, i); err != nil {
+				return fmt.Errorf("failed to process message[%d]: %w", i, err)
+			}
+		}
+		return nil
+	}
+
+	return fmt.Errorf("invalid message format")
+}
+
+func (ws *webSocketService) processSingleMessage(polyMsg map[string]interface{}, index int) error {
 	// Route based on event type
 	eventType, ok := polyMsg["event_type"].(string)
 	if !ok {
-		ws.logger.Debug("Message without event_type", "message", string(message))
+		ws.logger.Debug("Message without event_type", "index", index, "message", polyMsg)
 		return nil
 	}
 
@@ -159,8 +197,20 @@ func (ws *webSocketService) handleValidatedMessage(message []byte) error {
 	switch eventType {
 	case OrderBookEventType:
 		return ws.handleMarketMessage(polyMsg)
+	case "price_change":
+	//	return ws.handlePriceChangeMessage(polyMsg)
+	//case "tick_size_change":
+	//	return ws.handleTickSizeChangeMessage(polyMsg)
+	//case "last_trade_price":
+	//	return ws.handleLastTradePriceMessage(polyMsg)
+	//case "best_bid_ask":
+	//	return ws.handleBestBidAskMessage(polyMsg)
+	//case "new_market":
+	//	return ws.handleNewMarketMessage(polyMsg)
+	//case "market_resolved":
+	//	return ws.handleMarketResolvedMessage(polyMsg)
 	default:
-		ws.logger.Debug("Unknown event type", "event_type", eventType)
+		ws.logger.Debug("Unknown event type", "event_type", eventType, "index", index)
 	}
 
 	return nil
@@ -186,9 +236,8 @@ func (ws *webSocketService) onReconnectFail(attempt int, err error) {
 // subscribe sends a subscription request to Polymarket
 func (ws *webSocketService) subscribe(channel string, assets []string) error {
 	subMsg := map[string]interface{}{
-		"type":    "subscribe",
-		"channel": channel,
-		"assets":  assets,
+		"type":       channel,
+		"assets_ids": assets,
 	}
 
 	data, err := json.Marshal(subMsg)

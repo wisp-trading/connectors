@@ -1,8 +1,11 @@
 package prediction_markets_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
@@ -49,11 +52,9 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					Outcomes: []prediction.Outcome{
 						{
 							OutcomeId: tokenID[0],
-							Name:      "Yes",
 						},
 						{
 							OutcomeId: tokenID[1],
-							Name:      "No",
 						},
 					},
 					Active: true,
@@ -231,30 +232,62 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 			It("should subscribe to order book updates and receive data", func() {
 				conn := runner.GetWebSocketCapable()
 				err := conn.StartWebSocket()
+				defer func(conn prediction.WebSocketConnector) {
+					err := conn.StopWebSocket()
+					if err != nil {
+						connector_test.LogError("Failed to stop WebSocket connection: %v", err)
+						return
+					}
+				}(conn)
 				Expect(err).ToNot(HaveOccurred())
 
+				outcomes := []prediction.Outcome{
+					{
+						Pair: prediction.NewPredictionPair(
+							"btc-updown-4h",
+							"Yes",
+							portfolio.NewAsset("USDC"),
+						),
+						OutcomeId: "55465499552240998868444058452917756997929695703966881733232094915253142184919",
+					},
+					//{
+					//	Pair: prediction.NewPredictionPair(
+					//		"btc-updown-4h",
+					//		"No",
+					//		portfolio.NewAsset("USDC"),
+					//	),
+					//	OutcomeId: "6757703472668573966175902785925764600818133786181136162144102885621254094181",
+					//},
+				}
+
 				market := prediction.Market{
-					MarketId: "0x8fe41a4a4f5a2bec7259cfdade5d54f351f2e4203f12663ced36b1dda065fa13",
+					MarketId: "0x049e9f5ee242baad05476a24f9c9a3ea64e4c297f81dbc9c5c60756864c526e1",
+					Outcomes: outcomes,
 				}
 
 				err = conn.SubscribeOrderBook(market)
-				if err != nil {
-					return
-				}
 				Expect(err).ToNot(HaveOccurred())
 
 				channels := conn.GetOrderbookChannels()
 				Expect(channels).ToNot(BeNil(), "Market channels should not be nil")
 
-				bookChan, exists := channels[market.MarketId]
+				outcome1, exists := channels[market.Outcomes[0].Pair.Symbol()]
 				Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-				Expect(bookChan).ToNot(BeNil(), "Market book channel should not be nil")
+				Expect(outcome1).ToNot(BeNil(), "Market book channel should not be nil")
+
+				//outcome2, exists := channels[market.Outcomes[1].Pair.Symbol()]
+				//Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
+				//Expect(outcome2).ToNot(BeNil(), "Market book channel should not be nil")
 
 				// Wait for order book data with timeout
-				Eventually(bookChan, "30s", "1s").Should(Receive(
-					Not(BeNil()),
-				), "Should receive order book data within 30 seconds")
+				Expect(exists).To(BeTrue())
 
+				// Use helper to verify order book
+				orderBook := runner.VerifyOrderBookData(outcome1, 30*time.Second)
+				Expect(orderBook).ToNot(BeNil())
+
+				connector_test.LogSuccess("Received order book data for market %s with %d bids and %d asks",
+					market.MarketId, len(orderBook.Bids), len(orderBook.Asks))
 				connector_test.LogSuccess("Received order book data for market %s", market.MarketId)
 			})
 		})

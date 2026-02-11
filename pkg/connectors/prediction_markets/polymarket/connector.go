@@ -34,11 +34,11 @@ type polymarket struct {
 
 	tradeCh chan connector.Trade
 
-	// Separate channels per orderbook subscription (key: "BTC", "ETH", etc.)
+	// Separate channels per outcome subscription (key: "btc-updown-4h:YES-USDC")
 	orderBookChannels map[string]chan connector.OrderBook
 	orderBookMu       sync.RWMutex
 
-	// Separate channels per kline subscription (key: "BTC:1m", "ETH:5m", etc.)
+	// Separate channels per outcome subscription for klines (key: "btc-updown-4h:YES-USDC")
 	klineChannels map[string]chan connector.Kline
 	klineMu       sync.RWMutex
 }

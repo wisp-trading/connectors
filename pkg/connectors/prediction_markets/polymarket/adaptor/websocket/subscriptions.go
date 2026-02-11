@@ -2,18 +2,18 @@ package websocket
 
 // SubscribeToMarketBook registers a callback for orderbook updates for a specific market
 // and sends the subscription request to the Polymarket WebSocket server
-func (ws *webSocketService) SubscribeToMarketBook(marketID string, callback func(*OrderBookMessage)) {
+func (ws *webSocketService) SubscribeToMarketBook(assetId string, callback func(*OrderBookMessage)) {
 	// Register callback first
 	ws.orderBookMu.Lock()
-	ws.orderBookCallbacks[marketID] = callback
+	ws.orderBookCallbacks[assetId] = callback
 	ws.orderBookMu.Unlock()
 
 	// Send subscription message to WebSocket server
 	// Polymarket expects: {"type":"subscribe","channel":"market","assets":["ASSET_ID"]}
-	if err := ws.subscribe("market", []string{marketID}); err != nil {
-		ws.logger.Error("Failed to send market book subscription for %s: %v", marketID, err)
+	if err := ws.subscribe("market", []string{assetId}); err != nil {
+		ws.logger.Error("Failed to send market book subscription for %s: %v", assetId, err)
 	} else {
-		ws.logger.Debug("Sent market book subscription for %s", marketID)
+		ws.logger.Debug("Sent market book subscription for %s", assetId)
 	}
 }
 

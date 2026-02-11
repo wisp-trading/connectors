@@ -55,23 +55,8 @@ func (f *webSocketServiceFactory) CreateWebSocketService(cfg *config.Config) (Po
 	// Create auth manager
 	authManager := security.NewAuthManager(authProvider, f.logger)
 
-	// Create validation config
-	valConfig := security.ValidationConfig{
-		MaxMessageSize: 65536,
-		AllowedTypes: map[string]bool{
-			"market":     true,
-			"book":       true,
-			"trade":      true,
-			"user_order": true,
-			"user_trade": true,
-			"last_price": true,
-			"ticker":     true,
-		},
-		TypeField: "event_type",
-	}
-
 	// Create message validator
-	validator := security.NewMessageValidator(valConfig)
+	validator := NewMessageValidator(DefaultValidationConfig())
 
 	// Create rate limiter
 	rateLimiter := security.NewRateLimiter(1000, 100)

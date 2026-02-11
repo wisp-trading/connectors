@@ -44,49 +44,60 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 		return fmt.Errorf("websocket not connected")
 	}
 
-	// Create channel for this market if it doesn't exist
-	p.orderBookMu.Lock()
-	if _, exists := p.orderBookChannels[market.MarketId]; !exists {
-		p.orderBookChannels[market.MarketId] = make(chan connector.OrderBook, 100)
-		p.appLogger.Info("Created order book channel for market %s", market.MarketId)
+	if err := market.Validate(); err != nil {
+		return fmt.Errorf("invalid market: %w", err)
 	}
-	ch := p.orderBookChannels[market.MarketId]
-	p.orderBookMu.Unlock()
 
-	// Register callback with WebSocket service
-	p.wsClient.SubscribeToMarketBook(market.MarketId, func(msg *websocket.OrderBookMessage) {
-		orderBook := convertToOrderBook(msg)
+	// Subscribe to each outcome as a separate pair
+	for _, outcome := range market.Outcomes {
+		pairSymbol := outcome.Pair.Symbol()
 
-		// Send to channel with non-blocking write
-		select {
-		case ch <- orderBook:
-			// Successfully sent
-		default:
-			p.appLogger.Warn("Order book channel full for market %s, dropping message", market.MarketId)
+		p.orderBookMu.Lock()
+		if _, exists := p.orderBookChannels[pairSymbol]; !exists {
+			p.orderBookChannels[pairSymbol] = make(chan connector.OrderBook, 100)
+			p.appLogger.Info("Created order book channel for %s", pairSymbol)
 		}
-	})
+		ch := p.orderBookChannels[pairSymbol]
+		p.orderBookMu.Unlock()
 
-	p.appLogger.Info("Subscribed to market book for market %s", market.MarketId)
+		// Register callback for this outcome
+		p.wsClient.SubscribeToMarketBook(outcome.OutcomeId, func(msg *websocket.OrderBookMessage) {
+			orderBook := convertToOrderBook(msg)
+
+			select {
+			case ch <- orderBook:
+				// Successfully sent
+			default:
+				p.appLogger.Warn("Order book channel full for %s, dropping message", pairSymbol)
+			}
+		})
+
+		p.appLogger.Info("Subscribed to order book for %s (outcome ID: %s)", pairSymbol, outcome.OutcomeId)
+	}
+
 	return nil
 }
 
 func (p *polymarket) UnsubscribeOrderbook(market prediction.Market) error {
-	// Remove channel and close it
-	p.orderBookMu.Lock()
-	ch, exists := p.orderBookChannels[market.MarketId]
-	if exists {
-		close(ch)
-		delete(p.orderBookChannels, market.MarketId)
-	}
-	p.orderBookMu.Unlock()
+	for _, outcome := range market.Outcomes {
+		pairSymbol := outcome.Pair.Symbol()
 
-	if !exists {
-		return fmt.Errorf("market %s not subscribed", market.MarketId)
-	}
+		p.orderBookMu.Lock()
+		ch, exists := p.orderBookChannels[pairSymbol]
+		if exists {
+			close(ch)
+			delete(p.orderBookChannels, pairSymbol)
+		}
+		p.orderBookMu.Unlock()
 
-	// Unsubscribe from WebSocket service
-	p.wsClient.UnsubscribeFromMarketBook(market.MarketId)
-	p.appLogger.Info("Unsubscribed from market book for market %s", market.MarketId)
+		if !exists {
+			p.appLogger.Warn("Pair %s not subscribed", pairSymbol)
+			continue
+		}
+
+		p.wsClient.UnsubscribeFromMarketBook(outcome.OutcomeId)
+		p.appLogger.Info("Unsubscribed from %s", pairSymbol)
+	}
 
 	return nil
 }
