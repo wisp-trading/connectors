@@ -17,7 +17,8 @@ import (
 var globalSubID int64
 
 const (
-	OrderBookEventType = "book"
+	OrderBookEventType   = "book"
+	PriceChangeEventType = "price_change"
 )
 
 // webSocketService manages the Polymarket CLOB WebSocket connection using pkg/websocket infrastructure
@@ -212,8 +213,8 @@ func (ws *webSocketService) processSingleMessage(polyMsg map[string]interface{},
 	// Handle different message types
 	switch eventType {
 	case OrderBookEventType:
-		return ws.handleMarketMessage(polyMsg)
-	case "price_change":
+		return ws.handleOrderbookMessage(polyMsg)
+	case PriceChangeEventType:
 		return ws.handlePriceChangeMessage(polyMsg)
 	//case "tick_size_change":
 	//	return ws.handleTickSizeChangeMessage(polyMsg)

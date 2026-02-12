@@ -24,7 +24,7 @@ type PriceLevel struct {
 	Size  string `json:"size"`
 }
 
-func (ws *webSocketService) handleMarketMessage(msg map[string]interface{}) error {
+func (ws *webSocketService) handleOrderbookMessage(msg map[string]interface{}) error {
 	// Marshal back to JSON for structured parsing
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -45,7 +45,7 @@ func (ws *webSocketService) handleMarketMessage(msg map[string]interface{}) erro
 	ws.orderBookMu.RLock()
 	defer ws.orderBookMu.RUnlock()
 
-	if callback, exists := ws.orderBookCallbacks[orderBook.AssetID]; exists {
+	if callback, exists := ws.orderBookCallbacks[orderBook.Market]; exists {
 		callback(&orderBook)
 	}
 

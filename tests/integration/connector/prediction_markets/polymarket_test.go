@@ -248,7 +248,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 							"Yes",
 							portfolio.NewAsset("USDC"),
 						),
-						OutcomeId: "55465499552240998868444058452917756997929695703966881733232094915253142184919",
+						OutcomeId: "66564931687993931773164331565537830131957286597090744482673025298514812760743",
 					},
 					//{
 					//	Pair: prediction.NewPredictionPair(
@@ -261,7 +261,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				}
 
 				market := prediction.Market{
-					MarketId: "0x049e9f5ee242baad05476a24f9c9a3ea64e4c297f81dbc9c5c60756864c526e1",
+					MarketId: "0x7ad24c06fb22759c4a58d9538c3678e143e5a9094eb4d02c65174a434cf1ca6e",
 					Outcomes: outcomes,
 					Slug:     "btc-updown-4h",
 				}
@@ -272,7 +272,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				channels := conn.GetOrderbookChannels()
 				Expect(channels).ToNot(BeNil(), "Market channels should not be nil")
 
-				outcome1, exists := channels[market.Outcomes[0].Pair.Symbol()]
+				outcome1, exists := channels[market.Slug]
 				Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
 				Expect(outcome1).ToNot(BeNil(), "Market book channel should not be nil")
 
@@ -285,7 +285,8 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 				// Use helper to verify order book
 				orderBook := runner.VerifyOrderBookData(outcome1, 30*time.Second)
-				Expect(orderBook).ToNot(BeNil())
+				Expect(orderBook.Bids).ToNot(BeNil())
+				Expect(orderBook.Asks).ToNot(BeNil())
 
 				connector_test.LogSuccess(
 					"Received order book data for market %s with %d bids and %d asks",
