@@ -1,5 +1,7 @@
 package websocket
 
+import "github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+
 // PolymarketWebsocket defines the WebSocket interface for Polymarket CLOB real-time market data
 type PolymarketWebsocket interface {
 	Connect(wsURL string) error
@@ -7,8 +9,12 @@ type PolymarketWebsocket interface {
 	IsConnected() bool
 	GetErrorChannel() <-chan error
 
-	SubscribeToMarketBook(marketID string, callback func(*OrderBookMessage))
-	UnsubscribeFromMarketBook(marketID string)
+	SubscribeToMarket(
+		market prediction.Market,
+		orderbookCallback func(*OrderBookMessage),
+		priceChangeCallback func(changes *PriceChanges),
+	)
+	UnsubscribeFromMarket(market prediction.Market)
 }
 
 // SubscriptionHandler manages a subscription callback

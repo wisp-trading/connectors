@@ -37,6 +37,9 @@ type webSocketService struct {
 	orderBookCallbacks map[string]func(*OrderBookMessage)
 	orderBookMu        sync.RWMutex
 
+	priceChangeCallbacks map[string]func(changes *PriceChanges)
+	priceChangeMu        sync.RWMutex
+
 	// Error channel
 	errorCh chan error
 
@@ -53,14 +56,15 @@ func NewWebSocketService(
 	logger logging.ApplicationLogger,
 ) PolymarketWebsocket {
 	ws := &webSocketService{
-		connManager:        connManager,
-		reconnectMgr:       reconnectMgr,
-		baseService:        baseService,
-		logger:             logger,
-		subscriptions:      make(map[int]*SubscriptionHandler),
-		subscriptionIndex:  make(map[string][]*SubscriptionHandler),
-		orderBookCallbacks: make(map[string]func(*OrderBookMessage)),
-		errorCh:            make(chan error, 100),
+		connManager:          connManager,
+		reconnectMgr:         reconnectMgr,
+		baseService:          baseService,
+		logger:               logger,
+		subscriptions:        make(map[int]*SubscriptionHandler),
+		subscriptionIndex:    make(map[string][]*SubscriptionHandler),
+		orderBookCallbacks:   make(map[string]func(*OrderBookMessage)),
+		priceChangeCallbacks: make(map[string]func(changes *PriceChanges)),
+		errorCh:              make(chan error, 100),
 	}
 
 	// Set up connection manager callbacks
@@ -125,7 +129,7 @@ func (ws *webSocketService) onDisconnect() error {
 }
 
 func (ws *webSocketService) onMessage(message []byte) error {
-	ws.logger.Debug("📥 Raw message received: %s", string(message))
+	ws.logger.Info("📥 Raw message received: %s", string(message))
 
 	trimmed := bytes.TrimSpace(message)
 
@@ -210,7 +214,7 @@ func (ws *webSocketService) processSingleMessage(polyMsg map[string]interface{},
 	case OrderBookEventType:
 		return ws.handleMarketMessage(polyMsg)
 	case "price_change":
-	//	return ws.handlePriceChangeMessage(polyMsg)
+		return ws.handlePriceChangeMessage(polyMsg)
 	//case "tick_size_change":
 	//	return ws.handleTickSizeChangeMessage(polyMsg)
 	//case "last_trade_price":

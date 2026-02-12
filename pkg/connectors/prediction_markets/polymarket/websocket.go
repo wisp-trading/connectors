@@ -41,7 +41,6 @@ func (p *polymarket) ErrorChannel() <-chan error {
 	//TODO implement me
 	panic("implement me")
 }
-
 func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	if !p.IsWebSocketConnected() {
 		return fmt.Errorf("websocket not connected")
@@ -51,56 +50,67 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 		return fmt.Errorf("invalid market: %w", err)
 	}
 
-	// Subscribe to each outcome as a separate pair
-	for _, outcome := range market.Outcomes {
-		pairSymbol := outcome.Pair.Symbol()
+	p.orderBookMu.Lock()
+	if _, exists := p.orderBookChannels[market.Slug]; !exists {
+		p.orderBookChannels[market.Slug] = make(chan connector.OrderBook, 100)
+		p.appLogger.Info("Created order book channel for market %s", market.Slug)
+	}
+	orderBookChannel := p.orderBookChannels[market.Slug]
+	p.orderBookMu.Unlock()
 
-		p.orderBookMu.Lock()
-		if _, exists := p.orderBookChannels[pairSymbol]; !exists {
-			p.orderBookChannels[pairSymbol] = make(chan connector.OrderBook, 100)
-			p.appLogger.Info("Created order book channel for %s", pairSymbol)
-		}
-		ch := p.orderBookChannels[pairSymbol]
-		p.orderBookMu.Unlock()
+	p.priceChangeMu.Lock()
+	if _, exists := p.priceChangeChannels[market.Slug]; !exists {
+		p.priceChangeChannels[market.Slug] = make(chan []prediction.PriceChange, 100)
+		p.appLogger.Info("Created price change channel for market %s", market.Slug)
+	}
+	priceChangeChannel := p.priceChangeChannels[market.Slug]
+	p.priceChangeMu.Unlock()
 
-		// Register callback for this outcome
-		p.wsClient.SubscribeToMarketBook(outcome.OutcomeId, func(msg *websocket.OrderBookMessage) {
+	// Single subscription with callback that handles ALL outcomes
+	p.wsClient.SubscribeToMarket(
+		market,
+		func(msg *websocket.OrderBookMessage) {
 			orderBook := convertToOrderBook(msg)
 
 			select {
-			case ch <- orderBook:
+			case orderBookChannel <- orderBook:
 				// Successfully sent
 			default:
-				p.appLogger.Warn("Order book channel full for %s, dropping message", pairSymbol)
+				p.appLogger.Warn("Order book channel full for market %s, dropping message", market.Slug)
 			}
-		})
+		},
+		func(msg *websocket.PriceChanges) {
+			priceChange := convertToPriceChange(msg)
 
-		p.appLogger.Info("Subscribed to order book for %s (outcome ID: %s)", pairSymbol, outcome.OutcomeId)
-	}
+			select {
+			case priceChangeChannel <- priceChange:
+				// Successfully sent
+			default:
+				p.appLogger.Warn("Price change channel full for market %s, dropping message", market.Slug)
+			}
+		},
+	)
 
+	p.appLogger.Info("Subscribed to order book for market %s with %d outcomes", market.Slug, len(market.Outcomes))
 	return nil
 }
 
 func (p *polymarket) UnsubscribeOrderbook(market prediction.Market) error {
-	for _, outcome := range market.Outcomes {
-		pairSymbol := outcome.Pair.Symbol()
-
-		p.orderBookMu.Lock()
-		ch, exists := p.orderBookChannels[pairSymbol]
-		if exists {
-			close(ch)
-			delete(p.orderBookChannels, pairSymbol)
-		}
-		p.orderBookMu.Unlock()
-
-		if !exists {
-			p.appLogger.Warn("Pair %s not subscribed", pairSymbol)
-			continue
-		}
-
-		p.wsClient.UnsubscribeFromMarketBook(outcome.OutcomeId)
-		p.appLogger.Info("Unsubscribed from %s", pairSymbol)
+	p.orderBookMu.Lock()
+	ch, exists := p.orderBookChannels[market.Slug]
+	if exists {
+		close(ch)
+		delete(p.orderBookChannels, market.Slug)
 	}
+	p.orderBookMu.Unlock()
+
+	if !exists {
+		p.appLogger.Warn("Market %s not subscribed", market.Slug)
+		return nil
+	}
+
+	p.wsClient.UnsubscribeFromMarket(market)
+	p.appLogger.Info("Unsubscribed from market %s", market.Slug)
 
 	return nil
 }

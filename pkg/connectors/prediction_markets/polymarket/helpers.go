@@ -62,6 +62,38 @@ func convertToOrderBook(msg *websocket.OrderBookMessage) connector.OrderBook {
 	return orderbook
 }
 
+func convertToPriceChange(msg *websocket.PriceChanges) []prediction.PriceChange {
+	priceChanges := make([]prediction.PriceChange, 0, len(msg.PriceChange))
+
+	for i, change := range msg.PriceChange {
+		if change.Price == "" || change.Size == "" || change.Side == "" {
+			fmt.Printf("Skipping price change %d due to missing fields\n", i)
+			continue
+		}
+
+		pair := prediction.NewPredictionPair(msg.Market, change.AssetId, getQuoteAsset())
+
+		outcome := prediction.Outcome{
+			Pair:      pair,
+			OutcomeId: change.AssetId,
+		}
+
+		priceChange := append(priceChanges, prediction.PriceChange{
+			Outcome:   outcome,
+			Timestamp: msg.Timestamp,
+			Price:     change.Price,
+			Size:      change.Size,
+			Side:      change.Side,
+			BestBid:   change.BestBid,
+			BestAsk:   change.BestAsk,
+		})
+
+		priceChanges = append(priceChanges, priceChange...)
+	}
+
+	return priceChanges
+}
+
 func getQuoteAsset() portfolio.Asset {
 	return portfolio.NewAsset("USDC")
 }

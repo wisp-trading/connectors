@@ -6,6 +6,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxtest"
 
@@ -14,10 +16,31 @@ import (
 
 var _ = Describe("OrderBook Subscription", func() {
 	var (
-		app           *fxtest.App
-		ws            pmwebsocket.PolymarketWebsocket
-		testServer    *TestWebSocketServer
-		receivedBooks []*pmwebsocket.OrderBookMessage
+		app                  *fxtest.App
+		ws                   pmwebsocket.PolymarketWebsocket
+		testServer           *TestWebSocketServer
+		receivedBooks        []*pmwebsocket.OrderBookMessage
+		receivedPriceChanges []*pmwebsocket.PriceChanges
+
+		market = prediction.Market{
+			MarketId:    "70308501195956323589797156800521969197358506986152833648253437673484286051597",
+			Slug:        "test-market",
+			Exchange:    "polymarket",
+			OutcomeType: prediction.OutcomeTypeBinary,
+			Outcomes: []prediction.Outcome{
+				{
+					Pair:      prediction.NewPredictionPair("test-market", "YES", portfolio.NewAsset("USDC")),
+					OutcomeId: "outcome-yes",
+				},
+				{
+					Pair:      prediction.NewPredictionPair("test-market", "NO", portfolio.NewAsset("USDC")),
+					OutcomeId: "outcome-no",
+				},
+			},
+			Active:  true,
+			Closed:  false,
+			EndDate: time.Now().Add(24 * time.Hour),
+		}
 	)
 
 	BeforeEach(func() {
@@ -57,10 +80,16 @@ var _ = Describe("OrderBook Subscription", func() {
 			}).WithTimeout(2 * time.Second).Should(BeTrue())
 
 			// Subscribe
-			ws.SubscribeToMarketBook(assetID, func(book *pmwebsocket.OrderBookMessage) {
-				called = true
-				receivedBooks = append(receivedBooks, book)
-			})
+			ws.SubscribeToMarket(
+				market,
+				func(book *pmwebsocket.OrderBookMessage) {
+					called = true
+					receivedBooks = append(receivedBooks, book)
+				},
+				func(priceChange *pmwebsocket.PriceChanges) {
+					receivedPriceChanges = append(receivedPriceChanges, priceChange)
+				},
+			)
 
 			// Send orderbook message from server wrapped in array (Polymarket format)
 			msg := map[string]interface{}{
@@ -94,7 +123,6 @@ var _ = Describe("OrderBook Subscription", func() {
 		}, SpecTimeout(5*time.Second))
 
 		It("should not trigger callback for different asset", func(ctx SpecContext) {
-			assetID := "70308501195956323589797156800521969197358506986152833648253437673484286051597"
 			differentAssetID := "77385393614263738045377442390679465888613338149607876972436340566574399345181"
 			called := false
 
@@ -105,9 +133,15 @@ var _ = Describe("OrderBook Subscription", func() {
 				return ws.IsConnected()
 			}).WithTimeout(2 * time.Second).Should(BeTrue())
 
-			ws.SubscribeToMarketBook(assetID, func(book *pmwebsocket.OrderBookMessage) {
-				called = true
-			})
+			ws.SubscribeToMarket(
+				market,
+				func(book *pmwebsocket.OrderBookMessage) {
+					called = true
+				},
+				func(priceChange *pmwebsocket.PriceChanges) {
+					// No-op for this test
+				},
+			)
 
 			// Send message for different asset wrapped in array
 			msg := map[string]interface{}{
@@ -139,11 +173,17 @@ var _ = Describe("OrderBook Subscription", func() {
 				return ws.IsConnected()
 			}).WithTimeout(2 * time.Second).Should(BeTrue())
 
-			ws.SubscribeToMarketBook(assetID, func(book *pmwebsocket.OrderBookMessage) {
-				called = true
-			})
+			ws.SubscribeToMarket(
+				market,
+				func(book *pmwebsocket.OrderBookMessage) {
+					called = true
+				},
+				func(priceChange *pmwebsocket.PriceChanges) {
+					// No-op for this test
+				},
+			)
 
-			ws.UnsubscribeFromMarketBook(assetID)
+			ws.UnsubscribeFromMarket(market)
 
 			msg := map[string]interface{}{
 				"event_type": "book",
