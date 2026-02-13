@@ -30,7 +30,6 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 		OrderType(clobtypes.OrderTypeGTC).
 		FeeRateBps(0).
 		TickSize("0.1").
-		Maker(c.polymarketAddress).
 		UseSafe().
 		Build()
 

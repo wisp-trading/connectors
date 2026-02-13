@@ -98,9 +98,8 @@ func (c *polymarketClient) Configure(config *config.Config) error {
 		Passphrase: key.Passphrase,
 	}
 
-	c.client = c.client.WithAuth(signer, creds).WithFunder(c.signer.Address()).WithSignatureType(auth.SignatureGnosisSafe)
-
 	c.polymarketAddress = common.HexToAddress(config.PolymarketAddress)
+	c.client = c.client.WithAuth(signer, creds).WithFunder(c.polymarketAddress).WithSignatureType(auth.SignatureGnosisSafe)
 
 	c.configured = true
 
