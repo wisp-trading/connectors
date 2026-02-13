@@ -105,3 +105,19 @@ func (tr *PredictionMarketTestRunner) VerifyOrderBookData(
 		return connector.OrderBook{}
 	}
 }
+
+// VerifyPriceChangeData waits for order book data from channel with timeout
+func (tr *PredictionMarketTestRunner) VerifyPriceChangeData(
+	obChan <-chan []prediction.PriceChange,
+	timeout time.Duration,
+) []prediction.PriceChange {
+	select {
+	case ob, ok := <-obChan:
+		if !ok {
+			return []prediction.PriceChange{}
+		}
+		return ob
+	case <-time.After(timeout):
+		return []prediction.PriceChange{}
+	}
+}

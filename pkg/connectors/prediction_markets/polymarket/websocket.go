@@ -127,3 +127,16 @@ func (p *polymarket) GetOrderbookChannels() map[string]<-chan connector.OrderBoo
 
 	return result
 }
+
+func (p *polymarket) GetPriceChangeChannels() map[string]<-chan []prediction.PriceChange {
+	p.priceChangeMu.RLock()
+	defer p.priceChangeMu.RUnlock()
+
+	// Create a new map with read-only channels
+	result := make(map[string]<-chan []prediction.PriceChange, len(p.priceChangeChannels))
+	for marketID, ch := range p.priceChangeChannels {
+		result[marketID] = ch
+	}
+
+	return result
+}

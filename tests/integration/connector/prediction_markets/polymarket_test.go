@@ -248,20 +248,12 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 							"Yes",
 							portfolio.NewAsset("USDC"),
 						),
-						OutcomeId: "66564931687993931773164331565537830131957286597090744482673025298514812760743",
+						OutcomeId: "91739599172840064738465443474771897307444101331342233138607146469590894122050",
 					},
-					//{
-					//	Pair: prediction.NewPredictionPair(
-					//		"btc-updown-4h",
-					//		"No",
-					//		portfolio.NewAsset("USDC"),
-					//	),
-					//	OutcomeId: "6757703472668573966175902785925764600818133786181136162144102885621254094181",
-					//},
 				}
 
 				market := prediction.Market{
-					MarketId: "0x7ad24c06fb22759c4a58d9538c3678e143e5a9094eb4d02c65174a434cf1ca6e",
+					MarketId: "0x8d2df65bd55135c16f772132dc4e01b6a7281d19ad6c7851ac244a02047d0b89",
 					Outcomes: outcomes,
 					Slug:     "btc-updown-4h",
 				}
@@ -269,24 +261,34 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				err = conn.SubscribeOrderBook(market)
 				Expect(err).ToNot(HaveOccurred())
 
-				channels := conn.GetOrderbookChannels()
-				Expect(channels).ToNot(BeNil(), "Market channels should not be nil")
+				orderbookChannels := conn.GetOrderbookChannels()
+				Expect(orderbookChannels).ToNot(BeNil(), "Market orderbookChannels should not be nil")
 
-				outcome1, exists := channels[market.Slug]
+				priceChangeChannels := conn.GetPriceChangeChannels()
+				Expect(priceChangeChannels).ToNot(BeNil(), "Market priceChangeChannels should not be nil")
+
+				outcome, exists := orderbookChannels[market.Slug]
 				Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-				Expect(outcome1).ToNot(BeNil(), "Market book channel should not be nil")
+				Expect(outcome).ToNot(BeNil(), "Market book channel should not be nil")
 
-				//outcome2, exists := channels[market.Outcomes[1].Pair.Symbol()]
-				//Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-				//Expect(outcome2).ToNot(BeNil(), "Market book channel should not be nil")
-
-				// Wait for order book data with timeout
+				priceChangeChannel, exists := priceChangeChannels[market.Slug]
+				Expect(exists).To(BeTrue(), "Market price change channel should exist for subscribed market")
+				Expect(priceChangeChannel).ToNot(BeNil(), "Market price change channel should not be nil")
 				Expect(exists).To(BeTrue())
 
 				// Use helper to verify order book
-				orderBook := runner.VerifyOrderBookData(outcome1, 30*time.Second)
+				orderBook := runner.VerifyOrderBookData(outcome, 30*time.Second)
 				Expect(orderBook.Bids).ToNot(BeNil())
 				Expect(orderBook.Asks).ToNot(BeNil())
+
+				priceChange := runner.VerifyPriceChangeData(priceChangeChannel, 30*time.Second)
+				Expect(priceChange).ToNot(BeNil())
+				Expect(len(priceChange)).To(
+					BeNumerically(">", 0),
+					"Should receive at least one price change update",
+				)
+				Expect(priceChange[0].Outcome.Pair.Market()).To(Equal(market.MarketId))
+				Expect(priceChange[0].Outcome.Pair.Outcome()).To(Equal("Yes"))
 
 				connector_test.LogSuccess(
 					"Received order book data for market %s with %d bids and %d asks",

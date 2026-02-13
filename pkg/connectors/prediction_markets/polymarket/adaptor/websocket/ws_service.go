@@ -130,8 +130,6 @@ func (ws *webSocketService) onDisconnect() error {
 }
 
 func (ws *webSocketService) onMessage(message []byte) error {
-	ws.logger.Info("📥 Raw message received: %s", string(message))
-
 	trimmed := bytes.TrimSpace(message)
 
 	// Polymarket sends arrays of messages - handle them directly without validation
