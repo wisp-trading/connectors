@@ -2,15 +2,10 @@ package clob
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
-	"math/big"
-	"strconv"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/shopspring/decimal"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
@@ -26,53 +21,25 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 		side = "SELL"
 	}
 
-	// Calculate maker/taker amounts
-	// For BUY: spend USDC (taker), receive tokens (maker)
-	// For SELL: spend tokens (maker), receive USDC (taker)
-	var makerAmount, takerAmount decimal.Decimal
-	if side == "BUY" {
-		// Receive tokens
-		makerAmount = decimal.NewFromFloat(limitOrder.ReceiveAmount.InexactFloat64())
-		// Spend USDC = tokens * price
-		priceDecimal := decimal.NewFromFloat(limitOrder.Price.InexactFloat64())
-		takerAmount = makerAmount.Mul(priceDecimal)
-	} else {
-		// Spend tokens
-		makerAmount = decimal.NewFromFloat(limitOrder.SpendAmount.InexactFloat64())
-		// Receive USDC = tokens * price
-		priceDecimal := decimal.NewFromFloat(limitOrder.Price.InexactFloat64())
-		takerAmount = makerAmount.Mul(priceDecimal)
-	}
+	// Build the order using the SDK builder
+	signableOrder, err := clob.NewOrderBuilder(c.client, c.signer).
+		TokenID(limitOrder.Outcome.OutcomeId).
+		Side(side).
+		Price(limitOrder.Price.InexactFloat64()).
+		Size(limitOrder.Amount.InexactFloat64()).
+		OrderType(clobtypes.OrderTypeGTC).
+		FeeRateBps(0).
+		TickSize("0.1").
+		Maker(c.polymarketAddress).
+		UseSafe().
+		Build()
 
-	// Generate salt (max 53 bits for JSON safety)
-	salt, err := rand.Int(rand.Reader, big.NewInt(1<<53))
 	if err != nil {
-		return fmt.Errorf("failed to generate salt: %w", err)
+		return fmt.Errorf("failed to build order: %w", err)
 	}
 
-	sigType := 2
-
-	outcomeIdInt64, err := strconv.ParseInt(limitOrder.Outcome.OutcomeId, 10, 64)
-	if err != nil {
-		return fmt.Errorf("invalid outcome ID: %w", err)
-	}
-
-	order := &clobtypes.Order{
-		Salt:          types.U256{Int: salt},
-		Maker:         c.polymarketAddress,
-		Signer:        c.signerAddress,
-		Taker:         common.HexToAddress("0x0000000000000000000000000000000000000000"),
-		TokenID:       types.U256{Int: big.NewInt(outcomeIdInt64)},
-		MakerAmount:   makerAmount,
-		TakerAmount:   takerAmount,
-		Side:          side,
-		Expiration:    types.U256{Int: big.NewInt(limitOrder.Expiration)},
-		Nonce:         types.U256{Int: big.NewInt(0)},
-		FeeRateBps:    decimal.Zero,
-		SignatureType: &sigType,
-	}
-
-	resp, err := c.client.CLOB.CreateOrder(ctx, order)
+	// Submit the order
+	resp, err := c.client.CreateOrder(ctx, signableOrder)
 	if err != nil {
 		return fmt.Errorf("failed to create order: %w", err)
 	}

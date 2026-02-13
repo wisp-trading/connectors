@@ -2,15 +2,14 @@ package clob
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"fmt"
-	"math/big"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
@@ -41,20 +40,12 @@ type PolymarketClient interface {
 
 // polymarketClient implementation
 type polymarketClient struct {
-	baseURL           string
-	privateKey        *ecdsa.PrivateKey
-	signerAddress     common.Address
-	polymarketAddress common.Address
-	privateKeyHex     string
-	chainID           *big.Int
 	httpClient        *http.Client
 	configured        bool
 	mu                sync.RWMutex
-	apiKey            string
-	apiSecret         string
-	passphrase        string
-	client            *polymarket.Client
+	client            clob.Client
 	signer            *auth.PrivateKeySigner
+	polymarketAddress common.Address
 }
 
 // NewPolymarketClient creates an unconfigured Polymarket client
@@ -93,16 +84,23 @@ func (c *polymarketClient) Configure(config *config.Config) error {
 
 	c.signer = signer
 
-	creds := &auth.APIKey{
-		Key:        config.APIKey,
-		Secret:     config.APISecret,
-		Passphrase: config.Passphrase,
+	client := polymarket.NewClient(polymarket.WithUseServerTime(true))
+	c.client = client.CLOB.WithAuth(signer, nil)
+
+	key, err := c.client.DeriveAPIKey(context.Background())
+	if err != nil {
+		return err
 	}
 
-	c.client = polymarket.NewClient().WithAuth(signer, creds)
+	creds := &auth.APIKey{
+		Key:        key.APIKey,
+		Secret:     key.Secret,
+		Passphrase: key.Passphrase,
+	}
+
+	c.client = c.client.WithAuth(signer, creds).WithFunder(c.signer.Address()).WithSignatureType(auth.SignatureGnosisSafe)
 
 	c.polymarketAddress = common.HexToAddress(config.PolymarketAddress)
-	c.signerAddress = signer.Address()
 
 	c.configured = true
 

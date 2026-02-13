@@ -1,6 +1,7 @@
 package prediction_markets_test
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -67,31 +68,25 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 
 				// Get best bid to ensure our order doesn't immediately fill
 				bestBid := orderBook.Bids[0].Price // e.g., "0.65"
-				bestBidFloat, _ := bestBid.Float64()
 
-				// Place order 5% below best bid (passive order, won't fill immediately)
-				ourPrice := bestBidFloat * 0.95
+				price := bestBid
+				price = numerical.NewFromFloat(0.5)
+				amount := numerical.NewFromFloat(1.0)
 
-				// Just spend $1!
-				spendAmount := numerical.NewFromFloat(1.0)
-				receiveAmount := numerical.NewFromFloat(1.0 / ourPrice) // tokens = USDC / price
+				fmt.Printf("Placing limit order with price %s and amount %s\n", price.String(), amount.String())
 
 				order := prediction.LimitOrder{
-					Outcome:       market.Outcomes[0],
-					Side:          connector.OrderSideBuy,
-					Price:         numerical.NewFromFloat(ourPrice),
-					SpendAmount:   &spendAmount,   // Optional: USDC spending
-					ReceiveAmount: &receiveAmount, // What matters for size
-					Expiration:    time.Now().Add(1 * time.Hour).Unix(),
+					Outcome:    market.Outcomes[0],
+					Side:       connector.OrderSideBuy,
+					Price:      price,
+					Amount:     amount,
+					Expiration: time.Now().Add(1 * time.Hour).Unix(),
 				}
-				
+
 				orderResponse, err := conn.PlaceLimitOrder(order)
 				Expect(err).ToNot(HaveOccurred(), "Order placement should succeed")
 				Expect(orderResponse).ToNot(BeNil())
 				Expect(orderResponse.OrderID).ToNot(BeEmpty(), "Should receive order ID")
-
-				connector_test.LogInfo("Order placed successfully: %s at price %.4f",
-					orderResponse.OrderID, ourPrice)
 
 				// Optional: Cancel the order after test
 				// err = conn.CancelOrder(orderResponse.OrderID)
