@@ -2,8 +2,16 @@ package clob
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
+	"strconv"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/shopspring/decimal"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
@@ -13,99 +21,62 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 		return fmt.Errorf("client not configured")
 	}
 
-	order := OrderRequest{}.FromLimitOrder(limitOrder)
+	side := "BUY"
+	if limitOrder.Side == connector.OrderSideSell {
+		side = "SELL"
+	}
 
-	order.Nonce = "0"
-	order.FeeRateBps = "0"
+	// Calculate maker/taker amounts
+	// For BUY: spend USDC (taker), receive tokens (maker)
+	// For SELL: spend tokens (maker), receive USDC (taker)
+	var makerAmount, takerAmount decimal.Decimal
+	if side == "BUY" {
+		// Receive tokens
+		makerAmount = decimal.NewFromFloat(limitOrder.ReceiveAmount.InexactFloat64())
+		// Spend USDC = tokens * price
+		priceDecimal := decimal.NewFromFloat(limitOrder.Price.InexactFloat64())
+		takerAmount = makerAmount.Mul(priceDecimal)
+	} else {
+		// Spend tokens
+		makerAmount = decimal.NewFromFloat(limitOrder.SpendAmount.InexactFloat64())
+		// Receive USDC = tokens * price
+		priceDecimal := decimal.NewFromFloat(limitOrder.Price.InexactFloat64())
+		takerAmount = makerAmount.Mul(priceDecimal)
+	}
 
-	signedOrder, err := c.SignOrder(order)
+	// Generate salt (max 53 bits for JSON safety)
+	salt, err := rand.Int(rand.Reader, big.NewInt(1<<53))
 	if err != nil {
-		return fmt.Errorf("failed to sign order: %w", err)
+		return fmt.Errorf("failed to generate salt: %w", err)
 	}
 
-	// Make HTTP request
-	var response interface{}
-	if err := c.doRequest(ctx, "POST", ordersEndpoint, signedOrder, &response); err != nil {
-		return fmt.Errorf("failed to place order: %w", err)
+	sigType := 2
+
+	outcomeIdInt64, err := strconv.ParseInt(limitOrder.Outcome.OutcomeId, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid outcome ID: %w", err)
 	}
 
-	return nil
-}
-
-// CancelOrder cancels an order by ID
-func (c *polymarketClient) CancelOrder(ctx context.Context, orderID string) (*CancelOrderResponse, error) {
-	if !c.IsConfigured() {
-		return nil, fmt.Errorf("client not configured")
+	order := &clobtypes.Order{
+		Salt:          types.U256{Int: salt},
+		Maker:         c.polymarketAddress,
+		Signer:        c.signerAddress,
+		Taker:         common.HexToAddress("0x0000000000000000000000000000000000000000"),
+		TokenID:       types.U256{Int: big.NewInt(outcomeIdInt64)},
+		MakerAmount:   makerAmount,
+		TakerAmount:   takerAmount,
+		Side:          side,
+		Expiration:    types.U256{Int: big.NewInt(limitOrder.Expiration)},
+		Nonce:         types.U256{Int: big.NewInt(0)},
+		FeeRateBps:    decimal.Zero,
+		SignatureType: &sigType,
 	}
 
-	if orderID == "" {
-		return nil, fmt.Errorf("orderID is required")
+	resp, err := c.client.CLOB.CreateOrder(ctx, order)
+	if err != nil {
+		return fmt.Errorf("failed to create order: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/%s", cancelOrderEndpoint, orderID)
-
-	var response CancelOrderResponse
-	if err := c.doRequest(ctx, "DELETE", endpoint, nil, &response); err != nil {
-		return nil, fmt.Errorf("failed to cancel order: %w", err)
-	}
-
-	return &response, nil
-}
-
-// CancelAllOrders cancels all orders for a market or asset
-func (c *polymarketClient) CancelAllOrders(ctx context.Context, req CancelAllOrdersRequest) (*CancelAllOrdersResponse, error) {
-	if !c.IsConfigured() {
-		return nil, fmt.Errorf("client not configured")
-	}
-
-	// Validate request using validator tags
-	if err := ValidateStruct(req); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
-	}
-
-	var response CancelAllOrdersResponse
-	if err := c.doRequest(ctx, "DELETE", cancelAllEndpoint, req, &response); err != nil {
-		return nil, fmt.Errorf("failed to cancel all orders: %w", err)
-	}
-
-	return &response, nil
-}
-
-// GetOrder retrieves an order by ID
-func (c *polymarketClient) GetOrder(ctx context.Context, orderID string) error {
-	if !c.IsConfigured() {
-		return fmt.Errorf("client not configured")
-	}
-
-	if orderID == "" {
-		return fmt.Errorf("orderID is required")
-	}
-
-	endpoint := fmt.Sprintf("%s/%s", getOrderEndpoint, orderID)
-
-	var response interface{}
-	if err := c.doRequest(ctx, "GET", endpoint, nil, &response); err != nil {
-		return fmt.Errorf("failed to get order: %w", err)
-	}
-
-	return nil
-}
-
-// GetOpenOrders retrieves all open orders for an asset
-func (c *polymarketClient) GetOpenOrders(ctx context.Context, assetID string) error {
-	if !c.IsConfigured() {
-		return fmt.Errorf("client not configured")
-	}
-
-	endpoint := getOpenOrdersEndpoint
-	if assetID != "" {
-		endpoint = fmt.Sprintf("%s?assetID=%s", endpoint, assetID)
-	}
-
-	var response []interface{}
-	if err := c.doRequest(ctx, "GET", endpoint, nil, &response); err != nil {
-		return fmt.Errorf("failed to get open orders: %w", err)
-	}
-
+	fmt.Printf("Order placed: %v\n", resp)
 	return nil
 }

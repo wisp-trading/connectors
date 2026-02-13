@@ -3,22 +3,22 @@ package clob
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto" // Alias to avoid clash
+	"github.com/GoPolymarket/polymarket-go-sdk"
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
 const (
 	// API endpoints
-	ordersEndpoint        = "/orders"
+	ordersEndpoint        = "/order"
 	cancelOrderEndpoint   = "/orders"
 	cancelAllEndpoint     = "/orders"
 	getOrderEndpoint      = "/orders"
@@ -37,18 +37,14 @@ type PolymarketClient interface {
 
 	// Trading
 	PlaceOrder(ctx context.Context, order prediction.LimitOrder) error
-	CancelOrder(ctx context.Context, orderID string) (*CancelOrderResponse, error)
-	CancelAllOrders(ctx context.Context, req CancelAllOrdersRequest) (*CancelAllOrdersResponse, error)
-	GetOrder(ctx context.Context, orderID string) error
-	GetOpenOrders(ctx context.Context, assetID string) error
 }
 
 // polymarketClient implementation
 type polymarketClient struct {
 	baseURL           string
 	privateKey        *ecdsa.PrivateKey
-	signerAddress     string
-	polymarketAddress string
+	signerAddress     common.Address
+	polymarketAddress common.Address
 	privateKeyHex     string
 	chainID           *big.Int
 	httpClient        *http.Client
@@ -57,6 +53,8 @@ type polymarketClient struct {
 	apiKey            string
 	apiSecret         string
 	passphrase        string
+	client            *polymarket.Client
+	signer            *auth.PrivateKeySigner
 }
 
 // NewPolymarketClient creates an unconfigured Polymarket client
@@ -87,36 +85,24 @@ func (c *polymarketClient) Configure(config *config.Config) error {
 		return fmt.Errorf("invalid config: %w", err)
 	}
 
-	// Parse private key
-	privateKeyHex := strings.TrimPrefix(config.PrivateKey, "0x")
-	privateKeyBytes, err := hex.DecodeString(privateKeyHex)
+	signer, err := auth.NewPrivateKeySigner(config.PrivateKey, 137)
+
 	if err != nil {
-		return fmt.Errorf("failed to decode private key: %w", err)
+		return fmt.Errorf("failed to create signer: %w", err)
 	}
 
-	privateKey, err := ethcrypto.ToECDSA(privateKeyBytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse private key: %w", err)
+	c.signer = signer
+
+	creds := &auth.APIKey{
+		Key:        config.APIKey,
+		Secret:     config.APISecret,
+		Passphrase: config.Passphrase,
 	}
 
-	publicKey := privateKey.Public().(*ecdsa.PublicKey)
-	address := ethcrypto.PubkeyToAddress(*publicKey)
+	c.client = polymarket.NewClient().WithAuth(signer, creds)
 
-	c.baseURL = config.BaseURL
-	c.privateKey = privateKey
-	c.privateKeyHex = privateKeyHex
-	c.signerAddress = strings.ToLower(address.Hex())
-	c.polymarketAddress = config.PolymarketAddress
-	c.chainID = big.NewInt(config.ChainID)
-
-	credentials, err := c.deriveCredentials()
-	if err != nil {
-		return err
-	}
-
-	c.apiKey = credentials.APIKey
-	c.apiSecret = credentials.Secret
-	c.passphrase = credentials.Passphrase
+	c.polymarketAddress = common.HexToAddress(config.PolymarketAddress)
+	c.signerAddress = signer.Address()
 
 	c.configured = true
 

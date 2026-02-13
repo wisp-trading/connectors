@@ -44,7 +44,8 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				// Get current recurring market
-				market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
+				market, err := conn.GetMarket("another-us-government-shutdown-by-february-14")
+				//market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(market.Outcomes).ToNot(BeEmpty(), "Market should have outcomes")
 
@@ -73,15 +74,17 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 
 				// Just spend $1!
 				spendAmount := numerical.NewFromFloat(1.0)
+				receiveAmount := numerical.NewFromFloat(1.0 / ourPrice) // tokens = USDC / price
 
 				order := prediction.LimitOrder{
-					Outcome:     market.Outcomes[0],
-					Side:        connector.OrderSideBuy,
-					Price:       numerical.NewFromFloat(ourPrice),
-					SpendAmount: &spendAmount,
-					Expiration:  time.Now().Add(1 * time.Hour).Unix(),
+					Outcome:       market.Outcomes[0],
+					Side:          connector.OrderSideBuy,
+					Price:         numerical.NewFromFloat(ourPrice),
+					SpendAmount:   &spendAmount,   // Optional: USDC spending
+					ReceiveAmount: &receiveAmount, // What matters for size
+					Expiration:    time.Now().Add(1 * time.Hour).Unix(),
 				}
-
+				
 				orderResponse, err := conn.PlaceLimitOrder(order)
 				Expect(err).ToNot(HaveOccurred(), "Order placement should succeed")
 				Expect(orderResponse).ToNot(BeNil())

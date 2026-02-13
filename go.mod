@@ -25,6 +25,7 @@ require (
 replace github.com/wisp-trading/sdk => ../sdk
 
 require (
+	github.com/GoPolymarket/polymarket-go-sdk v1.0.6 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608-1fe7b43fc4d6 // indirect

@@ -3,10 +3,9 @@
 package clob
 
 import (
-	clob "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/clob"
-	config "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
-
 	context "context"
+
+	config "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -24,124 +23,6 @@ type PolymarketClient_Expecter struct {
 
 func (_m *PolymarketClient) EXPECT() *PolymarketClient_Expecter {
 	return &PolymarketClient_Expecter{mock: &_m.Mock}
-}
-
-// CancelAllOrders provides a mock function with given fields: ctx, req
-func (_m *PolymarketClient) CancelAllOrders(ctx context.Context, req clob.CancelAllOrdersRequest) (*clob.CancelAllOrdersResponse, error) {
-	ret := _m.Called(ctx, req)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CancelAllOrders")
-	}
-
-	var r0 *clob.CancelAllOrdersResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, clob.CancelAllOrdersRequest) (*clob.CancelAllOrdersResponse, error)); ok {
-		return rf(ctx, req)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, clob.CancelAllOrdersRequest) *clob.CancelAllOrdersResponse); ok {
-		r0 = rf(ctx, req)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*clob.CancelAllOrdersResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, clob.CancelAllOrdersRequest) error); ok {
-		r1 = rf(ctx, req)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PolymarketClient_CancelAllOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CancelAllOrders'
-type PolymarketClient_CancelAllOrders_Call struct {
-	*mock.Call
-}
-
-// CancelAllOrders is a helper method to define mock.On call
-//   - ctx context.Context
-//   - req clob.CancelAllOrdersRequest
-func (_e *PolymarketClient_Expecter) CancelAllOrders(ctx interface{}, req interface{}) *PolymarketClient_CancelAllOrders_Call {
-	return &PolymarketClient_CancelAllOrders_Call{Call: _e.mock.On("CancelAllOrders", ctx, req)}
-}
-
-func (_c *PolymarketClient_CancelAllOrders_Call) Run(run func(ctx context.Context, req clob.CancelAllOrdersRequest)) *PolymarketClient_CancelAllOrders_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(clob.CancelAllOrdersRequest))
-	})
-	return _c
-}
-
-func (_c *PolymarketClient_CancelAllOrders_Call) Return(_a0 *clob.CancelAllOrdersResponse, _a1 error) *PolymarketClient_CancelAllOrders_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *PolymarketClient_CancelAllOrders_Call) RunAndReturn(run func(context.Context, clob.CancelAllOrdersRequest) (*clob.CancelAllOrdersResponse, error)) *PolymarketClient_CancelAllOrders_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CancelOrder provides a mock function with given fields: ctx, orderID
-func (_m *PolymarketClient) CancelOrder(ctx context.Context, orderID string) (*clob.CancelOrderResponse, error) {
-	ret := _m.Called(ctx, orderID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CancelOrder")
-	}
-
-	var r0 *clob.CancelOrderResponse
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*clob.CancelOrderResponse, error)); ok {
-		return rf(ctx, orderID)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *clob.CancelOrderResponse); ok {
-		r0 = rf(ctx, orderID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*clob.CancelOrderResponse)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, orderID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// PolymarketClient_CancelOrder_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CancelOrder'
-type PolymarketClient_CancelOrder_Call struct {
-	*mock.Call
-}
-
-// CancelOrder is a helper method to define mock.On call
-//   - ctx context.Context
-//   - orderID string
-func (_e *PolymarketClient_Expecter) CancelOrder(ctx interface{}, orderID interface{}) *PolymarketClient_CancelOrder_Call {
-	return &PolymarketClient_CancelOrder_Call{Call: _e.mock.On("CancelOrder", ctx, orderID)}
-}
-
-func (_c *PolymarketClient_CancelOrder_Call) Run(run func(ctx context.Context, orderID string)) *PolymarketClient_CancelOrder_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *PolymarketClient_CancelOrder_Call) Return(_a0 *clob.CancelOrderResponse, _a1 error) *PolymarketClient_CancelOrder_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *PolymarketClient_CancelOrder_Call) RunAndReturn(run func(context.Context, string) (*clob.CancelOrderResponse, error)) *PolymarketClient_CancelOrder_Call {
-	_c.Call.Return(run)
-	return _c
 }
 
 // Configure provides a mock function with given fields: _a0
@@ -186,100 +67,6 @@ func (_c *PolymarketClient_Configure_Call) Return(_a0 error) *PolymarketClient_C
 }
 
 func (_c *PolymarketClient_Configure_Call) RunAndReturn(run func(*config.Config) error) *PolymarketClient_Configure_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetOpenOrders provides a mock function with given fields: ctx, assetID
-func (_m *PolymarketClient) GetOpenOrders(ctx context.Context, assetID string) error {
-	ret := _m.Called(ctx, assetID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetOpenOrders")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, assetID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// PolymarketClient_GetOpenOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOpenOrders'
-type PolymarketClient_GetOpenOrders_Call struct {
-	*mock.Call
-}
-
-// GetOpenOrders is a helper method to define mock.On call
-//   - ctx context.Context
-//   - assetID string
-func (_e *PolymarketClient_Expecter) GetOpenOrders(ctx interface{}, assetID interface{}) *PolymarketClient_GetOpenOrders_Call {
-	return &PolymarketClient_GetOpenOrders_Call{Call: _e.mock.On("GetOpenOrders", ctx, assetID)}
-}
-
-func (_c *PolymarketClient_GetOpenOrders_Call) Run(run func(ctx context.Context, assetID string)) *PolymarketClient_GetOpenOrders_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *PolymarketClient_GetOpenOrders_Call) Return(_a0 error) *PolymarketClient_GetOpenOrders_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *PolymarketClient_GetOpenOrders_Call) RunAndReturn(run func(context.Context, string) error) *PolymarketClient_GetOpenOrders_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetOrder provides a mock function with given fields: ctx, orderID
-func (_m *PolymarketClient) GetOrder(ctx context.Context, orderID string) error {
-	ret := _m.Called(ctx, orderID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetOrder")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = rf(ctx, orderID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// PolymarketClient_GetOrder_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrder'
-type PolymarketClient_GetOrder_Call struct {
-	*mock.Call
-}
-
-// GetOrder is a helper method to define mock.On call
-//   - ctx context.Context
-//   - orderID string
-func (_e *PolymarketClient_Expecter) GetOrder(ctx interface{}, orderID interface{}) *PolymarketClient_GetOrder_Call {
-	return &PolymarketClient_GetOrder_Call{Call: _e.mock.On("GetOrder", ctx, orderID)}
-}
-
-func (_c *PolymarketClient_GetOrder_Call) Run(run func(ctx context.Context, orderID string)) *PolymarketClient_GetOrder_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *PolymarketClient_GetOrder_Call) Return(_a0 error) *PolymarketClient_GetOrder_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *PolymarketClient_GetOrder_Call) RunAndReturn(run func(context.Context, string) error) *PolymarketClient_GetOrder_Call {
 	_c.Call.Return(run)
 	return _c
 }
