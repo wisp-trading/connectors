@@ -22,15 +22,18 @@ type MarketResponse struct {
 	ClobTokenIdsRaw string `json:"clobTokenIds"` // Asset IDs for orderbook subscription
 
 	// Market metadata
-	Active          bool      `json:"active"`
-	Closed          bool      `json:"closed"`
-	AcceptingOrders bool      `json:"acceptingOrders"`
-	StartTime       time.Time `json:"startTime"`
-	ResolutionTime  time.Time `json:"resolutionTime"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	Active          bool `json:"active"`
+	Closed          bool `json:"closed"`
+	AcceptingOrders bool `json:"acceptingOrders"`
+
+	// Time fields from API
+	StartDate time.Time `json:"startDate"` // "2025-11-25T18:08:21.296Z"
+	EndDate   time.Time `json:"endDate"`   // "2026-12-31T00:00:00Z"
+	CreatedAt time.Time `json:"createdAt"` // "2025-11-25T15:12:00.761996Z"
+	UpdatedAt time.Time `json:"updatedAt"` // "2026-02-13T03:44:50.187528Z"
 
 	// Parsed conditions
-	Conditions []Condition
+	Conditions []Condition `json:"-"`
 }
 
 // Condition represents one outcome in a market (e.g., YES or NO side)
@@ -68,6 +71,11 @@ func (m *MarketResponse) Parse() error {
 			Index:   i,
 		}
 	}
+
+	m.StartDate = m.StartDate.UTC()
+	m.EndDate = m.EndDate.UTC()
+	m.CreatedAt = m.CreatedAt.UTC()
+	m.UpdatedAt = m.UpdatedAt.UTC()
 
 	return nil
 }
@@ -108,10 +116,10 @@ func (m *MarketResponse) IsActive() bool {
 
 // IsClosed returns true if market has closed (outcome decided)
 func (m *MarketResponse) IsClosed() bool {
-	return m.Closed || time.Now().After(m.ResolutionTime)
+	return m.Closed || time.Now().After(m.EndDate)
 }
 
 // TimeUntilClose returns duration until market closes
 func (m *MarketResponse) TimeUntilClose() time.Duration {
-	return time.Until(m.ResolutionTime)
+	return time.Until(m.EndDate)
 }

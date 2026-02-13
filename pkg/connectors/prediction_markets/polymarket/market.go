@@ -43,10 +43,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 	}
 
 	// Handle resolution date (if closed)
-	var resolutionTime *time.Time
-	if marketData.Closed {
-		resolutionTime = &marketData.ResolutionTime
-	}
+	resolutionTime := &marketData.EndDate
 
 	market := prediction.Market{
 		MarketId:       marketData.ConditionID,
@@ -56,8 +53,35 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		Outcomes:       outcomes,
 		Active:         marketData.Active,
 		Closed:         marketData.Closed,
-		EndDate:        marketData.ResolutionTime,
 		ResolutionTime: resolutionTime,
+	}
+
+	return market, nil
+}
+
+func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.RecurrenceInterval) (prediction.Market, error) {
+	duration, ok := recurrence.Duration()
+	if !ok {
+		return prediction.Market{}, fmt.Errorf("invalid recurrence interval")
+	}
+
+	now := time.Now().Unix()
+	intervalSeconds := int64(duration.Seconds())
+
+	// Round down to current interval boundary
+	currentTimestamp := (now / intervalSeconds) * intervalSeconds
+
+	// Build full slug
+	slug := fmt.Sprintf("%s-%d", baseSlug, currentTimestamp)
+
+	// Fetch market
+	market, err := p.GetMarket(slug)
+	if err != nil {
+		return prediction.Market{}, fmt.Errorf("failed to get market: %w", err)
+	}
+
+	market.RecurringMarket = &prediction.RecurringMarket{
+		RecurrenceInterval: recurrence,
 	}
 
 	return market, nil

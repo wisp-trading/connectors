@@ -15,6 +15,8 @@ import (
 )
 
 var _ = Describe("OrderBook Subscription", func() {
+	resolutionTime := time.Now().Add(24 * time.Hour)
+
 	var (
 		app                  *fxtest.App
 		ws                   pmwebsocket.PolymarketWebsocket
@@ -37,9 +39,9 @@ var _ = Describe("OrderBook Subscription", func() {
 					OutcomeId: "outcome-no",
 				},
 			},
-			Active:  true,
-			Closed:  false,
-			EndDate: time.Now().Add(24 * time.Hour),
+			Active:         true,
+			Closed:         false,
+			ResolutionTime: &resolutionTime,
 		}
 	)
 
