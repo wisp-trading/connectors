@@ -208,7 +208,7 @@ func (_m *PolymarketWebsocket) SubscribeToMarketBook(marketID string, callback f
 	_m.Called(marketID, callback)
 }
 
-// PolymarketWebsocket_SubscribeToMarketBook_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SubscribeToMarketBook'
+// PolymarketWebsocket_SubscribeToMarketBook_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SubscribeToMarket'
 type PolymarketWebsocket_SubscribeToMarketBook_Call struct {
 	*mock.Call
 }
@@ -217,7 +217,7 @@ type PolymarketWebsocket_SubscribeToMarketBook_Call struct {
 //   - marketID string
 //   - callback func(*websocket.OrderBookMessage)
 func (_e *PolymarketWebsocket_Expecter) SubscribeToMarketBook(marketID interface{}, callback interface{}) *PolymarketWebsocket_SubscribeToMarketBook_Call {
-	return &PolymarketWebsocket_SubscribeToMarketBook_Call{Call: _e.mock.On("SubscribeToMarketBook", marketID, callback)}
+	return &PolymarketWebsocket_SubscribeToMarketBook_Call{Call: _e.mock.On("SubscribeToMarket", marketID, callback)}
 }
 
 func (_c *PolymarketWebsocket_SubscribeToMarketBook_Call) Run(run func(marketID string, callback func(*websocket.OrderBookMessage))) *PolymarketWebsocket_SubscribeToMarketBook_Call {
@@ -242,7 +242,7 @@ func (_m *PolymarketWebsocket) UnsubscribeFromMarketBook(marketID string) {
 	_m.Called(marketID)
 }
 
-// PolymarketWebsocket_UnsubscribeFromMarketBook_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UnsubscribeFromMarketBook'
+// PolymarketWebsocket_UnsubscribeFromMarketBook_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UnsubscribeFromMarket'
 type PolymarketWebsocket_UnsubscribeFromMarketBook_Call struct {
 	*mock.Call
 }
@@ -250,7 +250,7 @@ type PolymarketWebsocket_UnsubscribeFromMarketBook_Call struct {
 // UnsubscribeFromMarketBook is a helper method to define mock.On call
 //   - marketID string
 func (_e *PolymarketWebsocket_Expecter) UnsubscribeFromMarketBook(marketID interface{}) *PolymarketWebsocket_UnsubscribeFromMarketBook_Call {
-	return &PolymarketWebsocket_UnsubscribeFromMarketBook_Call{Call: _e.mock.On("UnsubscribeFromMarketBook", marketID)}
+	return &PolymarketWebsocket_UnsubscribeFromMarketBook_Call{Call: _e.mock.On("UnsubscribeFromMarket", marketID)}
 }
 
 func (_c *PolymarketWebsocket_UnsubscribeFromMarketBook_Call) Run(run func(marketID string)) *PolymarketWebsocket_UnsubscribeFromMarketBook_Call {

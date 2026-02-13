@@ -128,7 +128,7 @@ func (f *webSocketServiceFactory) CreateWebSocketService(cfg *config.Config) (Po
 		f.logger,
 	)
 
-	f.logger.Info("✅ Polymarket WebSocket service created successfully")
+	f.logger.Info("Polymarket WebSocket service created successfully")
 
 	return ws, nil
 }

@@ -5,8 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
-
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
@@ -228,7 +226,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 			})
 		})
 
-		Context("SubscribeOrderBook", func() {
+		Context("Subscribing to market events", func() {
 			It("should subscribe to order book updates and receive data", func() {
 				conn := runner.GetWebSocketCapable()
 				err := conn.StartWebSocket()
@@ -241,54 +239,51 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				}(conn)
 				Expect(err).ToNot(HaveOccurred())
 
-				outcomes := []prediction.Outcome{
-					{
-						Pair: prediction.NewPredictionPair(
-							"btc-updown-4h",
-							"Yes",
-							portfolio.NewAsset("USDC"),
-						),
-						OutcomeId: "55465499552240998868444058452917756997929695703966881733232094915253142184919",
-					},
-					//{
-					//	Pair: prediction.NewPredictionPair(
-					//		"btc-updown-4h",
-					//		"No",
-					//		portfolio.NewAsset("USDC"),
-					//	),
-					//	OutcomeId: "6757703472668573966175902785925764600818133786181136162144102885621254094181",
-					//},
-				}
-
-				market := prediction.Market{
-					MarketId: "0x049e9f5ee242baad05476a24f9c9a3ea64e4c297f81dbc9c5c60756864c526e1",
-					Outcomes: outcomes,
-				}
+				market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
 
 				err = conn.SubscribeOrderBook(market)
 				Expect(err).ToNot(HaveOccurred())
 
-				channels := conn.GetOrderbookChannels()
-				Expect(channels).ToNot(BeNil(), "Market channels should not be nil")
+				orderbookChannels := conn.GetOrderbookChannels()
+				Expect(orderbookChannels).ToNot(BeNil(), "Market orderbookChannels should not be nil")
 
-				outcome1, exists := channels[market.Outcomes[0].Pair.Symbol()]
+				priceChangeChannels := conn.GetPriceChangeChannels()
+				Expect(priceChangeChannels).ToNot(BeNil(), "Market priceChangeChannels should not be nil")
+
+				outcome, exists := orderbookChannels[market.Slug]
 				Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-				Expect(outcome1).ToNot(BeNil(), "Market book channel should not be nil")
+				Expect(outcome).ToNot(BeNil(), "Market book channel should not be nil")
 
-				//outcome2, exists := channels[market.Outcomes[1].Pair.Symbol()]
-				//Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-				//Expect(outcome2).ToNot(BeNil(), "Market book channel should not be nil")
-
-				// Wait for order book data with timeout
+				priceChangeChannel, exists := priceChangeChannels[market.Slug]
+				Expect(exists).To(BeTrue(), "Market price change channel should exist for subscribed market")
+				Expect(priceChangeChannel).ToNot(BeNil(), "Market price change channel should not be nil")
 				Expect(exists).To(BeTrue())
 
 				// Use helper to verify order book
-				orderBook := runner.VerifyOrderBookData(outcome1, 30*time.Second)
-				Expect(orderBook).ToNot(BeNil())
+				orderBook := runner.VerifyOrderBookData(outcome, 30*time.Second)
+				Expect(orderBook.Bids).ToNot(BeNil())
+				Expect(orderBook.Asks).ToNot(BeNil())
 
-				connector_test.LogSuccess("Received order book data for market %s with %d bids and %d asks",
-					market.MarketId, len(orderBook.Bids), len(orderBook.Asks))
-				connector_test.LogSuccess("Received order book data for market %s", market.MarketId)
+				priceChange := runner.VerifyPriceChangeData(priceChangeChannel, 30*time.Second)
+				Expect(priceChange).ToNot(BeNil())
+				Expect(len(priceChange)).To(
+					BeNumerically(">", 0),
+					"Should receive at least one price change update",
+				)
+				Expect(priceChange[0].Outcome.Pair.Market()).To(Equal(market.Slug))
+				Expect(priceChange[0].Outcome.Pair.Outcome()).To(BeElementOf("Up", "Down"))
+
+				connector_test.LogSuccess(
+					"Received order book data for market %s with %d bids and %d asks",
+					market.MarketId,
+					len(orderBook.Bids),
+					len(orderBook.Asks),
+				)
+				connector_test.LogSuccess(
+					"Received order book data for market %s",
+					market.MarketId,
+				)
+				time.Sleep(5 * time.Second) // Sleep to allow any additional messages to be received before test ends
 			})
 		})
 

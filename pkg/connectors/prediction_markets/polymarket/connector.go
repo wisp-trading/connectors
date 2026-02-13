@@ -38,6 +38,9 @@ type polymarket struct {
 	orderBookChannels map[string]chan connector.OrderBook
 	orderBookMu       sync.RWMutex
 
+	priceChangeChannels map[string]chan []prediction.PriceChange
+	priceChangeMu       sync.RWMutex
+
 	// Separate channels per outcome subscription for klines (key: "btc-updown-4h:YES-USDC")
 	klineChannels map[string]chan connector.Kline
 	klineMu       sync.RWMutex
@@ -76,19 +79,20 @@ func NewPolymarket(
 	clobClient := clob.NewPolymarketClient()
 
 	return &polymarket{
-		clobClient:        clobClient,
-		wsFactory:         wsFactory, // Store factory, not service
-		wsClient:          nil,       // Will be created in Initialize()
-		gammaClient:       gammaClient,
-		config:            nil, // Will be set during initialization
-		appLogger:         appLogger,
-		tradingLogger:     tradingLogger,
-		timeProvider:      timeProvider,
-		ctx:               context.Background(),
-		initialized:       false,
-		orderBookChannels: make(map[string]chan connector.OrderBook),
-		klineChannels:     make(map[string]chan connector.Kline),
-		tradeCh:           make(chan connector.Trade, 100),
+		clobClient:          clobClient,
+		wsFactory:           wsFactory, // Store factory, not service
+		wsClient:            nil,       // Will be created in Initialize()
+		gammaClient:         gammaClient,
+		config:              nil, // Will be set during initialization
+		appLogger:           appLogger,
+		tradingLogger:       tradingLogger,
+		timeProvider:        timeProvider,
+		ctx:                 context.Background(),
+		initialized:         false,
+		orderBookChannels:   make(map[string]chan connector.OrderBook),
+		priceChangeChannels: make(map[string]chan []prediction.PriceChange),
+		klineChannels:       make(map[string]chan connector.Kline),
+		tradeCh:             make(chan connector.Trade, 100),
 	}
 }
 

@@ -17,7 +17,8 @@ import (
 var globalSubID int64
 
 const (
-	OrderBookEventType = "book"
+	OrderBookEventType   = "book"
+	PriceChangeEventType = "price_change"
 )
 
 // webSocketService manages the Polymarket CLOB WebSocket connection using pkg/websocket infrastructure
@@ -37,6 +38,9 @@ type webSocketService struct {
 	orderBookCallbacks map[string]func(*OrderBookMessage)
 	orderBookMu        sync.RWMutex
 
+	priceChangeCallbacks map[string]func(changes *PriceChanges)
+	priceChangeMu        sync.RWMutex
+
 	// Error channel
 	errorCh chan error
 
@@ -53,14 +57,15 @@ func NewWebSocketService(
 	logger logging.ApplicationLogger,
 ) PolymarketWebsocket {
 	ws := &webSocketService{
-		connManager:        connManager,
-		reconnectMgr:       reconnectMgr,
-		baseService:        baseService,
-		logger:             logger,
-		subscriptions:      make(map[int]*SubscriptionHandler),
-		subscriptionIndex:  make(map[string][]*SubscriptionHandler),
-		orderBookCallbacks: make(map[string]func(*OrderBookMessage)),
-		errorCh:            make(chan error, 100),
+		connManager:          connManager,
+		reconnectMgr:         reconnectMgr,
+		baseService:          baseService,
+		logger:               logger,
+		subscriptions:        make(map[int]*SubscriptionHandler),
+		subscriptionIndex:    make(map[string][]*SubscriptionHandler),
+		orderBookCallbacks:   make(map[string]func(*OrderBookMessage)),
+		priceChangeCallbacks: make(map[string]func(changes *PriceChanges)),
+		errorCh:              make(chan error, 100),
 	}
 
 	// Set up connection manager callbacks
@@ -125,8 +130,6 @@ func (ws *webSocketService) onDisconnect() error {
 }
 
 func (ws *webSocketService) onMessage(message []byte) error {
-	ws.logger.Debug("📥 Raw message received: %s", string(message))
-
 	trimmed := bytes.TrimSpace(message)
 
 	// Polymarket sends arrays of messages - handle them directly without validation
@@ -153,6 +156,8 @@ func (ws *webSocketService) handleValidatedMessage(message []byte) error {
 		return nil
 	}
 
+	fmt.Printf("Received message: %s\n", string(trimmed))
+
 	// Handle PONG keepalive messages
 	trimmedUpper := bytes.ToUpper(trimmed)
 	if bytes.Equal(trimmedUpper, []byte("PONG")) {
@@ -160,32 +165,41 @@ func (ws *webSocketService) handleValidatedMessage(message []byte) error {
 		return nil
 	}
 
-	// Handle control messages (subscription acknowledgments)
+	// Parse JSON messages (both control and data)
 	if trimmed[0] == '{' {
-		var controlMsg map[string]interface{}
-		if err := json.Unmarshal(trimmed, &controlMsg); err != nil {
-			return fmt.Errorf("failed to parse control message: %w", err)
+		var msg map[string]interface{}
+		if err := json.Unmarshal(trimmed, &msg); err != nil {
+			return fmt.Errorf("failed to parse JSON message: %w", err)
 		}
 
-		if msgType, ok := controlMsg["type"].(string); ok {
+		// Check if it's a control message (has "type" field)
+		if msgType, ok := msg["type"].(string); ok {
 			if msgType == "subscribed" || msgType == "unsubscribed" {
 				ws.logger.Info("Received subscription acknowledgment", "type", msgType)
 				return nil
 			}
+			// Other control messages
+			ws.logger.Debug("Received control message", "message", msg)
+			return nil
 		}
 
-		ws.logger.Debug("Received control message", "message", controlMsg)
+		// Check if it's a market data message (has "event_type" field)
+		if _, ok := msg["event_type"].(string); ok {
+			return ws.processSingleMessage(msg, 0)
+		}
+
+		// Unknown message format
+		ws.logger.Debug("Unknown message format", "message", msg)
 		return nil
 	}
 
-	// Handle market data (JSON arrays)
+	// Handle market data arrays (if Polymarket sends those)
 	if trimmed[0] == '[' {
 		var polyMsgs []map[string]interface{}
 		if err := json.Unmarshal(trimmed, &polyMsgs); err != nil {
 			return fmt.Errorf("failed to parse message array: %w", err)
 		}
 
-		// Process each message in the array
 		for i, polyMsg := range polyMsgs {
 			if err := ws.processSingleMessage(polyMsg, i); err != nil {
 				return fmt.Errorf("failed to process message[%d]: %w", i, err)
@@ -208,9 +222,9 @@ func (ws *webSocketService) processSingleMessage(polyMsg map[string]interface{},
 	// Handle different message types
 	switch eventType {
 	case OrderBookEventType:
-		return ws.handleMarketMessage(polyMsg)
-	case "price_change":
-	//	return ws.handlePriceChangeMessage(polyMsg)
+		return ws.handleOrderbookMessage(polyMsg)
+	case PriceChangeEventType:
+		return ws.handlePriceChangeMessage(polyMsg)
 	//case "tick_size_change":
 	//	return ws.handleTickSizeChangeMessage(polyMsg)
 	//case "last_trade_price":

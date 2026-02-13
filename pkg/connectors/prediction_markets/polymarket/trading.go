@@ -74,8 +74,3 @@ func (p *polymarket) GetPositionsByMarket(marketID string) ([]prediction.Positio
 	//TODO implement me
 	panic("implement me")
 }
-
-func (p *polymarket) GetSettlementHistory(limit int) ([]prediction.Settlement, error) {
-	//TODO implement me
-	panic("implement me")
-}
