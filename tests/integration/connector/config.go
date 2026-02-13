@@ -173,7 +173,7 @@ func getPolymarketConfig() *polymarketconfig.Config {
 		BaseURL:       os.Getenv("POLYMARKET_BASE_URL"),
 		GammaURL:      os.Getenv("POLYMARKET_GAMMA_URL"),
 		WebSocketURL:  os.Getenv("POLYMARKET_WEBSOCKET_URL"),
-		ChainID:       chainID,
+		ChainID:       int64(chainID),
 		SignatureType: signatureType,
 	}
 }

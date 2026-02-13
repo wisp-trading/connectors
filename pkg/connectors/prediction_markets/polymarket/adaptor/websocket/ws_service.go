@@ -156,8 +156,6 @@ func (ws *webSocketService) handleValidatedMessage(message []byte) error {
 		return nil
 	}
 
-	fmt.Printf("Received message: %s\n", string(trimmed))
-
 	// Handle PONG keepalive messages
 	trimmedUpper := bytes.ToUpper(trimmed)
 	if bytes.Equal(trimmedUpper, []byte("PONG")) {

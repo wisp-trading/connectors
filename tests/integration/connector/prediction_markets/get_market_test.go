@@ -10,7 +10,7 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
-var _ = Describe("Prediction Market Connector Tests", func() {
+var _ = Describe("Prediction Market Data Tests", func() {
 	var runner *connector_test.PredictionMarketTestRunner
 
 	BeforeEach(func() {

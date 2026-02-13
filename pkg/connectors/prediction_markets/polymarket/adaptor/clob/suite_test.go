@@ -9,5 +9,5 @@ import (
 
 func TestAdaptor(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Polymarket Adaptor Suite")
+	RunSpecs(t, "Polymarket Clob Suite")
 }

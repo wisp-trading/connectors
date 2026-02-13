@@ -23,8 +23,8 @@ type Config struct {
 	WebSocketURL string `json:"websocket_url,omitempty"` // WebSocket URL
 
 	// Trading Configuration
-	ChainID       int `json:"chain_id,omitempty"`       // Polygon chain ID (default: 137)
-	SignatureType int `json:"signature_type,omitempty"` // Signature type (default: 2 for Safe proxy wallet)
+	ChainID       int64 `json:"chain_id,omitempty"`       // Polygon chain ID (default: 137)
+	SignatureType int   `json:"signature_type,omitempty"` // Signature type (default: 2 for Safe proxy wallet)
 }
 
 var _ connector.Config = (*Config)(nil)

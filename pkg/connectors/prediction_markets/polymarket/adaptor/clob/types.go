@@ -22,12 +22,12 @@ type OrderRequest struct {
 }
 
 func (OrderRequest) FromLimitOrder(order prediction.LimitOrder) OrderRequest {
+	maker, taker := calculateAmounts(order)
+
 	return OrderRequest{
-		Maker:       order.MakerAddress,
-		Taker:       order.TakerAddress,
-		TokenID:     order.Market.MarketId,
-		MakerAmount: order.MakerAmount.String(),
-		TakerAmount: order.TakerAmount.String(),
+		TokenID:     order.Outcome.OutcomeId,
+		MakerAmount: maker,
+		TakerAmount: taker,
 		Side:        string(order.Side),
 		Expiration:  order.Expiration,
 	}
