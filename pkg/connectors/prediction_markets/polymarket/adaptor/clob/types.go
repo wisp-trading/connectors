@@ -6,9 +6,6 @@ import (
 
 // Order represents a Polymarket CLOB order for signing
 type OrderRequest struct {
-	Salt          int64  `json:"salt"`
-	Maker         string `json:"maker"`
-	Signer        string `json:"signer"`
 	Taker         string `json:"taker"`
 	TokenID       string `json:"tokenId"`
 	MakerAmount   string `json:"makerAmount"`
@@ -17,7 +14,6 @@ type OrderRequest struct {
 	FeeRateBps    string `json:"feeRateBps"`
 	Nonce         string `json:"nonce"`
 	SignatureType int    `json:"signatureType"`
-	Signature     string `json:"signature"`
 	Expiration    int64  `json:"expiration"`
 }
 

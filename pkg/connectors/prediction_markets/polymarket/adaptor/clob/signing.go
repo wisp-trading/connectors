@@ -21,8 +21,9 @@ func (c *polymarketClient) SignOrder(order OrderRequest) (*model.SignedOrder, er
 	}
 
 	orderData := &model.OrderData{
-		Maker:       order.Maker,
-		Taker:       order.Taker,
+		Maker:       c.polymarketAddress,
+		Taker:       "0x0000000000000000000000000000000000000000",
+		Signer:      c.signerAddress,
 		TokenId:     order.TokenID,
 		MakerAmount: order.MakerAmount,
 		TakerAmount: order.TakerAmount,

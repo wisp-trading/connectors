@@ -12,11 +12,11 @@ var _ = Describe("Config", func() {
 
 	BeforeEach(func() {
 		conf = &config.Config{
-			APIKey:        "test-api-key",
-			APISecret:     "test-api-secret",
-			Passphrase:    "test-passphrase",
-			PrivateKey:    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			FunderAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
+			APIKey:            "test-api-key",
+			APISecret:         "test-api-secret",
+			Passphrase:        "test-passphrase",
+			PrivateKey:        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			PolymarketAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
 		}
 	})
 
@@ -107,9 +107,9 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		Context("when FunderAddress is missing", func() {
+		Context("when PolymarketAddress is missing", func() {
 			It("should return an error", func() {
-				conf.FunderAddress = ""
+				conf.PolymarketAddress = ""
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("funder_address is required"))
@@ -132,16 +132,16 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		Context("when FunderAddress has invalid format", func() {
+		Context("when PolymarketAddress has invalid format", func() {
 			It("should return an error for non-hex address", func() {
-				conf.FunderAddress = "not-an-address"
+				conf.PolymarketAddress = "not-an-address"
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))
 			})
 
 			It("should return an error for wrong length", func() {
-				conf.FunderAddress = "0x123"
+				conf.PolymarketAddress = "0x123"
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))

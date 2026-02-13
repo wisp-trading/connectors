@@ -11,11 +11,11 @@ import (
 // Config holds the configuration for Polymarket connector
 type Config struct {
 	// Authentication
-	APIKey        string `json:"api_key"`
-	APISecret     string `json:"api_secret"`
-	Passphrase    string `json:"passphrase"`
-	PrivateKey    string `json:"private_key"`    // Ethereum private key for signing orders
-	FunderAddress string `json:"funder_address"` // Safe proxy wallet address
+	APIKey            string `json:"api_key"`
+	APISecret         string `json:"api_secret"`
+	Passphrase        string `json:"passphrase"`
+	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
+	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
 
 	// Endpoints
 	BaseURL      string `json:"base_url,omitempty"`      // CLOB REST API URL
@@ -49,7 +49,7 @@ func (c *Config) Validate() error {
 	if c.PrivateKey == "" {
 		return fmt.Errorf("private_key is required")
 	}
-	if c.FunderAddress == "" {
+	if c.PolymarketAddress == "" {
 		return fmt.Errorf("funder_address is required")
 	}
 
@@ -60,7 +60,7 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate funder address format (Ethereum address: 0x + 40 hex chars)
-	if !strings.HasPrefix(c.FunderAddress, "0x") || len(c.FunderAddress) != 42 || !isHexString(c.FunderAddress[2:]) {
+	if !strings.HasPrefix(c.PolymarketAddress, "0x") || len(c.PolymarketAddress) != 42 || !isHexString(c.PolymarketAddress[2:]) {
 		return fmt.Errorf("funder_address must be a valid Ethereum address (0x followed by 40 hex characters)")
 	}
 

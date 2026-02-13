@@ -15,12 +15,6 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 
 	order := OrderRequest{}.FromLimitOrder(limitOrder)
 
-	// You are ALWAYS the maker when placing a limit order
-	order.Maker = c.publicAddress
-	order.Signer = c.publicAddress
-
-	order.Taker = "0x0000000000000000000000000000000000000000"
-
 	order.SignatureType = 712
 	order.Nonce = "0"
 	order.FeeRateBps = "0"

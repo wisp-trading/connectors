@@ -165,15 +165,15 @@ func getPolymarketConfig() *polymarketconfig.Config {
 	signatureType, _ := strconv.Atoi(os.Getenv("POLYMARKET_SIGNATURE_TYPE"))
 
 	return &polymarketconfig.Config{
-		APIKey:        os.Getenv("POLYMARKET_API_KEY"),
-		APISecret:     os.Getenv("POLYMARKET_API_SECRET"),
-		Passphrase:    os.Getenv("POLYMARKET_PASSPHRASE"),
-		PrivateKey:    os.Getenv("POLYMARKET_PRIVATE_KEY"),
-		FunderAddress: os.Getenv("POLYMARKET_FUNDER_ADDRESS"),
-		BaseURL:       os.Getenv("POLYMARKET_BASE_URL"),
-		GammaURL:      os.Getenv("POLYMARKET_GAMMA_URL"),
-		WebSocketURL:  os.Getenv("POLYMARKET_WEBSOCKET_URL"),
-		ChainID:       int64(chainID),
-		SignatureType: signatureType,
+		APIKey:            os.Getenv("POLYMARKET_API_KEY"),
+		APISecret:         os.Getenv("POLYMARKET_API_SECRET"),
+		Passphrase:        os.Getenv("POLYMARKET_PASSPHRASE"),
+		PrivateKey:        os.Getenv("POLYMARKET_PRIVATE_KEY"),
+		PolymarketAddress: os.Getenv("POLYMARKET_ADDRESS"),
+		BaseURL:           os.Getenv("POLYMARKET_BASE_URL"),
+		GammaURL:          os.Getenv("POLYMARKET_GAMMA_URL"),
+		WebSocketURL:      os.Getenv("POLYMARKET_WEBSOCKET_URL"),
+		ChainID:           int64(chainID),
+		SignatureType:     signatureType,
 	}
 }

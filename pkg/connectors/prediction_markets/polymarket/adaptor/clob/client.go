@@ -45,17 +45,18 @@ type PolymarketClient interface {
 
 // polymarketClient implementation
 type polymarketClient struct {
-	baseURL       string
-	apiKey        string
-	apiSecret     string
-	passphrase    string
-	privateKey    *ecdsa.PrivateKey
-	publicAddress string
-	privateKeyHex string
-	chainID       *big.Int
-	httpClient    *http.Client
-	configured    bool
-	mu            sync.RWMutex
+	baseURL           string
+	apiKey            string
+	apiSecret         string
+	passphrase        string
+	privateKey        *ecdsa.PrivateKey
+	signerAddress     string
+	polymarketAddress string
+	privateKeyHex     string
+	chainID           *big.Int
+	httpClient        *http.Client
+	configured        bool
+	mu                sync.RWMutex
 }
 
 // NewPolymarketClient creates an unconfigured Polymarket client
@@ -107,7 +108,8 @@ func (c *polymarketClient) Configure(config *config.Config) error {
 	c.passphrase = config.Passphrase
 	c.privateKey = privateKey
 	c.privateKeyHex = privateKeyHex
-	c.publicAddress = address.Hex()
+	c.signerAddress = address.Hex()
+	c.polymarketAddress = config.PolymarketAddress
 	c.chainID = big.NewInt(config.ChainID)
 	c.configured = true
 

@@ -20,16 +20,16 @@ var _ = Describe("WebSocketServiceFactory", func() {
 		factory = websocket.NewWebSocketServiceFactory(logger)
 
 		cfg = &config.Config{
-			APIKey:        "test-api-key",
-			APISecret:     "test-api-secret",
-			Passphrase:    "test-passphrase",
-			PrivateKey:    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			FunderAddress: "0x1234567890123456789012345678901234567890",
-			WebSocketURL:  "wss://ws-test.polymarket.com/ws",
-			BaseURL:       "https://clob-test.polymarket.com",
-			GammaURL:      "https://gamma-test.polymarket.com",
-			ChainID:       137,
-			SignatureType: 2,
+			APIKey:            "test-api-key",
+			APISecret:         "test-api-secret",
+			Passphrase:        "test-passphrase",
+			PrivateKey:        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			PolymarketAddress: "0x1234567890123456789012345678901234567890",
+			WebSocketURL:      "wss://ws-test.polymarket.com/ws",
+			BaseURL:           "https://clob-test.polymarket.com",
+			GammaURL:          "https://gamma-test.polymarket.com",
+			ChainID:           137,
+			SignatureType:     2,
 		}
 	})
 

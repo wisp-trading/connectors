@@ -39,7 +39,7 @@ package clob_test
 //			APISecret:     "test-api-secret",
 //			Passphrase:    "test-passphrase",
 //			PrivateKey:    privateKey,
-//			FunderAddress: "0x1234567890123456789012345678901234567890",
+//			PolymarketAddress: "0x1234567890123456789012345678901234567890",
 //			ChainID:       137,
 //		}
 //
