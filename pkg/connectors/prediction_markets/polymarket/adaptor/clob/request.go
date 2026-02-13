@@ -3,11 +3,6 @@ package clob
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"strings"
-
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,9 +15,6 @@ import (
 func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint string, body interface{}, result interface{}) error {
 	c.mu.RLock()
 	baseURL := c.baseURL
-	apiKey := c.apiKey
-	apiSecret := c.apiSecret
-	passphrase := c.passphrase
 	c.mu.RUnlock()
 
 	// Build URL
@@ -53,34 +45,21 @@ func (c *polymarketClient) doRequest(ctx context.Context, method, endpoint strin
 	// L2 HMAC Authentication
 	timestamp := time.Now().Unix()
 
-	// Build HMAC message: timestamp + METHOD + path + body
-	message := fmt.Sprintf("%d%s%s%s", timestamp, strings.ToUpper(method), endpoint, bodyStr)
-
 	// Create HMAC-SHA256 signature
-	h := hmac.New(sha256.New, []byte(apiSecret))
-	h.Write([]byte(message))
-	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+	signature, err := c.signL2Request(timestamp, method, endpoint, bodyStr)
 
 	// Set auth headers
-	req.Header.Set("POLY_ADDRESS", c.polymarketAddress)
-	req.Header.Set("POLY_SIGNATURE", signature)
-	req.Header.Set("POLY_TIMESTAMP", fmt.Sprintf("%d", timestamp))
-	req.Header.Set("POLY_API_KEY", apiKey)
-	req.Header.Set("POLY_PASSPHRASE", passphrase)
+	req.Header["POLY_ADDRESS"] = []string{c.signerAddress}
+	req.Header["POLY_SIGNATURE"] = []string{signature}
+	req.Header["POLY_TIMESTAMP"] = []string{fmt.Sprintf("%d", timestamp)}
+	req.Header["POLY_API_KEY"] = []string{c.apiKey}
+	req.Header["POLY_PASSPHRASE"] = []string{c.passphrase}
 
-	fmt.Printf("=== AUTH DEBUG ===\n")
-	fmt.Printf("Method: %s\n", method)
-	fmt.Printf("Endpoint: %s\n", endpoint)
-	fmt.Printf("Body: %s\n", bodyStr)
-	fmt.Printf("Timestamp: %d\n", timestamp)
-	fmt.Printf("Message: %s\n", message)
-	fmt.Printf("API Key: %s\n", apiKey)
-	fmt.Printf("Secret length: %d\n", len(apiSecret))
-	fmt.Printf("Passphrase: %s\n", passphrase)
-	fmt.Printf("Address: %s\n", c.polymarketAddress)
-	fmt.Printf("Signature: %s\n", signature)
-	fmt.Printf("Base URL: %s\n", baseURL)
-	fmt.Printf("==================\n")
+	fmt.Printf("=== ACTUAL HEADERS ===\n")
+	for k, v := range req.Header {
+		fmt.Printf("%s: %v\n", k, v)
+	}
+	fmt.Printf("======================\n")
 
 	// Execute request
 	resp, err := c.httpClient.Do(req)

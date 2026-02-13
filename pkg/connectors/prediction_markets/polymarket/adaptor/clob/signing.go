@@ -1,7 +1,10 @@
 package clob
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"math/big"
 	"strings"
@@ -21,16 +24,17 @@ func (c *polymarketClient) SignOrder(order OrderRequest) (*model.SignedOrder, er
 	}
 
 	orderData := &model.OrderData{
-		Maker:       c.polymarketAddress,
-		Taker:       "0x0000000000000000000000000000000000000000",
-		Signer:      c.signerAddress,
-		TokenId:     order.TokenID,
-		MakerAmount: order.MakerAmount,
-		TakerAmount: order.TakerAmount,
-		Side:        side,
-		FeeRateBps:  fmt.Sprintf("%s", order.FeeRateBps),
-		Nonce:       fmt.Sprintf("%s", order.Nonce),
-		Expiration:  fmt.Sprintf("%d", order.Expiration),
+		Maker:         c.polymarketAddress,
+		Taker:         "0x0000000000000000000000000000000000000000",
+		Signer:        c.signerAddress,
+		TokenId:       order.TokenID,
+		MakerAmount:   order.MakerAmount,
+		TakerAmount:   order.TakerAmount,
+		Side:          side,
+		FeeRateBps:    fmt.Sprintf("%s", order.FeeRateBps),
+		Nonce:         fmt.Sprintf("%s", order.Nonce),
+		Expiration:    fmt.Sprintf("%d", order.Expiration),
+		SignatureType: 2,
 	}
 
 	// Build and sign
@@ -40,6 +44,24 @@ func (c *polymarketClient) SignOrder(order OrderRequest) (*model.SignedOrder, er
 	}
 
 	return signedOrder, nil
+}
+
+func (c *polymarketClient) signL2Request(timestamp int64, method, endpoint, body string) (string, error) {
+	// Decode the base64-encoded API secret
+	secretBytes, err := base64.URLEncoding.DecodeString(c.apiSecret)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode API secret: %w", err)
+	}
+
+	// Build the message
+	message := fmt.Sprintf("%d", timestamp) + method + endpoint + body
+
+	// Create HMAC-SHA256
+	h := hmac.New(sha256.New, secretBytes)
+	h.Write([]byte(message))
+
+	// Return base64-encoded signature
+	return base64.URLEncoding.EncodeToString(h.Sum(nil)), nil
 }
 
 // GenerateSalt generates a random salt value for orders

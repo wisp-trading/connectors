@@ -46,9 +46,6 @@ type PolymarketClient interface {
 // polymarketClient implementation
 type polymarketClient struct {
 	baseURL           string
-	apiKey            string
-	apiSecret         string
-	passphrase        string
 	privateKey        *ecdsa.PrivateKey
 	signerAddress     string
 	polymarketAddress string
@@ -57,6 +54,9 @@ type polymarketClient struct {
 	httpClient        *http.Client
 	configured        bool
 	mu                sync.RWMutex
+	apiKey            string
+	apiSecret         string
+	passphrase        string
 }
 
 // NewPolymarketClient creates an unconfigured Polymarket client
@@ -103,14 +103,21 @@ func (c *polymarketClient) Configure(config *config.Config) error {
 	address := ethcrypto.PubkeyToAddress(*publicKey)
 
 	c.baseURL = config.BaseURL
-	c.apiKey = config.APIKey
-	c.apiSecret = config.APISecret
-	c.passphrase = config.Passphrase
 	c.privateKey = privateKey
 	c.privateKeyHex = privateKeyHex
-	c.signerAddress = address.Hex()
+	c.signerAddress = strings.ToLower(address.Hex())
 	c.polymarketAddress = config.PolymarketAddress
 	c.chainID = big.NewInt(config.ChainID)
+
+	credentials, err := c.deriveCredentials()
+	if err != nil {
+		return err
+	}
+
+	c.apiKey = credentials.APIKey
+	c.apiSecret = credentials.Secret
+	c.passphrase = credentials.Passphrase
+
 	c.configured = true
 
 	return nil

@@ -4,17 +4,22 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
+type APICredentials struct {
+	APIKey     string `json:"apiKey"`
+	Secret     string `json:"secret"`
+	Passphrase string `json:"passphrase"`
+}
+
 // Order represents a Polymarket CLOB order for signing
 type OrderRequest struct {
-	Taker         string `json:"taker"`
-	TokenID       string `json:"tokenId"`
-	MakerAmount   string `json:"makerAmount"`
-	TakerAmount   string `json:"takerAmount"`
-	Side          string `json:"side"`
-	FeeRateBps    string `json:"feeRateBps"`
-	Nonce         string `json:"nonce"`
-	SignatureType int    `json:"signatureType"`
-	Expiration    int64  `json:"expiration"`
+	Taker       string `json:"taker"`
+	TokenID     string `json:"tokenId"`
+	MakerAmount string `json:"makerAmount"`
+	TakerAmount string `json:"takerAmount"`
+	Side        string `json:"side"`
+	FeeRateBps  string `json:"feeRateBps"`
+	Nonce       string `json:"nonce"`
+	Expiration  int64  `json:"expiration"`
 }
 
 func (OrderRequest) FromLimitOrder(order prediction.LimitOrder) OrderRequest {

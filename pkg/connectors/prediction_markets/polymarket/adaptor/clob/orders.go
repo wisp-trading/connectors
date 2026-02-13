@@ -15,7 +15,6 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 
 	order := OrderRequest{}.FromLimitOrder(limitOrder)
 
-	order.SignatureType = 712
 	order.Nonce = "0"
 	order.FeeRateBps = "0"
 
