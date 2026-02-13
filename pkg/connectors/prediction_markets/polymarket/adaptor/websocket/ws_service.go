@@ -156,6 +156,8 @@ func (ws *webSocketService) handleValidatedMessage(message []byte) error {
 		return nil
 	}
 
+	fmt.Printf("Received message: %s\n", string(trimmed))
+
 	// Handle PONG keepalive messages
 	trimmedUpper := bytes.ToUpper(trimmed)
 	if bytes.Equal(trimmedUpper, []byte("PONG")) {
@@ -163,32 +165,41 @@ func (ws *webSocketService) handleValidatedMessage(message []byte) error {
 		return nil
 	}
 
-	// Handle control messages (subscription acknowledgments)
+	// Parse JSON messages (both control and data)
 	if trimmed[0] == '{' {
-		var controlMsg map[string]interface{}
-		if err := json.Unmarshal(trimmed, &controlMsg); err != nil {
-			return fmt.Errorf("failed to parse control message: %w", err)
+		var msg map[string]interface{}
+		if err := json.Unmarshal(trimmed, &msg); err != nil {
+			return fmt.Errorf("failed to parse JSON message: %w", err)
 		}
 
-		if msgType, ok := controlMsg["type"].(string); ok {
+		// Check if it's a control message (has "type" field)
+		if msgType, ok := msg["type"].(string); ok {
 			if msgType == "subscribed" || msgType == "unsubscribed" {
 				ws.logger.Info("Received subscription acknowledgment", "type", msgType)
 				return nil
 			}
+			// Other control messages
+			ws.logger.Debug("Received control message", "message", msg)
+			return nil
 		}
 
-		ws.logger.Debug("Received control message", "message", controlMsg)
+		// Check if it's a market data message (has "event_type" field)
+		if _, ok := msg["event_type"].(string); ok {
+			return ws.processSingleMessage(msg, 0)
+		}
+
+		// Unknown message format
+		ws.logger.Debug("Unknown message format", "message", msg)
 		return nil
 	}
 
-	// Handle market data (JSON arrays)
+	// Handle market data arrays (if Polymarket sends those)
 	if trimmed[0] == '[' {
 		var polyMsgs []map[string]interface{}
 		if err := json.Unmarshal(trimmed, &polyMsgs); err != nil {
 			return fmt.Errorf("failed to parse message array: %w", err)
 		}
 
-		// Process each message in the array
 		for i, polyMsg := range polyMsgs {
 			if err := ws.processSingleMessage(polyMsg, i); err != nil {
 				return fmt.Errorf("failed to process message[%d]: %w", i, err)

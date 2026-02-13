@@ -41,6 +41,7 @@ func (p *polymarket) ErrorChannel() <-chan error {
 	//TODO implement me
 	panic("implement me")
 }
+
 func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	if !p.IsWebSocketConnected() {
 		return fmt.Errorf("websocket not connected")
@@ -80,7 +81,7 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 			}
 		},
 		func(msg *websocket.PriceChanges) {
-			priceChange := convertToPriceChange(msg)
+			priceChange := convertToPriceChange(market, msg)
 
 			select {
 			case priceChangeChannel <- priceChange:

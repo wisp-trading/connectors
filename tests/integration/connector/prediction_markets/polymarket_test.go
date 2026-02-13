@@ -5,8 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
-
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
@@ -241,22 +239,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				}(conn)
 				Expect(err).ToNot(HaveOccurred())
 
-				outcomes := []prediction.Outcome{
-					{
-						Pair: prediction.NewPredictionPair(
-							"btc-updown-4h",
-							"Yes",
-							portfolio.NewAsset("USDC"),
-						),
-						OutcomeId: "91739599172840064738465443474771897307444101331342233138607146469590894122050",
-					},
-				}
-
-				market := prediction.Market{
-					MarketId: "0x8d2df65bd55135c16f772132dc4e01b6a7281d19ad6c7851ac244a02047d0b89",
-					Outcomes: outcomes,
-					Slug:     "btc-updown-4h",
-				}
+				market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
 
 				err = conn.SubscribeOrderBook(market)
 				Expect(err).ToNot(HaveOccurred())
@@ -287,8 +270,8 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					BeNumerically(">", 0),
 					"Should receive at least one price change update",
 				)
-				Expect(priceChange[0].Outcome.Pair.Market()).To(Equal(market.MarketId))
-				Expect(priceChange[0].Outcome.Pair.Outcome()).To(Equal("Yes"))
+				Expect(priceChange[0].Outcome.Pair.Market()).To(Equal(market.Slug))
+				Expect(priceChange[0].Outcome.Pair.Outcome()).To(BeElementOf("Up", "Down"))
 
 				connector_test.LogSuccess(
 					"Received order book data for market %s with %d bids and %d asks",
@@ -296,55 +279,6 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					len(orderBook.Bids),
 					len(orderBook.Asks),
 				)
-				connector_test.LogSuccess(
-					"Received order book data for market %s",
-					market.MarketId,
-				)
-				time.Sleep(5 * time.Second) // Sleep to allow any additional messages to be received before test ends
-			})
-
-			It("should subscribe to price changes", func() {
-				conn := runner.GetWebSocketCapable()
-				err := conn.StartWebSocket()
-				defer func(conn prediction.WebSocketConnector) {
-					err := conn.StopWebSocket()
-					if err != nil {
-						connector_test.LogError("Failed to stop WebSocket connection: %v", err)
-						return
-					}
-				}(conn)
-				Expect(err).ToNot(HaveOccurred())
-
-				outcomes := []prediction.Outcome{
-					{
-						Pair: prediction.NewPredictionPair(
-							"btc-updown-4h",
-							"Yes",
-							portfolio.NewAsset("USDC"),
-						),
-						OutcomeId: "33602105978995322122109139507127572886653318971583142116018047077584613020792",
-					},
-					//{
-					//	Pair: prediction.NewPredictionPair(
-					//		"btc-updown-4h",
-					//		"No",
-					//		portfolio.NewAsset("USDC"),
-					//	),
-					//	OutcomeId: "6757703472668573966175902785925764600818133786181136162144102885621254094181",
-					//},
-				}
-
-				market := prediction.Market{
-					MarketId: "0x049e9f5ee242baad05476a24f9c9a3ea64e4c297f81dbc9c5c60756864c526e1",
-					Outcomes: outcomes,
-				}
-
-				err = conn.SubscribeOrderBook(market)
-				Expect(err).ToNot(HaveOccurred())
-
-				channels := conn.GetOrderbookChannels()
-				Expect(channels).ToNot(BeNil(), "Market channels should not be nil")
-
 				connector_test.LogSuccess(
 					"Received order book data for market %s",
 					market.MarketId,

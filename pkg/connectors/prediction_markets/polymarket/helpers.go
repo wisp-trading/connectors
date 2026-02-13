@@ -62,24 +62,22 @@ func convertToOrderBook(msg *websocket.OrderBookMessage) connector.OrderBook {
 	return orderbook
 }
 
-func convertToPriceChange(msg *websocket.PriceChanges) []prediction.PriceChange {
+func convertToPriceChange(market prediction.Market, msg *websocket.PriceChanges) []prediction.PriceChange {
 	priceChanges := make([]prediction.PriceChange, 0, len(msg.PriceChange))
 
 	for i, change := range msg.PriceChange {
+		outcome, err := market.FindOutcomeById(change.AssetId)
+		if err != nil {
+			return nil
+		}
+
 		if change.Price == "" || change.Size == "" || change.Side == "" {
 			fmt.Printf("Skipping price change %d due to missing fields\n", i)
 			continue
 		}
 
-		pair := prediction.NewPredictionPair(msg.Market, change.AssetId, getQuoteAsset())
-
-		outcome := prediction.Outcome{
-			Pair:      pair,
-			OutcomeId: change.AssetId,
-		}
-
 		priceChange := append(priceChanges, prediction.PriceChange{
-			Outcome:   outcome,
+			Outcome:   *outcome,
 			Timestamp: msg.Timestamp,
 			Price:     change.Price,
 			Size:      change.Size,
