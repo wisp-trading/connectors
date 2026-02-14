@@ -17,11 +17,6 @@ type Config struct {
 	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
 	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
 
-	// Endpoints
-	BaseURL      string `json:"base_url,omitempty"`      // CLOB REST API URL
-	GammaURL     string `json:"gamma_url,omitempty"`     // Gamma Markets API URL
-	WebSocketURL string `json:"websocket_url,omitempty"` // WebSocket URL
-
 	// Trading Configuration
 	ChainID       int64 `json:"chain_id,omitempty"`       // Polygon chain ID (default: 137)
 	SignatureType int   `json:"signature_type,omitempty"` // Signature type (default: 2 for Safe proxy wallet)
@@ -62,17 +57,6 @@ func (c *Config) Validate() error {
 	// Validate funder address format (Ethereum address: 0x + 40 hex chars)
 	if !strings.HasPrefix(c.PolymarketAddress, "0x") || len(c.PolymarketAddress) != 42 || !isHexString(c.PolymarketAddress[2:]) {
 		return fmt.Errorf("funder_address must be a valid Ethereum address (0x followed by 40 hex characters)")
-	}
-
-	// Set default URLs if not provided
-	if c.BaseURL == "" {
-		c.BaseURL = "https://clob.polymarket.com"
-	}
-	if c.GammaURL == "" {
-		c.GammaURL = "https://gamma-api.polymarket.com"
-	}
-	if c.WebSocketURL == "" {
-		c.WebSocketURL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
 	}
 
 	// Set default chain ID (Polygon mainnet)

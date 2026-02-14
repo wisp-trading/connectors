@@ -1,4 +1,4 @@
-package clob
+package order_manager
 
 import (
 	"context"
@@ -11,46 +11,41 @@ import (
 )
 
 // PlaceOrder places an order on Polymarket
-func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction.LimitOrder) error {
-	if !c.IsConfigured() {
-		return fmt.Errorf("client not configured")
-	}
-
+func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrder) (clobtypes.OrderResponse, error) {
 	side := "BUY"
-	if limitOrder.Side == connector.OrderSideSell {
+	if order.Side == connector.OrderSideSell {
 		side = "SELL"
 	}
 
 	size, err := c.client.TickSize(ctx, &clobtypes.TickSizeRequest{
-		TokenID: limitOrder.Outcome.OutcomeId,
+		TokenID: order.Outcome.OutcomeId,
 	})
 	if err != nil {
-		return err
+		return clobtypes.OrderResponse{}, err
 	}
 
-	fmt.Printf("Tick size for token %s: %f\n", limitOrder.Outcome.OutcomeId, size.MinimumTickSize)
+	fmt.Printf("Tick size for token %s: %f\n", order.Outcome.OutcomeId, size.MinimumTickSize)
 
 	// Build the order using the SDK builder
 	signableOrder, err := clob.NewOrderBuilder(c.client, c.signer).
-		TokenID(limitOrder.Outcome.OutcomeId).
+		TokenID(order.Outcome.OutcomeId).
 		Side(side).
-		Price(limitOrder.Price.InexactFloat64()).
-		Size(limitOrder.Amount.InexactFloat64()).
+		Price(order.Price.InexactFloat64()).
+		Size(order.Amount.InexactFloat64()).
 		OrderType(clobtypes.OrderTypeGTC).
 		TickSize(size.MinimumTickSize).
-		Maker(c.polymarketAddress).
 		Build()
 
 	if err != nil {
-		return fmt.Errorf("failed to build order: %w", err)
+		return clobtypes.OrderResponse{}, err
 	}
 
 	// Submit the order
 	resp, err := c.client.CreateOrder(ctx, signableOrder)
 	if err != nil {
-		return fmt.Errorf("failed to create order: %w", err)
+		return clobtypes.OrderResponse{}, nil
 	}
 
 	fmt.Printf("Order placed: %v\n", resp)
-	return nil
+	return resp, nil
 }

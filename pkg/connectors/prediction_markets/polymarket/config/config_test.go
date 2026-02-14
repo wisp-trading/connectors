@@ -35,27 +35,6 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should set default BaseURL", func() {
-				conf.BaseURL = ""
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.BaseURL).To(Equal("https://clob.polymarket.com"))
-			})
-
-			It("should set default GammaURL", func() {
-				conf.GammaURL = ""
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.GammaURL).To(Equal("https://gamma-api.polymarket.com"))
-			})
-
-			It("should set default WebSocketURL", func() {
-				conf.WebSocketURL = ""
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.WebSocketURL).To(Equal("wss://ws-subscriptions-clob.polymarket.com/ws/market"))
-			})
-
 			It("should set default ChainID to 137 (Polygon)", func() {
 				conf.ChainID = 0
 				err := conf.Validate()
@@ -147,30 +126,7 @@ var _ = Describe("Config", func() {
 				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))
 			})
 		})
-
-		Context("edge case: custom URLs provided", func() {
-			It("should preserve custom BaseURL", func() {
-				conf.BaseURL = "https://custom-clob.example.com"
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.BaseURL).To(Equal("https://custom-clob.example.com"))
-			})
-
-			It("should preserve custom GammaURL", func() {
-				conf.GammaURL = "https://custom-gamma.example.com"
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.GammaURL).To(Equal("https://custom-gamma.example.com"))
-			})
-
-			It("should preserve custom WebSocketURL", func() {
-				conf.WebSocketURL = "wss://custom-ws.example.com/ws"
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.WebSocketURL).To(Equal("wss://custom-ws.example.com/ws"))
-			})
-		})
-
+		
 		Context("edge case: non-default ChainID", func() {
 			It("should preserve custom ChainID", func() {
 				conf.ChainID = 1 // Ethereum mainnet

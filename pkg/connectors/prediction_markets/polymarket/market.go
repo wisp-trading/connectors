@@ -11,39 +11,48 @@ import (
 
 func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 	ctx := context.Background()
-	marketData, err := p.gammaClient.GetMarket(ctx, slug)
+	marketData, err := p.gammaClient.GetMarketBySlug(ctx, slug)
 	if err != nil {
 		return prediction.Market{}, fmt.Errorf("failed to get market: %w", err)
 	}
 
-	// Parse the raw JSON fields
-	if err := marketData.Parse(); err != nil {
-		return prediction.Market{}, fmt.Errorf("failed to parse market data: %w", err)
+	// Build outcomes from conditions
+	outcomeIds := parseClobTokenIds(*marketData)
+	if outcomeIds == nil {
+		return prediction.Market{}, fmt.Errorf("failed to parse outcome IDs for market %s", slug)
+	}
+
+	outcomeLabels := parseOutcomes(*marketData)
+	if outcomeLabels == nil {
+		return prediction.Market{}, fmt.Errorf("failed to parse outcome labels for market %s", slug)
 	}
 
 	// Determine outcome type (binary for YES/NO, categorical for multi-outcome)
 	outcomeType := prediction.OutcomeTypeBinary
-	if len(marketData.Conditions) > 2 {
+	if len(outcomeIds) > 2 {
 		outcomeType = prediction.OutcomeTypeCategorical
 	}
 
-	// Build outcomes from conditions
-	outcomes := make([]prediction.Outcome, len(marketData.Conditions))
-	for i, condition := range marketData.Conditions {
+	outcomes := make([]prediction.Outcome, len(outcomeIds))
+
+	for i, _ := range outcomeIds {
 		pair := prediction.NewPredictionPair(
 			marketData.Slug,
-			condition.Name, // "YES", "NO", "UP", "DOWN", etc.
+			outcomeLabels[i], // "YES", "NO", "UP", "DOWN", etc.
 			getQuoteAsset(),
 		)
 
 		outcomes[i] = prediction.Outcome{
 			Pair:      pair,
-			OutcomeId: condition.AssetID, // The CLOB token ID for orderbook
+			OutcomeId: outcomeIds[i], // The CLOB token ID for orderbook
 		}
 	}
 
 	// Handle resolution date (if closed)
-	resolutionTime := &marketData.EndDate
+	resolutionTime, err := time.Parse(time.RFC3339, marketData.EndDate)
+	if err != nil {
+		fmt.Printf("Warning: failed to parse resolution time for market %s: %v\n", slug, err)
+	}
 
 	market := prediction.Market{
 		MarketId:       marketData.ConditionID,
@@ -53,7 +62,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		Outcomes:       outcomes,
 		Active:         marketData.Active,
 		Closed:         marketData.Closed,
-		ResolutionTime: resolutionTime,
+		ResolutionTime: &resolutionTime,
 	}
 
 	return market, nil
@@ -85,4 +94,27 @@ func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.R
 	}
 
 	return market, nil
+}
+
+func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
+	p.orderBookMu.Lock()
+	ch, exists := p.orderBookChannels[market.Slug]
+	if exists {
+		close(ch)
+		delete(p.orderBookChannels, market.Slug)
+	}
+	p.orderBookMu.Unlock()
+
+	if !exists {
+		p.appLogger.Warn("Market %s not subscribed", market.Slug)
+		return nil
+	}
+
+	err := p.clobWebsocket.UnsubscribeMarket(market)
+	if err != nil {
+		return err
+	}
+	p.appLogger.Info("Unsubscribed from market %s", market.Slug)
+
+	return nil
 }
