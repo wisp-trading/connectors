@@ -21,6 +21,15 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 		side = "SELL"
 	}
 
+	size, err := c.client.TickSize(ctx, &clobtypes.TickSizeRequest{
+		TokenID: limitOrder.Outcome.OutcomeId,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Tick size for token %s: %f\n", limitOrder.Outcome.OutcomeId, size.MinimumTickSize)
+
 	// Build the order using the SDK builder
 	signableOrder, err := clob.NewOrderBuilder(c.client, c.signer).
 		TokenID(limitOrder.Outcome.OutcomeId).
@@ -28,9 +37,8 @@ func (c *polymarketClient) PlaceOrder(ctx context.Context, limitOrder prediction
 		Price(limitOrder.Price.InexactFloat64()).
 		Size(limitOrder.Amount.InexactFloat64()).
 		OrderType(clobtypes.OrderTypeGTC).
-		FeeRateBps(0).
-		TickSize("0.1").
-		UseSafe().
+		TickSize(size.MinimumTickSize).
+		Maker(c.polymarketAddress).
 		Build()
 
 	if err != nil {
