@@ -49,6 +49,30 @@ func (p *polymarket) CancelOrder(orderID string, outcome ...prediction.Outcome) 
 	return response, nil
 }
 
+func (p *polymarket) SubscribeTrades(market prediction.Market) error {
+	tradeChannel, err := p.clobWebsocket.SubscribeTrades(market)
+	if err != nil {
+		return err
+	}
+
+	// Process trade events
+	go func() {
+		for tradeEvent := range tradeChannel {
+			trade, done := p.parseTrade(market, tradeEvent)
+			if done {
+				return
+			}
+			p.tradesChannel <- trade
+		}
+	}()
+
+	return nil
+}
+
+func (p *polymarket) GetTradeUpdatesChannel() <-chan connector.Trade {
+	return p.tradesChannel
+}
+
 func (p *polymarket) GetOutcome(marketID, outcomeID string) prediction.Outcome {
 	//TODO implement me
 	panic("implement me")

@@ -32,7 +32,7 @@ func (p *polymarket) SubscribePriceChanges(market prediction.Market) error {
 
 	go func() {
 		for msg := range stream {
-			priceChange, err := p.convertToPriceChange(msg, market)
+			priceChange, err := p.parsePriceChange(msg, market)
 			if err != nil {
 				p.appLogger.Error("Error converting price change for market %s: %v", market.Slug, err)
 				continue

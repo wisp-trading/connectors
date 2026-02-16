@@ -6,7 +6,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 var _ = Describe("Prediction Market Connector Tests", func() {
@@ -33,8 +35,9 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				conn := runner.GetPredictionMarketConnector()
 				slug := "us-strike-on-somalia-by-february-14"
 
-				conn.GetMarket(slug)
-
+				market, err := conn.GetMarket(slug)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(market.MarketId).ToNot(BeEmpty())
 			})
 		})
 	})
@@ -129,6 +132,73 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 					time.Sleep(2 * time.Second) // Allow additional messages
 				})
+			})
+		})
+
+		Context("Subscribing to trades", func() {
+			It("should subscribe to trade updates and receive data", func() {
+				conn := runner.GetWebSocketCapable()
+				err := conn.StartWebSocket()
+				defer func(conn prediction.WebSocketConnector) {
+					err := conn.StopWebSocket()
+					if err != nil {
+						connector_test.LogError("Failed to stop WebSocket connection: %v", err)
+						return
+					}
+				}(conn)
+				Expect(err).ToNot(HaveOccurred())
+
+				market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(market.Outcomes).ToNot(BeEmpty(), "Market should have outcomes")
+
+				err = conn.SubscribeTrades(market)
+				Expect(err).ToNot(HaveOccurred())
+
+				tradeChannel := conn.GetTradeUpdatesChannel()
+				Expect(tradeChannel).ToNot(BeNil(), "Trade updates channel should not be nil")
+
+				// Fetch orderbook data directly without WebSocket subscription
+				orderBook, err := conn.FetchOrderBooks(market, market.Outcomes[0])
+				Expect(err).ToNot(HaveOccurred())
+				Expect(orderBook.Bids).ToNot(BeEmpty(), "Should have bids in orderbook")
+
+				// Place a limit order at best bid to generate trade activity
+				bestBid := orderBook.Bids[0].Price
+				amount := numerical.NewFromFloat(5.0)
+
+				params := OrderPlacementParams{
+					Market:     market,
+					OutcomeIdx: 0,
+					Side:       connector.OrderSideBuy,
+					Price:      bestBid,
+					Amount:     amount,
+					Expiration: 1 * time.Hour,
+				}
+
+				orderResponse, err := placeLimitOrderAtPrice(conn, params)
+				if err == nil && orderResponse != nil {
+					connector_test.LogSuccess("Placed order %s to generate trade activity", orderResponse.OrderID)
+					// Clean up the order after test
+					defer func() {
+						_, _ = cancelOrderAndVerify(conn, orderResponse.OrderID)
+					}()
+				} else {
+					connector_test.LogWarning("Failed to place order for trade generation: %v", err)
+				}
+
+				trade, err := runner.VerifyTradeData(tradeChannel, 5*time.Second)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(trade.Pair.Symbol()).To(Equal(market.Slug))
+
+				connector_test.LogSuccess(
+					"Received trade data for market %s, price %s, quantity %s",
+					market.MarketId,
+					trade.Price.String(),
+					trade.Quantity.String(),
+				)
+
+				time.Sleep(2 * time.Second) // Allow additional messages
 			})
 		})
 	})

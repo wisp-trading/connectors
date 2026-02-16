@@ -1,11 +1,11 @@
 package polymarket
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
@@ -34,7 +34,7 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	// Convert messages in a goroutine
 	go func() {
 		for msg := range msgChannel {
-			orderBook := p.convertToOrderBook(msg, market)
+			orderBook := p.parseOrderbookEvent(msg, market)
 
 			select {
 			case orderBookChannel <- orderBook:
@@ -62,7 +62,16 @@ func (p *polymarket) GetOrderbookChannels() map[string]<-chan connector.OrderBoo
 	return result
 }
 
-func (p *polymarket) FetchOrderBook(pair portfolio.Pair, depth int) (*connector.OrderBook, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) FetchOrderBooks(
+	market prediction.Market,
+	outcome prediction.Outcome,
+) (*connector.OrderBook, error) {
+	ctx := context.Background()
+	orderbook, err := p.orderManager.GetOrderBook(ctx, outcome)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get market: %w", err)
+	}
+
+	orderBook := p.parseOrderbook(orderbook, market, outcome)
+	return &orderBook, nil
 }
