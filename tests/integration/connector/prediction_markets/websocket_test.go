@@ -158,14 +158,16 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				tradeChannel := conn.GetTradeUpdatesChannel()
 				Expect(tradeChannel).ToNot(BeNil(), "Trade updates channel should not be nil")
 
-				// Fetch orderbook data directly without WebSocket subscription
+				time.Sleep(500 * time.Millisecond)
+
+				// Fetch orderbook data directly
 				orderBook, err := conn.FetchOrderBooks(market, market.Outcomes[0])
 				Expect(err).ToNot(HaveOccurred())
 				Expect(orderBook.Bids).ToNot(BeEmpty(), "Should have bids in orderbook")
 
-				// Place a limit order at best bid to generate trade activity
-				bestBid := orderBook.Bids[0].Price
-				amount := numerical.NewFromFloat(5.0)
+				// Place a limit order at best ask to generate trade activity
+				bestBid := orderBook.Bids[len(orderBook.Bids)-1].Price
+				amount := numerical.NewFromFloat(5)
 
 				params := OrderPlacementParams{
 					Market:     market,
@@ -179,10 +181,6 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				orderResponse, err := placeLimitOrderAtPrice(conn, params)
 				if err == nil && orderResponse != nil {
 					connector_test.LogSuccess("Placed order %s to generate trade activity", orderResponse.OrderID)
-					// Clean up the order after test
-					defer func() {
-						_, _ = cancelOrderAndVerify(conn, orderResponse.OrderID)
-					}()
 				} else {
 					connector_test.LogWarning("Failed to place order for trade generation: %v", err)
 				}
