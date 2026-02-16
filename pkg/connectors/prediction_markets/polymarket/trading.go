@@ -69,8 +69,29 @@ func (p *polymarket) SubscribeTrades(market prediction.Market) error {
 	return nil
 }
 
-func (p *polymarket) GetTradeUpdatesChannel() <-chan connector.Trade {
-	return p.tradesChannel
+func (p *polymarket) SubscribeOrders(market prediction.Market) error {
+	orderChannel, err := p.clobWebsocket.SubscribeOrders(market)
+	if err != nil {
+		return err
+	}
+
+	// Process order events
+	go func() {
+		for orderEvent := range orderChannel {
+			order, done := p.parseOrder(market, orderEvent)
+			if done {
+				return
+			}
+			p.orderChannel <- order
+		}
+	}()
+
+	return nil
+}
+
+func (p *polymarket) UnsubscribeUserMarket(market prediction.Market) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (p *polymarket) GetOutcome(marketID, outcomeID string) prediction.Outcome {

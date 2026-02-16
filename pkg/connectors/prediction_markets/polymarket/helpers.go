@@ -171,6 +171,42 @@ func (p *polymarket) parseTrade(market prediction.Market, tradeEvent ws.TradeEve
 	return trade, false
 }
 
+// parseOrder converts a websocket order event to a connector.Order struct
+func (p *polymarket) parseOrder(market prediction.Market, event ws.OrderEvent) (connector.Order, bool) {
+	outcome, err := market.FindOutcomeById(event.AssetID)
+	if err != nil {
+		p.appLogger.Error("Failed to find outcome for order event: %v", err)
+		return connector.Order{}, true
+	}
+
+	price, err := numerical.NewFromString(event.Price)
+	if err != nil {
+		p.appLogger.Error("Failed to parse price for order event: %v", err)
+		return connector.Order{}, true
+	}
+
+	quantity, err := numerical.NewFromString(event.Size)
+	if err != nil {
+		p.appLogger.Error("Failed to parse quantity for order event: %v", err)
+		return connector.Order{}, true
+	}
+
+	timeStamp := time.Unix(event.Timestamp, 0)
+
+	order := connector.Order{
+		ID:        event.OrderID,
+		Pair:      outcome.Pair.Pair,
+		Price:     price,
+		Quantity:  quantity,
+		CreatedAt: timeStamp,
+		UpdatedAt: timeStamp,
+		Status:    connector.OrderStatus(event.Status),
+	}
+
+	return order, false
+
+}
+
 // parseClobTokenIds parses the JSON string of token IDs into a slice.
 // Returns nil if the field is empty or cannot be parsed.
 func parseClobTokenIds(m gamma.Market) []string {

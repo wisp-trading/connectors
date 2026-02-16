@@ -49,19 +49,6 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	return nil
 }
 
-func (p *polymarket) GetOrderbookChannels() map[string]<-chan connector.OrderBook {
-	p.orderBookMu.RLock()
-	defer p.orderBookMu.RUnlock()
-
-	// Create a new map with read-only channels
-	result := make(map[string]<-chan connector.OrderBook, len(p.orderBookChannels))
-	for marketID, ch := range p.orderBookChannels {
-		result[marketID] = ch
-	}
-
-	return result
-}
-
 func (p *polymarket) FetchOrderBooks(
 	market prediction.Market,
 	outcome prediction.Outcome,
