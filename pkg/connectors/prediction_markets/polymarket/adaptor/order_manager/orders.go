@@ -2,7 +2,6 @@ package order_manager
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -24,8 +23,6 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 		return clobtypes.OrderResponse{}, err
 	}
 
-	fmt.Printf("Tick size for token %s: %f\n", order.Outcome.OutcomeId, size.MinimumTickSize)
-
 	// Build the order using the SDK builder
 	signableOrder, err := clob.NewOrderBuilder(c.client, c.signer).
 		TokenID(order.Outcome.OutcomeId).
@@ -46,6 +43,17 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 		return clobtypes.OrderResponse{}, err
 	}
 
-	fmt.Printf("Order placed: %v\n", resp)
+	return resp, nil
+}
+
+func (c *orderManager) CancelOrder(ctx context.Context, orderID string) (clobtypes.CancelResponse, error) {
+	resp, err := c.client.CancelOrder(ctx, &clobtypes.CancelOrderRequest{
+		OrderID: orderID,
+	})
+
+	if err != nil {
+		return clobtypes.CancelResponse{}, err
+	}
+
 	return resp, nil
 }
