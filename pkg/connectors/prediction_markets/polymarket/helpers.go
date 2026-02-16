@@ -66,10 +66,9 @@ func (p *polymarket) convertPriceLevels(levels []ws.OrderbookLevel) ([]connector
 
 // convertToPriceChange converts a websocket price change event to a prediction.PriceChange struct
 func (p *polymarket) convertToPriceChange(msg ws.PriceChangeEvent, market prediction.Market) (prediction.PriceChange, error) {
-	pair := prediction.NewPredictionPair(market.Slug, msg.AssetId, getQuoteAsset())
-	outcome := prediction.Outcome{
-		Pair:      pair,
-		OutcomeId: msg.AssetId,
+	outcome, err := market.FindOutcomeById(msg.AssetId)
+	if err != nil {
+		return prediction.PriceChange{}, err
 	}
 
 	price, err := numerical.NewFromString(msg.Price)
@@ -79,7 +78,7 @@ func (p *polymarket) convertToPriceChange(msg ws.PriceChangeEvent, market predic
 	}
 
 	return prediction.PriceChange{
-		Outcome: outcome,
+		Outcome: *outcome,
 		Price:   price,
 		Side:    msg.Side,
 	}, nil
