@@ -12,11 +12,11 @@ var _ = Describe("Config", func() {
 
 	BeforeEach(func() {
 		conf = &config.Config{
-			APIKey:        "test-api-key",
-			APISecret:     "test-api-secret",
-			Passphrase:    "test-passphrase",
-			PrivateKey:    "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			FunderAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
+			APIKey:            "test-api-key",
+			APISecret:         "test-api-secret",
+			Passphrase:        "test-passphrase",
+			PrivateKey:        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			PolymarketAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
 		}
 	})
 
@@ -33,27 +33,6 @@ var _ = Describe("Config", func() {
 			It("should not return an error", func() {
 				err := conf.Validate()
 				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should set default BaseURL", func() {
-				conf.BaseURL = ""
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.BaseURL).To(Equal("https://clob.polymarket.com"))
-			})
-
-			It("should set default GammaURL", func() {
-				conf.GammaURL = ""
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.GammaURL).To(Equal("https://gamma-api.polymarket.com"))
-			})
-
-			It("should set default WebSocketURL", func() {
-				conf.WebSocketURL = ""
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.WebSocketURL).To(Equal("wss://ws-subscriptions-clob.polymarket.com/ws/market"))
 			})
 
 			It("should set default ChainID to 137 (Polygon)", func() {
@@ -107,9 +86,9 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		Context("when FunderAddress is missing", func() {
+		Context("when PolymarketAddress is missing", func() {
 			It("should return an error", func() {
-				conf.FunderAddress = ""
+				conf.PolymarketAddress = ""
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("funder_address is required"))
@@ -132,45 +111,22 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		Context("when FunderAddress has invalid format", func() {
+		Context("when PolymarketAddress has invalid format", func() {
 			It("should return an error for non-hex address", func() {
-				conf.FunderAddress = "not-an-address"
+				conf.PolymarketAddress = "not-an-address"
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))
 			})
 
 			It("should return an error for wrong length", func() {
-				conf.FunderAddress = "0x123"
+				conf.PolymarketAddress = "0x123"
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))
 			})
 		})
-
-		Context("edge case: custom URLs provided", func() {
-			It("should preserve custom BaseURL", func() {
-				conf.BaseURL = "https://custom-clob.example.com"
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.BaseURL).To(Equal("https://custom-clob.example.com"))
-			})
-
-			It("should preserve custom GammaURL", func() {
-				conf.GammaURL = "https://custom-gamma.example.com"
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.GammaURL).To(Equal("https://custom-gamma.example.com"))
-			})
-
-			It("should preserve custom WebSocketURL", func() {
-				conf.WebSocketURL = "wss://custom-ws.example.com/ws"
-				err := conf.Validate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.WebSocketURL).To(Equal("wss://custom-ws.example.com/ws"))
-			})
-		})
-
+		
 		Context("edge case: non-default ChainID", func() {
 			It("should preserve custom ChainID", func() {
 				conf.ChainID = 1 // Ethereum mainnet

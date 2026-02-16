@@ -2,23 +2,12 @@ package gamma
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/gamma"
 )
 
-func (c *gammaClient) GetMarket(ctx context.Context, slug string) (*MarketResponse, error) {
-	marketEndpoint := fmt.Sprintf("%s%s", getMarketEndpoint, slug)
-
-	var response []MarketResponse
-	if err := c.doRequest(ctx, "GET", marketEndpoint, nil, &response); err != nil {
-		return nil, fmt.Errorf("failed to get market: %w", err)
-	}
-
-	if len(response) == 0 {
-		return nil, fmt.Errorf("no market data found")
-	}
-
-	market := &response[0]
-	market.Parse()
-
-	return market, nil
+func (c *gammaClient) GetMarketBySlug(ctx context.Context, slug string) (*gamma.Market, error) {
+	return c.client.MarketBySlug(ctx, &gamma.MarketBySlugRequest{
+		Slug: slug,
+	})
 }

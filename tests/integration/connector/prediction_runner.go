@@ -108,16 +108,16 @@ func (tr *PredictionMarketTestRunner) VerifyOrderBookData(
 
 // VerifyPriceChangeData waits for order book data from channel with timeout
 func (tr *PredictionMarketTestRunner) VerifyPriceChangeData(
-	obChan <-chan []prediction.PriceChange,
+	obChan <-chan prediction.PriceChange,
 	timeout time.Duration,
-) []prediction.PriceChange {
+) (prediction.PriceChange, error) {
 	select {
 	case ob, ok := <-obChan:
 		if !ok {
-			return []prediction.PriceChange{}
+			return prediction.PriceChange{}, fmt.Errorf("price change channel closed")
 		}
-		return ob
+		return ob, nil
 	case <-time.After(timeout):
-		return []prediction.PriceChange{}
+		return prediction.PriceChange{}, fmt.Errorf("timed out waiting for price change data")
 	}
 }
