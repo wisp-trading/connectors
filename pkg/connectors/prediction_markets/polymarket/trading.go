@@ -12,12 +12,15 @@ import (
 func (p *polymarket) PlaceLimitOrder(order prediction.LimitOrder) (*connector.OrderResponse, error) {
 	ctx := context.Background()
 
-	_, err := p.orderManager.PlaceOrder(ctx, order)
+	resp, err := p.orderManager.PlaceOrder(ctx, order)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return &connector.OrderResponse{
+		OrderID: resp.ID,
+		Status:  connector.OrderStatus(resp.Status),
+	}, nil
 }
 
 func (p *polymarket) PlaceLimitOrders(orders []prediction.LimitOrder) ([]*connector.OrderResponse, error) {

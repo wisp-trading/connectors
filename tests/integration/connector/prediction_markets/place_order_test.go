@@ -45,7 +45,7 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				// Get current recurring market
-				market, err := conn.GetMarket("another-us-government-shutdown-by-february-14")
+				market, err := conn.GetMarket("will-jesus-christ-return-before-2027")
 				//market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(market.Outcomes).ToNot(BeEmpty(), "Market should have outcomes")
@@ -70,8 +70,7 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				bestBid := orderBook.Bids[0].Price // e.g., "0.65"
 
 				price := bestBid
-				price = numerical.NewFromFloat(0.5)
-				amount := numerical.NewFromFloat(1.0)
+				amount := numerical.NewFromFloat(5.0)
 
 				fmt.Printf("Placing limit order with price %s and amount %s\n", price.String(), amount.String())
 

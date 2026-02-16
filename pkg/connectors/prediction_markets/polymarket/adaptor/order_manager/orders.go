@@ -43,7 +43,7 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 	// Submit the order
 	resp, err := c.client.CreateOrder(ctx, signableOrder)
 	if err != nil {
-		return clobtypes.OrderResponse{}, nil
+		return clobtypes.OrderResponse{}, err
 	}
 
 	fmt.Printf("Order placed: %v\n", resp)
