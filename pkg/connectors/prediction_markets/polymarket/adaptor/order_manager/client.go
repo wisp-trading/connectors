@@ -12,6 +12,7 @@ import (
 // OrderManager wraps Polymarket CLOB API
 type OrderManager interface {
 	PlaceOrder(ctx context.Context, order prediction.LimitOrder) (clobtypes.OrderResponse, error)
+	CancelOrder(ctx context.Context, orderID string) (clobtypes.CancelResponse, error)
 }
 
 // orderManager implementation

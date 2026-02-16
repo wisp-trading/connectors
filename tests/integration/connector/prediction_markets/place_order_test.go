@@ -83,13 +83,15 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				}
 
 				orderResponse, err := conn.PlaceLimitOrder(order)
+				fmt.Printf("Order response: %+v, error: %v\n", orderResponse, err)
 				Expect(err).ToNot(HaveOccurred(), "Order placement should succeed")
 				Expect(orderResponse).ToNot(BeNil())
 				Expect(orderResponse.OrderID).ToNot(BeEmpty(), "Should receive order ID")
 
-				// Optional: Cancel the order after test
-				// err = conn.CancelOrder(orderResponse.OrderID)
-				// Expect(err).ToNot(HaveOccurred())
+				resp, err := conn.CancelOrder(orderResponse.OrderID)
+				fmt.Printf("Cancel response: %+v\n", resp)
+				Expect(resp.OrderID).To(Equal(orderResponse.OrderID), "Cancel response should match order ID")
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})

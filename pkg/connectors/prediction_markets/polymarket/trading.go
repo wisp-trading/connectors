@@ -28,17 +28,33 @@ func (p *polymarket) PlaceLimitOrders(orders []prediction.LimitOrder) ([]*connec
 	panic("implement me")
 }
 
+func (p *polymarket) CancelOrder(orderID string, outcome ...prediction.Outcome) (*connector.CancelResponse, error) {
+	ctx := context.Background()
+
+	resp, err := p.orderManager.CancelOrder(ctx, orderID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := &connector.CancelResponse{
+		OrderID: orderID,
+		Status:  connector.OrderStatus(resp.Status),
+	}
+
+	if len(outcome) > 0 {
+		response.Pair = outcome[0].Pair.Pair
+	}
+
+	return response, nil
+}
+
 func (p *polymarket) GetOutcome(marketID, outcomeID string) prediction.Outcome {
 	//TODO implement me
 	panic("implement me")
 }
 
 func (p *polymarket) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *polymarket) CancelOrder(orderID string, pair ...portfolio.Pair) (*connector.CancelResponse, error) {
 	//TODO implement me
 	panic("implement me")
 }
