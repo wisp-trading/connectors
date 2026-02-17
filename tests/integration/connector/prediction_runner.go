@@ -138,3 +138,20 @@ func (tr *PredictionMarketTestRunner) VerifyTradeData(channel <-chan connector.T
 	}
 
 }
+
+func (tr *PredictionMarketTestRunner) VerifyOrderData(channel <-chan connector.Order, duration time.Duration) (connector.Order, error) {
+	timeout := time.After(duration)
+
+	for {
+		select {
+		case trade, ok := <-channel:
+			if !ok {
+				return connector.Order{}, fmt.Errorf("order channel closed")
+			}
+			return trade, nil
+		case <-timeout:
+			return connector.Order{}, fmt.Errorf("timed out waiting for order data")
+		}
+	}
+
+}

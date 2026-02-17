@@ -3,6 +3,7 @@ package polymarket
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -185,26 +186,47 @@ func (p *polymarket) parseOrder(market prediction.Market, event ws.OrderEvent) (
 		return connector.Order{}, true
 	}
 
-	quantity, err := numerical.NewFromString(event.Size)
+	quantity, err := numerical.NewFromString(event.OriginalSize)
 	if err != nil {
 		p.appLogger.Error("Failed to parse quantity for order event: %v", err)
 		return connector.Order{}, true
 	}
 
-	timeStamp := time.Unix(event.Timestamp, 0)
+	// Timestamp is a string in milliseconds, need to parse it
+	timestampMs, err := strconv.ParseInt(event.Timestamp, 10, 64)
+	if err != nil {
+		p.appLogger.Error("Failed to parse timestamp for order event: %v", err)
+		return connector.Order{}, true
+	}
+	timeStamp := time.UnixMilli(timestampMs)
+
+	// Map Polymarket status to your connector status
+	status := mapPolymarketStatus(event.Status)
 
 	order := connector.Order{
-		ID:        event.OrderID,
+		ID:        event.ID,
 		Pair:      outcome.Pair.Pair,
 		Price:     price,
 		Quantity:  quantity,
 		CreatedAt: timeStamp,
 		UpdatedAt: timeStamp,
-		Status:    connector.OrderStatus(event.Status),
+		Status:    status,
 	}
 
 	return order, false
+}
 
+func mapPolymarketStatus(pmStatus string) connector.OrderStatus {
+	switch pmStatus {
+	case "LIVE":
+		return connector.OrderStatusOpen
+	case "MATCHED":
+		return connector.OrderStatusFilled
+	case "CANCELED":
+		return connector.OrderStatusCanceled
+	default:
+		return connector.OrderStatus(pmStatus) // fallback
+	}
 }
 
 // parseClobTokenIds parses the JSON string of token IDs into a slice.

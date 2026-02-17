@@ -135,8 +135,8 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 			})
 		})
 
-		Context("Subscribing to trades", func() {
-			It("should subscribe to trade updates and receive data", func() {
+		Context("Subscribing to orders", func() {
+			It("should subscribe to order updates and receive data", func() {
 				conn := runner.GetWebSocketCapable()
 				err := conn.StartWebSocket()
 				defer func(conn prediction.WebSocketConnector) {
@@ -148,15 +148,16 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				}(conn)
 				Expect(err).ToNot(HaveOccurred())
 
-				market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
+				//market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
+				market, err := conn.GetMarket("will-jesus-christ-return-before-2027")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(market.Outcomes).ToNot(BeEmpty(), "Market should have outcomes")
 
-				err = conn.SubscribeTrades(market)
+				err = conn.SubscribeOrders(market)
 				Expect(err).ToNot(HaveOccurred())
 
-				tradeChannel := conn.GetTradeUpdatesChannel()
-				Expect(tradeChannel).ToNot(BeNil(), "Trade updates channel should not be nil")
+				ordersChannel := conn.GetOrdersChannel()
+				Expect(ordersChannel).ToNot(BeNil(), "Orders updates channel should not be nil")
 
 				time.Sleep(500 * time.Millisecond)
 
@@ -165,8 +166,8 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(orderBook.Bids).ToNot(BeEmpty(), "Should have bids in orderbook")
 
-				// Place a limit order at best ask to generate trade activity
-				bestBid := orderBook.Bids[len(orderBook.Bids)-1].Price
+				// Place a limit order at lowest ask price to confirm we receive order updates
+				bestBid := orderBook.Bids[0].Price
 				amount := numerical.NewFromFloat(5)
 
 				params := OrderPlacementParams{
@@ -185,15 +186,15 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					connector_test.LogWarning("Failed to place order for trade generation: %v", err)
 				}
 
-				trade, err := runner.VerifyTradeData(tradeChannel, 5*time.Second)
+				order, err := runner.VerifyOrderData(ordersChannel, 5*time.Second)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(trade.Pair.Symbol()).To(Equal(market.Slug))
+				Expect(order.Pair.Symbol()).To(Equal(market.Outcomes[0].Pair.Pair.Symbol()), "Order update should be for the correct market outcome")
 
 				connector_test.LogSuccess(
 					"Received trade data for market %s, price %s, quantity %s",
 					market.MarketId,
-					trade.Price.String(),
-					trade.Quantity.String(),
+					order.Price.String(),
+					order.Quantity.String(),
 				)
 
 				time.Sleep(2 * time.Second) // Allow additional messages
