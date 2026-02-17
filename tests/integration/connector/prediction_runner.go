@@ -121,3 +121,37 @@ func (tr *PredictionMarketTestRunner) VerifyPriceChangeData(
 		return prediction.PriceChange{}, fmt.Errorf("timed out waiting for price change data")
 	}
 }
+
+func (tr *PredictionMarketTestRunner) VerifyTradeData(channel <-chan connector.Trade, duration time.Duration) (connector.Trade, error) {
+	timeout := time.After(duration)
+
+	for {
+		select {
+		case trade, ok := <-channel:
+			if !ok {
+				return connector.Trade{}, fmt.Errorf("trade channel closed")
+			}
+			return trade, nil
+		case <-timeout:
+			return connector.Trade{}, fmt.Errorf("timed out waiting for trade data")
+		}
+	}
+
+}
+
+func (tr *PredictionMarketTestRunner) VerifyOrderData(channel <-chan connector.Order, duration time.Duration) (connector.Order, error) {
+	timeout := time.After(duration)
+
+	for {
+		select {
+		case trade, ok := <-channel:
+			if !ok {
+				return connector.Order{}, fmt.Errorf("order channel closed")
+			}
+			return trade, nil
+		case <-timeout:
+			return connector.Order{}, fmt.Errorf("timed out waiting for order data")
+		}
+	}
+
+}

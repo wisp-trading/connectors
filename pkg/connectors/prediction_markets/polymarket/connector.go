@@ -31,7 +31,7 @@ type polymarket struct {
 	wsCancel  context.CancelFunc
 	wsMutex   sync.RWMutex
 
-	tradeCh chan connector.Trade
+	tradeChannel chan connector.Trade
 
 	// Separate channels per outcome subscription (key: "btc-updown-4h:YES-USDC")
 	orderBookChannels map[string]chan connector.OrderBook
@@ -39,6 +39,9 @@ type polymarket struct {
 
 	priceChangeChannels map[string]chan prediction.PriceChange
 	priceChangeMu       sync.RWMutex
+
+	tradesChannel chan connector.Trade
+	orderChannel  chan connector.Order
 
 	// Separate channels per outcome subscription for klines (key: "btc-updown-4h:YES-USDC")
 	klineChannels map[string]chan connector.Kline
@@ -88,8 +91,10 @@ func NewPolymarket(
 		initialized:         false,
 		orderBookChannels:   make(map[string]chan connector.OrderBook),
 		priceChangeChannels: make(map[string]chan prediction.PriceChange),
+		tradesChannel:       make(chan connector.Trade, 100),
 		klineChannels:       make(map[string]chan connector.Kline),
-		tradeCh:             make(chan connector.Trade, 100),
+		tradeChannel:        make(chan connector.Trade, 100),
+		orderChannel:        make(chan connector.Order, 100),
 	}
 }
 

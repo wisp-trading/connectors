@@ -8,6 +8,8 @@ import (
 type Websocket interface {
 	SubscribeOrderbook(market prediction.Market) (<-chan ws.OrderbookEvent, error)
 	SubscribePriceChanges(market prediction.Market) (<-chan ws.PriceChangeEvent, error)
+	SubscribeTrades(market prediction.Market) (<-chan ws.TradeEvent, error)
+	SubscribeOrders(market prediction.Market) (<-chan ws.OrderEvent, error)
 	UnsubscribeMarket(market prediction.Market) error
 	Close()
 }

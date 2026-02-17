@@ -42,8 +42,3 @@ func (p *polymarket) IsWebSocketConnected() bool {
 
 	return p.clobWebsocket != nil
 }
-
-func (p *polymarket) ErrorChannel() <-chan error {
-	//TODO implement me
-	panic("implement me")
-}

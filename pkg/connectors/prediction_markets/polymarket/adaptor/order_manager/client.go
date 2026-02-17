@@ -13,6 +13,7 @@ import (
 type OrderManager interface {
 	PlaceOrder(ctx context.Context, order prediction.LimitOrder) (clobtypes.OrderResponse, error)
 	CancelOrder(ctx context.Context, orderID string) (clobtypes.CancelResponse, error)
+	GetOrderBook(ctx context.Context, outcome prediction.Outcome) (clobtypes.OrderBookResponse, error)
 }
 
 // orderManager implementation

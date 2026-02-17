@@ -32,7 +32,7 @@ func (p *polymarket) SubscribePriceChanges(market prediction.Market) error {
 
 	go func() {
 		for msg := range stream {
-			priceChange, err := p.convertToPriceChange(msg, market)
+			priceChange, err := p.parsePriceChange(msg, market)
 			if err != nil {
 				p.appLogger.Error("Error converting price change for market %s: %v", market.Slug, err)
 				continue
@@ -49,19 +49,6 @@ func (p *polymarket) SubscribePriceChanges(market prediction.Market) error {
 
 	p.appLogger.Info("Subscribed to price changes for market %s", market.Slug)
 	return nil
-}
-
-func (p *polymarket) GetPriceChangeChannels() map[string]<-chan prediction.PriceChange {
-	p.priceChangeMu.RLock()
-	defer p.priceChangeMu.RUnlock()
-
-	// Create a new map with read-only channels
-	result := make(map[string]<-chan prediction.PriceChange, len(p.priceChangeChannels))
-	for marketID, ch := range p.priceChangeChannels {
-		result[marketID] = ch
-	}
-
-	return result
 }
 
 func (p *polymarket) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
