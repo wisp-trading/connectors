@@ -57,8 +57,7 @@ func (p *polymarket) GetConnectorInfo() *connector.Info {
 }
 
 func (p *polymarket) NewConfig() connector.Config {
-	//TODO implement me
-	panic("implement me")
+	return config.NewConfig()
 }
 
 func (p *polymarket) SupportsTradingOperations() bool {
