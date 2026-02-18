@@ -15,9 +15,6 @@ func NewConfig() connector.Config {
 // Config holds the configuration for Polymarket connector
 type Config struct {
 	// Authentication
-	APIKey            string `json:"api_key"`
-	APISecret         string `json:"api_secret"`
-	Passphrase        string `json:"passphrase"`
 	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
 	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
 
@@ -33,16 +30,6 @@ func (c Config) ExchangeName() connector.ExchangeName {
 
 // Validate checks if the configuration is valid and sets defaults
 func (c *Config) Validate() error {
-	// Validate required authentication fields
-	if c.APIKey == "" {
-		return fmt.Errorf("api_key is required")
-	}
-	if c.APISecret == "" {
-		return fmt.Errorf("api_secret is required")
-	}
-	if c.Passphrase == "" {
-		return fmt.Errorf("passphrase is required")
-	}
 	if c.PrivateKey == "" {
 		return fmt.Errorf("private_key is required")
 	}

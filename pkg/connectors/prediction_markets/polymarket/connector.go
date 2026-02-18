@@ -52,8 +52,9 @@ type polymarket struct {
 }
 
 func (p *polymarket) GetConnectorInfo() *connector.Info {
-	//TODO implement me
-	panic("implement me")
+	return &connector.Info{
+		Name:        connector.ExchangeName("polymarket"),
+	}
 }
 
 func (p *polymarket) NewConfig() connector.Config {
