@@ -34,5 +34,5 @@ var Module = fx.Options(
 
 // registerHyperliquid registers the hyperliquid connector with the SDK's ConnectorRegistry
 func registerHyperliquid(hyperliquidConn perp.Connector, reg registry.ConnectorRegistry) {
-	reg.RegisterPerpConnector(types.Hyperliquid, hyperliquidConn)
+	reg.RegisterPerp(types.Hyperliquid, hyperliquidConn)
 }

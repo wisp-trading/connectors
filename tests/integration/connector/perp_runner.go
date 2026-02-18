@@ -41,7 +41,7 @@ func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Co
 	}
 
 	// Get PERP connector from registry
-	conn, exists := reg.GetPerpConnector(connectorName)
+	conn, exists := reg.Perp(connectorName)
 	if !exists {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("perp connector %s not found in registry", connectorName)

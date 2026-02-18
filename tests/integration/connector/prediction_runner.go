@@ -39,7 +39,7 @@ func NewPredictionMarketTestRunner(connectorName connector.ExchangeName, config 
 	}
 
 	// Get PREDICTION MARKET connector from registry
-	conn, exists := reg.GetPredictionMarketConnector(connectorName)
+	conn, exists := reg.Prediction(connectorName)
 	if !exists {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("prediction market connector %s not found in registry", connectorName)

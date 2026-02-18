@@ -26,5 +26,5 @@ var Module = fx.Options(
 )
 
 func registerBybit(bybitConn perp.Connector, reg registry.ConnectorRegistry) {
-	reg.RegisterPerpConnector(types.Bybit, bybitConn)
+	reg.RegisterPerp(types.Bybit, bybitConn)
 }

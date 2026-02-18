@@ -26,5 +26,5 @@ var Module = fx.Options(
 
 // registerPolymarket registers the Polymarket Spot connector with the SDK's ConnectorRegistry
 func registerPolymarket(polymarketConn prediction.WebSocketConnector, reg registry.ConnectorRegistry) {
-	reg.RegisterPredictionMarketConnector(types.Polymarket, polymarketConn)
+	reg.RegisterPrediction(types.Polymarket, polymarketConn)
 }

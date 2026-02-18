@@ -28,5 +28,5 @@ var Module = fx.Options(
 
 // registerGateSpot registers the Gate Spot connector with the SDK's ConnectorRegistry
 func registerGateSpot(gateSpotConn spot.Connector, reg registry.ConnectorRegistry) {
-	reg.RegisterSpotConnector(types.GateSpot, gateSpotConn)
+	reg.RegisterSpot(types.GateSpot, gateSpotConn)
 }
