@@ -34,7 +34,7 @@ type polymarket struct {
 	tradeChannel chan connector.Trade
 
 	// Separate channels per outcome subscription (key: "btc-updown-4h:YES-USDC")
-	orderBookChannels map[string]chan connector.OrderBook
+	orderBookChannels map[prediction.MarketID]chan prediction.OrderBook
 	orderBookMu       sync.RWMutex
 
 	priceChangeChannels map[string]chan prediction.PriceChange
@@ -89,7 +89,7 @@ func NewPolymarket(
 		timeProvider:        timeProvider,
 		ctx:                 context.Background(),
 		initialized:         false,
-		orderBookChannels:   make(map[string]chan connector.OrderBook),
+		orderBookChannels:   make(map[prediction.MarketID]chan prediction.OrderBook),
 		priceChangeChannels: make(map[string]chan prediction.PriceChange),
 		tradesChannel:       make(chan connector.Trade, 100),
 		klineChannels:       make(map[string]chan connector.Kline),

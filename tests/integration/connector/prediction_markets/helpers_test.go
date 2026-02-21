@@ -24,7 +24,7 @@ type OrderPlacementParams struct {
 func getMarketAndSubscribeOrderbook(
 	conn prediction.WebSocketConnector,
 	marketSlug string,
-) (prediction.Market, <-chan connector.OrderBook, error) {
+) (prediction.Market, <-chan prediction.OrderBook, error) {
 	market, err := conn.GetMarket(marketSlug)
 	if err != nil {
 		return prediction.Market{}, nil, fmt.Errorf("failed to get market: %w", err)
@@ -45,7 +45,7 @@ func getMarketAndSubscribeOrderbook(
 		return prediction.Market{}, nil, fmt.Errorf("orderbook channels is nil")
 	}
 
-	obChan, exists := orderbookChannels[market.Slug]
+	obChan, exists := orderbookChannels[market.MarketID]
 	if !exists {
 		return prediction.Market{}, nil, fmt.Errorf("no orderbook channel for market %s", market.Slug)
 	}
@@ -110,7 +110,7 @@ func placeLimitOrderAtBestBid(
 	runner *connector_test.PredictionMarketTestRunner,
 	conn prediction.WebSocketConnector,
 	market prediction.Market,
-	obChan <-chan connector.OrderBook,
+	obChan <-chan prediction.OrderBook,
 	amount numerical.Decimal,
 	outcomeIdx int,
 ) (*connector.OrderResponse, error) {
@@ -140,7 +140,7 @@ func placeLimitOrderAtBestAsk(
 	runner *connector_test.PredictionMarketTestRunner,
 	conn prediction.WebSocketConnector,
 	market prediction.Market,
-	obChan <-chan connector.OrderBook,
+	obChan <-chan prediction.OrderBook,
 	amount numerical.Decimal,
 	outcomeIdx int,
 ) (*connector.OrderResponse, error) {

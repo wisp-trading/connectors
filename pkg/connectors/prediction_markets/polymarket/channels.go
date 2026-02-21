@@ -30,12 +30,12 @@ func (p *polymarket) GetPriceChangeChannels() map[string]<-chan prediction.Price
 	return result
 }
 
-func (p *polymarket) GetOrderbookChannels() map[string]<-chan connector.OrderBook {
+func (p *polymarket) GetOrderbookChannels() map[prediction.MarketID]<-chan prediction.OrderBook {
 	p.orderBookMu.RLock()
 	defer p.orderBookMu.RUnlock()
 
 	// Create a new map with read-only channels
-	result := make(map[string]<-chan connector.OrderBook, len(p.orderBookChannels))
+	result := make(map[prediction.MarketID]<-chan prediction.OrderBook, len(p.orderBookChannels))
 	for marketID, ch := range p.orderBookChannels {
 		result[marketID] = ch
 	}

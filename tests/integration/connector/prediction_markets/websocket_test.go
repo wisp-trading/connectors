@@ -74,7 +74,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					orderbookChannels := conn.GetOrderbookChannels()
 					Expect(orderbookChannels).ToNot(BeNil(), "Market orderbookChannels should not be nil")
 
-					outcome, exists := orderbookChannels[market.Slug]
+					outcome, exists := orderbookChannels[market.MarketID]
 					Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
 					Expect(outcome).ToNot(BeNil(), "Market book channel should not be nil")
 

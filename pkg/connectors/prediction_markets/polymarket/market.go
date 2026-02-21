@@ -98,10 +98,10 @@ func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.R
 
 func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
 	p.orderBookMu.Lock()
-	ch, exists := p.orderBookChannels[market.Slug]
+	ch, exists := p.orderBookChannels[market.MarketID]
 	if exists {
 		close(ch)
-		delete(p.orderBookChannels, market.Slug)
+		delete(p.orderBookChannels, market.MarketID)
 	}
 	p.orderBookMu.Unlock()
 

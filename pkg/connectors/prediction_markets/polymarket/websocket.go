@@ -25,7 +25,7 @@ func (p *polymarket) StopWebSocket() error {
 	}
 
 	for marketID := range p.orderBookChannels {
-		if err := p.UnsubscribeMarket(prediction.Market{Slug: marketID}); err != nil {
+		if err := p.UnsubscribeMarket(prediction.Market{Slug: marketID.String()}); err != nil {
 			p.appLogger.Warn("Failed to unsubscribe from market %s: %v", marketID, err)
 		}
 	}

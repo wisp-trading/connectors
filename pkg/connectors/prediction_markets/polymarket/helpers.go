@@ -16,13 +16,24 @@ import (
 )
 
 // parseOrderbookEvent converts a websocket order book event to a connector.OrderBook struct
-func (p *polymarket) parseOrderbookEvent(msg ws.OrderbookEvent, market prediction.Market) connector.OrderBook {
-	pair := prediction.NewPredictionPair(market.Slug, msg.AssetID, getQuoteAsset())
+func (p *polymarket) parseOrderbookEvent(msg ws.OrderbookEvent, market prediction.Market) prediction.OrderBook {
+	pair := prediction.NewPredictionPair(market.MarketID.String(), msg.AssetID, getQuoteAsset())
 
-	orderbook := connector.OrderBook{
-		Pair: pair.Pair,
-		Bids: []connector.PriceLevel{},
-		Asks: []connector.PriceLevel{},
+	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(msg.AssetID))
+
+	if err != nil {
+		p.appLogger.Warn("Failed to find outcome for order book event: %v", err)
+		return prediction.OrderBook{}
+	}
+
+	orderbook := prediction.OrderBook{
+		OrderBook: connector.OrderBook{
+			Pair: pair.Pair,
+			Bids: []connector.PriceLevel{},
+			Asks: []connector.PriceLevel{},
+		},
+		OutcomeID: outcome.OutcomeID,
+		MarketID:  market.MarketID,
 	}
 
 	bids, err := p.parseOrderbookLevel(msg.Bids)
@@ -72,11 +83,15 @@ func (p *polymarket) parseOrderbook(
 	msg clobtypes.OrderBookResponse,
 	market prediction.Market,
 	outcome prediction.Outcome,
-) connector.OrderBook {
-	orderbook := connector.OrderBook{
-		Pair: outcome.Pair.Pair,
-		Bids: []connector.PriceLevel{},
-		Asks: []connector.PriceLevel{},
+) prediction.OrderBook {
+	orderbook := prediction.OrderBook{
+		OrderBook: connector.OrderBook{
+			Pair: outcome.Pair.Pair,
+			Bids: []connector.PriceLevel{},
+			Asks: []connector.PriceLevel{},
+		},
+		OutcomeID: outcome.OutcomeID,
+		MarketID:  market.MarketID,
 	}
 
 	bids, err := p.parsePriceLevel(msg.Bids)

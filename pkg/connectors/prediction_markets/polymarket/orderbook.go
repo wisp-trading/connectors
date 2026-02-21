@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
@@ -18,11 +17,11 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	}
 
 	p.orderBookMu.Lock()
-	if _, exists := p.orderBookChannels[market.Slug]; !exists {
-		p.orderBookChannels[market.Slug] = make(chan connector.OrderBook, 100)
+	if _, exists := p.orderBookChannels[market.MarketID]; !exists {
+		p.orderBookChannels[market.MarketID] = make(chan prediction.OrderBook, 100)
 		p.appLogger.Info("Created order book channel for market %s", market.Slug)
 	}
-	orderBookChannel := p.orderBookChannels[market.Slug]
+	orderBookChannel := p.orderBookChannels[market.MarketID]
 	p.orderBookMu.Unlock()
 
 	// Get channel from SDK wrapper
@@ -52,7 +51,7 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 func (p *polymarket) FetchOrderBooks(
 	market prediction.Market,
 	outcome prediction.Outcome,
-) (*connector.OrderBook, error) {
+) (*prediction.OrderBook, error) {
 	ctx := context.Background()
 	orderbook, err := p.orderManager.GetOrderBook(ctx, outcome)
 	if err != nil {
