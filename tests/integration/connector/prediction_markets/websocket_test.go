@@ -37,7 +37,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 				market, err := conn.GetMarket(slug)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(market.MarketId).ToNot(BeEmpty())
+				Expect(market.MarketID).ToNot(BeEmpty())
 			})
 		})
 	})
@@ -85,7 +85,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 					connector_test.LogSuccess(
 						"Received order book data for market %s with %d bids and %d asks",
-						market.MarketId,
+						market.MarketID,
 						len(orderBook.Bids),
 						len(orderBook.Asks),
 					)
@@ -126,7 +126,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 					connector_test.LogSuccess(
 						"Received price change data for market %s, outcome %s",
-						market.MarketId,
+						market.MarketID,
 						priceChange.Outcome.Pair.Outcome(),
 					)
 
@@ -192,7 +192,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 				connector_test.LogSuccess(
 					"Received trade data for market %s, price %s, quantity %s",
-					market.MarketId,
+					market.MarketID,
 					order.Price.String(),
 					order.Quantity.String(),
 				)

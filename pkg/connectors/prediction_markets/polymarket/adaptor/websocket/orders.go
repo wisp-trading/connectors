@@ -10,7 +10,7 @@ import (
 func (w websocket) SubscribeOrders(market prediction.Market) (<-chan ws.OrderEvent, error) {
 	ctx := context.Background()
 
-	orderStream, err := w.client.SubscribeUserOrders(ctx, []string{market.MarketId})
+	orderStream, err := w.client.SubscribeUserOrders(ctx, []string{market.MarketID.String()})
 
 	if err != nil {
 		return nil, err

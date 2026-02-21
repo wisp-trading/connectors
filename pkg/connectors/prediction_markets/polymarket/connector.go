@@ -53,7 +53,7 @@ type polymarket struct {
 
 func (p *polymarket) GetConnectorInfo() *connector.Info {
 	return &connector.Info{
-		Name:        connector.ExchangeName("polymarket"),
+		Name: connector.ExchangeName("polymarket"),
 	}
 }
 

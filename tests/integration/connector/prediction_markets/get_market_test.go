@@ -38,7 +38,7 @@ var _ = Describe("Prediction Market Data Tests", func() {
 					return
 				}
 
-				Expect(market.MarketId).To(Equal("0x0b4cc3b739e1dfe5d73274740e7308b6fb389c5af040c3a174923d928d134bee"))
+				Expect(market.MarketID).To(Equal("0x0b4cc3b739e1dfe5d73274740e7308b6fb389c5af040c3a174923d928d134bee"))
 				Expect(market.Slug).To(Equal("will-jesus-christ-return-before-2027"))
 				Expect(market.Exchange).To(Equal(connector.ExchangeName("Polymarket")))
 				Expect(market.OutcomeType).To(Equal(prediction.OutcomeTypeBinary))
@@ -56,7 +56,7 @@ var _ = Describe("Prediction Market Data Tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				// Verify market ID exists
-				Expect(market.MarketId).ToNot(BeEmpty())
+				Expect(market.MarketID).ToNot(BeEmpty())
 
 				// Verify recurrence interval is set correctly
 				Expect(market.RecurringMarket.RecurrenceInterval).To(Equal(prediction.Recurrence15Min))
@@ -84,7 +84,7 @@ var _ = Describe("Prediction Market Data Tests", func() {
 
 				// Verify each outcome has an OutcomeId (asset ID for orderbook)
 				for _, outcome := range market.Outcomes {
-					Expect(outcome.OutcomeId).ToNot(BeEmpty())
+					Expect(outcome.OutcomeID).ToNot(BeEmpty())
 					Expect(outcome.Pair.Symbol()).ToNot(BeEmpty())
 				}
 			})

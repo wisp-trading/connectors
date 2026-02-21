@@ -9,7 +9,7 @@ import (
 
 func (c *orderManager) GetOrderBook(ctx context.Context, outcome prediction.Outcome) (clobtypes.OrderBookResponse, error) {
 	books, err := c.client.OrderBook(ctx, &clobtypes.BookRequest{
-		TokenID: outcome.OutcomeId,
+		TokenID: outcome.OutcomeID.String(),
 		Side:    outcome.Side.ToString(),
 	})
 	if err != nil {

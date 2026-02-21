@@ -44,7 +44,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 
 		outcomes[i] = prediction.Outcome{
 			Pair:      pair,
-			OutcomeId: outcomeIds[i], // The CLOB token ID for orderbook
+			OutcomeID: prediction.OutcomeIDFromString(outcomeIds[i]), // The CLOB token ID for orderbook
 		}
 	}
 
@@ -55,7 +55,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 	}
 
 	market := prediction.Market{
-		MarketId:       marketData.ConditionID,
+		MarketID:       prediction.MarketIDFromString(marketData.ConditionID), // The Polymarket condition ID
 		Slug:           marketData.Slug,
 		Exchange:       connector.ExchangeName("Polymarket"),
 		OutcomeType:    outcomeType,

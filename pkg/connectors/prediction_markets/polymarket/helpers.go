@@ -122,7 +122,7 @@ func (p *polymarket) parsePriceLevel(levels []clobtypes.PriceLevel) ([]connector
 
 // parsePriceChange converts a websocket price change event to a prediction.PriceChange struct
 func (p *polymarket) parsePriceChange(msg ws.PriceChangeEvent, market prediction.Market) (prediction.PriceChange, error) {
-	outcome, err := market.FindOutcomeById(msg.AssetId)
+	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(msg.AssetId))
 	if err != nil {
 		return prediction.PriceChange{}, err
 	}
@@ -142,7 +142,7 @@ func (p *polymarket) parsePriceChange(msg ws.PriceChangeEvent, market prediction
 
 // parseTradeEvent converts a websocket trade event to a connector.Trade struct
 func (p *polymarket) parseTrade(market prediction.Market, tradeEvent ws.TradeEvent) (connector.Trade, bool) {
-	outcome, err := market.FindOutcomeById(tradeEvent.AssetID)
+	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(tradeEvent.AssetID))
 	if err != nil {
 		p.appLogger.Error("Failed to find outcome for trade event: %v", err)
 		return connector.Trade{}, true
@@ -174,7 +174,7 @@ func (p *polymarket) parseTrade(market prediction.Market, tradeEvent ws.TradeEve
 
 // parseOrder converts a websocket order event to a connector.Order struct
 func (p *polymarket) parseOrder(market prediction.Market, event ws.OrderEvent) (connector.Order, bool) {
-	outcome, err := market.FindOutcomeById(event.AssetID)
+	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(event.AssetID))
 	if err != nil {
 		p.appLogger.Error("Failed to find outcome for order event: %v", err)
 		return connector.Order{}, true
