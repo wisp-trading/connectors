@@ -16,13 +16,9 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 		return fmt.Errorf("invalid market: %w", err)
 	}
 
-	p.orderBookMu.Lock()
-	if _, exists := p.orderBookChannels[market.MarketID]; !exists {
-		p.orderBookChannels[market.MarketID] = make(chan prediction.OrderBook, 100)
-		p.appLogger.Info("Created order book channel for market %s", market.Slug)
+	if _, exists := p.subscribedMarkets[market.MarketID]; exists {
+		return fmt.Errorf("already subscribed to market %s", market.Slug)
 	}
-	orderBookChannel := p.orderBookChannels[market.MarketID]
-	p.orderBookMu.Unlock()
 
 	// Get channel from SDK wrapper
 	msgChannel, err := p.clobWebsocket.SubscribeOrderbook(market)
@@ -36,7 +32,7 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 			orderBook := p.parseOrderbookEvent(msg, market)
 
 			select {
-			case orderBookChannel <- orderBook:
+			case p.orderBookChannel <- orderBook:
 				// Successfully sent
 			default:
 				p.appLogger.Warn("Order book channel full for market %s, dropping message", market.Slug)

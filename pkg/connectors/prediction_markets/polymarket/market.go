@@ -97,19 +97,6 @@ func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.R
 }
 
 func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
-	p.orderBookMu.Lock()
-	ch, exists := p.orderBookChannels[market.MarketID]
-	if exists {
-		close(ch)
-		delete(p.orderBookChannels, market.MarketID)
-	}
-	p.orderBookMu.Unlock()
-
-	if !exists {
-		p.appLogger.Warn("Market %s not subscribed", market.Slug)
-		return nil
-	}
-
 	err := p.clobWebsocket.UnsubscribeMarket(market)
 	if err != nil {
 		return err

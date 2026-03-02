@@ -40,17 +40,12 @@ func getMarketAndSubscribeOrderbook(
 		return prediction.Market{}, nil, fmt.Errorf("failed to subscribe to orderbook: %w", err)
 	}
 
-	orderbookChannels := conn.GetOrderbookChannels()
-	if orderbookChannels == nil {
+	orderbookChannel := conn.GetOrderBookUpdates()
+	if orderbookChannel == nil {
 		return prediction.Market{}, nil, fmt.Errorf("orderbook channels is nil")
 	}
 
-	obChan, exists := orderbookChannels[market.MarketID]
-	if !exists {
-		return prediction.Market{}, nil, fmt.Errorf("no orderbook channel for market %s", market.Slug)
-	}
-
-	return market, obChan, nil
+	return market, orderbookChannel, nil
 }
 
 // placeLimitOrderAtPrice places a limit order with specified parameters

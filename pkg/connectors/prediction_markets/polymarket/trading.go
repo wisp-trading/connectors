@@ -62,7 +62,7 @@ func (p *polymarket) SubscribeTrades(market prediction.Market) error {
 			if done {
 				return
 			}
-			p.tradesChannel <- trade
+			p.tradeChannel <- trade
 		}
 	}()
 

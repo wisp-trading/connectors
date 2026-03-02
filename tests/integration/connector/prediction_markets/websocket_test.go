@@ -71,15 +71,11 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					err = conn.SubscribeOrderBook(market)
 					Expect(err).ToNot(HaveOccurred())
 
-					orderbookChannels := conn.GetOrderbookChannels()
-					Expect(orderbookChannels).ToNot(BeNil(), "Market orderbookChannels should not be nil")
-
-					outcome, exists := orderbookChannels[market.MarketID]
-					Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-					Expect(outcome).ToNot(BeNil(), "Market book channel should not be nil")
+					orderbookChannel := conn.GetOrderBookUpdates()
+					Expect(orderbookChannel).ToNot(BeNil(), "Market orderbookChannels should not be nil")
 
 					// Verify order book data
-					orderBook := runner.VerifyOrderBookData(outcome, 3*time.Second)
+					orderBook := runner.VerifyOrderBookData(orderbookChannel, 3*time.Second)
 					Expect(orderBook.Bids).ToNot(BeNil())
 					Expect(orderBook.Asks).ToNot(BeNil())
 
