@@ -6,7 +6,7 @@ import (
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 // OrderManager wraps Polymarket CLOB API

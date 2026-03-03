@@ -4,7 +4,7 @@ package websocket
 
 import (
 	mock "github.com/stretchr/testify/mock"
-	prediction "github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 
 	ws "github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (w websocket) SubscribeOrderbook(market prediction.Market) (<-chan ws.OrderbookEvent, error) {

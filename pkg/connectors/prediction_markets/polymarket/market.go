@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
 func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {

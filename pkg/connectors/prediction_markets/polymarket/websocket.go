@@ -3,7 +3,7 @@ package polymarket
 import (
 	"fmt"
 
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (p *polymarket) StartWebSocket() error {

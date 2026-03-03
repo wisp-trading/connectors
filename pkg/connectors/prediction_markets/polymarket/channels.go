@@ -2,7 +2,7 @@ package polymarket
 
 import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (p *polymarket) GetTradesChannel() <-chan connector.Trade {

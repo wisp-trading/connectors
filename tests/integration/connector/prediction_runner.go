@@ -8,8 +8,9 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/wisp-trading/connectors/pkg/connectors"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+
 	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"github.com/wisp-trading/sdk/wisp"
 )
