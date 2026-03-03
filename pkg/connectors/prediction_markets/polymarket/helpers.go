@@ -43,7 +43,6 @@ func (p *polymarket) parseOrderbookEvent(msg ws.OrderbookEvent, market predictio
 	}
 
 	asks, err := p.parseOrderbookLevel(msg.Asks)
-
 	if err != nil {
 		fmt.Printf("Error converting asks: %v\n", err)
 		return orderbook
@@ -56,10 +55,13 @@ func (p *polymarket) parseOrderbookEvent(msg ws.OrderbookEvent, market predictio
 }
 
 // parseOrderbookLevel converts websocket order book levels to connector.PriceLevel slice
+// Polymarket API returns levels in reversed order, so we need to reverse them
 func (p *polymarket) parseOrderbookLevel(levels []ws.OrderbookLevel) ([]connector.PriceLevel, error) {
 	result := make([]connector.PriceLevel, 0, len(levels))
 
-	for _, level := range levels {
+	// Parse in reverse order to fix Polymarket's backwards ordering
+	for i := len(levels) - 1; i >= 0; i-- {
+		level := levels[i]
 		price, err := numerical.NewFromString(level.Price)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse price %s: %w", level.Price, err)
@@ -101,7 +103,6 @@ func (p *polymarket) parseOrderbook(
 	}
 
 	asks, err := p.parsePriceLevel(msg.Asks)
-
 	if err != nil {
 		fmt.Printf("Error converting asks: %v\n", err)
 		return orderbook
@@ -114,8 +115,11 @@ func (p *polymarket) parseOrderbook(
 }
 
 func (p *polymarket) parsePriceLevel(levels []clobtypes.PriceLevel) ([]connector.PriceLevel, error) {
-	var priceLevels []connector.PriceLevel
-	for _, level := range levels {
+	priceLevels := make([]connector.PriceLevel, 0, len(levels))
+
+	// Parse in reverse order to fix Polymarket's backwards ordering
+	for i := len(levels) - 1; i >= 0; i-- {
+		level := levels[i]
 		price, err := numerical.NewFromString(level.Price)
 		if err != nil {
 			return []connector.PriceLevel{}, fmt.Errorf("failed to parse price %s: %w", level.Price, err)
