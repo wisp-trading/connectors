@@ -23,7 +23,6 @@ type Client interface {
 type polymarketClient struct {
 	configured bool
 	mu         sync.RWMutex
-	//client     *polymarket.Client
 }
 
 // NewPolymarketClient creates an unconfigured Polymarket client
@@ -64,9 +63,10 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 	polymarketAddress := common.HexToAddress(config.PolymarketAddress)
 	clobClient = clobClient.WithAuth(signer, creds).WithFunder(polymarketAddress).WithSignatureType(auth.SignatureGnosisSafe)
 	clobWebsocket := client.CLOBWS
+	tokenManager := client.CTF
 
 	clobWebsocket.Authenticate(signer, creds)
-	orderManager := order_manager.NewOrderManager(clobClient, signer)
+	orderManager := order_manager.NewOrderManager(clobClient, tokenManager, signer)
 	websocketManager := websocket.NewWebsocket(clobWebsocket)
 	gammaClient := gamma.NewGammaClient(client.Gamma)
 

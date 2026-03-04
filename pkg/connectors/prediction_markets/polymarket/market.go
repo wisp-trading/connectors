@@ -6,7 +6,6 @@ import (
 	"time"
 
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
@@ -35,7 +34,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 
 	outcomes := make([]prediction.Outcome, len(outcomeIds))
 
-	for i, _ := range outcomeIds {
+	for i := range outcomeIds {
 		pair := prediction.NewPredictionPair(
 			marketData.Slug,
 			outcomeLabels[i], // "YES", "NO", "UP", "DOWN", etc.
@@ -51,13 +50,14 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 	// Handle resolution date (if closed)
 	resolutionTime, err := time.Parse(time.RFC3339, marketData.EndDate)
 	if err != nil {
-		fmt.Printf("Warning: failed to parse resolution time for market %s: %v\n", slug, err)
+		p.appLogger.Error("Failed to parse resolution time for market %s: %v", slug, err)
+		return prediction.Market{}, fmt.Errorf("failed to parse resolution time: %w", err)
 	}
 
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(marketData.ConditionID), // The Polymarket condition ID
 		Slug:           marketData.Slug,
-		Exchange:       connector.ExchangeName("Polymarket"),
+		Exchange:       p.GetConnectorInfo().Name,
 		OutcomeType:    outcomeType,
 		Outcomes:       outcomes,
 		Active:         marketData.Active,
