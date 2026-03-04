@@ -162,6 +162,6 @@ func (p *paradex) FetchRiskFundBalance(symbol string) (*perp.RiskFundBalance, er
 	return nil, fmt.Errorf("risk fund balance not needed for MM strategy")
 }
 
-func (p *paradex) FetchContracts() ([]connector.ContractInfo, error) {
+func (p *paradex) FetchContracts() ([]perp.ContractInfo, error) {
 	return nil, fmt.Errorf("contracts not needed for MM strategy")
 }

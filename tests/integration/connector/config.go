@@ -11,6 +11,7 @@ import (
 	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
+	polymarketconfig "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
@@ -126,5 +127,45 @@ func getGateSpotConfig() *gatespot.Config {
 		APIKey:     os.Getenv("GATE_API_KEY"),
 		APISecret:  os.Getenv("GATE_API_SECRET"),
 		UseTestnet: testnet,
+	}
+}
+
+// ========================================
+// PREDICTION MARKET CONNECTOR CONFIGURATION
+// ========================================
+const (
+	testPredictionMarketConnectorName = types.Polymarket
+)
+
+var (
+	testPredictionMarketTokenIDs = []string{
+		"70308501195956323589797156800521969197358506986152833648253437673484286051597",
+		"77385393614263738045377442390679465888613338149607876972436340566574399345181",
+	}
+)
+
+// GetTestPredictionMarketConnectorName returns the prediction market connector name for tests
+func GetTestPredictionMarketConnectorName() connector.ExchangeName {
+	return testPredictionMarketConnectorName
+}
+
+// GetPredictionMarketTokenIDs returns the token ID for tests
+func GetPredictionMarketTokenIDs() []string {
+	return testPredictionMarketTokenIDs
+}
+
+// GetPredictionMarketConnectorConfig returns the config for the prediction market connector under test
+func GetPredictionMarketConnectorConfig() connector.Config {
+	return getPolymarketConfig()
+}
+
+// getPolymarketConfig creates a Polymarket config from environment variables
+func getPolymarketConfig() *polymarketconfig.Config {
+	signatureType, _ := strconv.Atoi(os.Getenv("POLYMARKET_SIGNATURE_TYPE"))
+
+	return &polymarketconfig.Config{
+		PrivateKey:        os.Getenv("POLYMARKET_PRIVATE_KEY"),
+		PolymarketAddress: os.Getenv("POLYMARKET_ADDRESS"),
+		SignatureType:     signatureType,
 	}
 }

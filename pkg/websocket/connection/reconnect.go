@@ -218,7 +218,7 @@ func (rm *reconnectManager) attemptReconnection(ctx context.Context) error {
 			case <-time.After(delay):
 			}
 
-			err := rm.connectionManager.Connect(ctx, nil)
+			err := rm.connectionManager.Connect(ctx, nil, nil)
 			if err == nil {
 				rm.logger.Info("✅ Reconnection successful after %d attempts", rm.currentAttempt)
 				if rm.onReconnectSuccess != nil {

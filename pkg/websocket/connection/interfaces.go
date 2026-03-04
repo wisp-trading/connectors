@@ -13,7 +13,7 @@ type ReconnectStrategy interface {
 
 // ConnectionManager Interface defines WebSocket connection operations
 type ConnectionManager interface {
-	Connect(ctx context.Context, websocketUrl *string) error
+	Connect(ctx context.Context, config *Config, websocketUrl *string) error
 	Disconnect() error
 	Send(data []byte) error
 	SendMessage(data []byte) error

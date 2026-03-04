@@ -86,7 +86,7 @@ var _ = Describe("ConnectionManager - Connect Operations", func() {
 			})
 
 			It("should return error and stay Disconnected", func() {
-				err := mgr.Connect(ctx, nil)
+				err := mgr.Connect(ctx, nil, nil)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("auth"))
 			})
@@ -99,7 +99,7 @@ var _ = Describe("ConnectionManager - Connect Operations", func() {
 			})
 
 			It("should transition to Connected state", func() {
-				err := mgr.Connect(ctx, nil)
+				err := mgr.Connect(ctx, nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mgr.GetState()).To(Equal(connection.StateConnected))
 			})

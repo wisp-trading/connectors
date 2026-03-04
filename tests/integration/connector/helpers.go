@@ -64,7 +64,16 @@ func LogInfo(format string, args ...interface{}) {
 	fmt.Printf("[INFO] "+format+"\n", args...)
 }
 
+// LogWarning logs a warning message with formatted output
+func LogWarning(format string, args ...interface{}) {
+	fmt.Printf("[WARNING] "+format+"\n", args...)
+}
+
 // LogDebug logs a debug message with formatted output
 func LogDebug(format string, args ...interface{}) {
 	fmt.Printf("[DEBUG] "+format+"\n", args...)
+}
+
+func LogError(format string, args ...interface{}) {
+	fmt.Printf("[ERROR] "+format+"\n", args...)
 }

@@ -24,5 +24,5 @@ var Module = fx.Options(
 // registerParadex registers the paradex connector with the SDK's ConnectorRegistry
 func registerParadex(paradexConn perp.WebSocketConnector, reg registry.ConnectorRegistry) {
 	// Register the connector
-	reg.RegisterPerpConnector(types.Paradex, perp.Connector(paradexConn))
+	reg.RegisterPerp(types.Paradex, perp.Connector(paradexConn))
 }

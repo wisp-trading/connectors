@@ -91,7 +91,7 @@ func NewService(
 func (s *service) Connect() error {
 	ctx := context.Background()
 
-	return s.connectionManager.Connect(ctx, nil)
+	return s.connectionManager.Connect(ctx, nil, nil)
 }
 
 func (s *service) Disconnect() error {
