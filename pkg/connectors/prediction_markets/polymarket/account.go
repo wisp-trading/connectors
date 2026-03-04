@@ -28,8 +28,11 @@ func (p *polymarket) GetBalance(_ portfolio.Asset) (*connector.AssetBalance, err
 		return nil, err
 	}
 
+	// Polymarket returns balance in smallest units (1e6 = 1 USD)
+	normalizedBalance := balance.Div(numerical.NewFromInt(1_000_000))
+
 	return &connector.AssetBalance{
 		Asset: portfolio.NewAsset("USD"),
-		Free:  balance,
+		Free:  normalizedBalance,
 	}, nil
 }
