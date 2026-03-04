@@ -161,16 +161,11 @@ func GetPredictionMarketConnectorConfig() connector.Config {
 
 // getPolymarketConfig creates a Polymarket config from environment variables
 func getPolymarketConfig() *polymarketconfig.Config {
-	chainID, _ := strconv.Atoi(os.Getenv("POLYMARKET_CHAIN_ID"))
 	signatureType, _ := strconv.Atoi(os.Getenv("POLYMARKET_SIGNATURE_TYPE"))
 
 	return &polymarketconfig.Config{
-		APIKey:            os.Getenv("POLYMARKET_API_KEY"),
-		APISecret:         os.Getenv("POLYMARKET_API_SECRET"),
-		Passphrase:        os.Getenv("POLYMARKET_PASSPHRASE"),
 		PrivateKey:        os.Getenv("POLYMARKET_PRIVATE_KEY"),
 		PolymarketAddress: os.Getenv("POLYMARKET_ADDRESS"),
-		ChainID:           int64(chainID),
 		SignatureType:     signatureType,
 	}
 }

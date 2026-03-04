@@ -3,13 +3,13 @@ package websocket
 import (
 	"context"
 
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (w websocket) UnsubscribeMarket(market prediction.Market) error {
 	assetIds := make([]string, len(market.Outcomes))
 	for i, outcome := range market.Outcomes {
-		assetIds[i] = outcome.OutcomeId
+		assetIds[i] = outcome.OutcomeID.String()
 	}
 
 	ctx := context.Background()

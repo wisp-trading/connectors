@@ -5,8 +5,9 @@ import (
 	"time"
 
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
@@ -24,7 +25,7 @@ type OrderPlacementParams struct {
 func getMarketAndSubscribeOrderbook(
 	conn prediction.WebSocketConnector,
 	marketSlug string,
-) (prediction.Market, <-chan connector.OrderBook, error) {
+) (prediction.Market, <-chan prediction.OrderBook, error) {
 	market, err := conn.GetMarket(marketSlug)
 	if err != nil {
 		return prediction.Market{}, nil, fmt.Errorf("failed to get market: %w", err)
@@ -40,17 +41,12 @@ func getMarketAndSubscribeOrderbook(
 		return prediction.Market{}, nil, fmt.Errorf("failed to subscribe to orderbook: %w", err)
 	}
 
-	orderbookChannels := conn.GetOrderbookChannels()
-	if orderbookChannels == nil {
+	orderbookChannel := conn.GetOrderBookUpdates()
+	if orderbookChannel == nil {
 		return prediction.Market{}, nil, fmt.Errorf("orderbook channels is nil")
 	}
 
-	obChan, exists := orderbookChannels[market.Slug]
-	if !exists {
-		return prediction.Market{}, nil, fmt.Errorf("no orderbook channel for market %s", market.Slug)
-	}
-
-	return market, obChan, nil
+	return market, orderbookChannel, nil
 }
 
 // placeLimitOrderAtPrice places a limit order with specified parameters
@@ -110,7 +106,7 @@ func placeLimitOrderAtBestBid(
 	runner *connector_test.PredictionMarketTestRunner,
 	conn prediction.WebSocketConnector,
 	market prediction.Market,
-	obChan <-chan connector.OrderBook,
+	obChan <-chan prediction.OrderBook,
 	amount numerical.Decimal,
 	outcomeIdx int,
 ) (*connector.OrderResponse, error) {
@@ -140,7 +136,7 @@ func placeLimitOrderAtBestAsk(
 	runner *connector_test.PredictionMarketTestRunner,
 	conn prediction.WebSocketConnector,
 	market prediction.Market,
-	obChan <-chan connector.OrderBook,
+	obChan <-chan prediction.OrderBook,
 	amount numerical.Decimal,
 	outcomeIdx int,
 ) (*connector.OrderResponse, error) {

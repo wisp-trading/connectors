@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
@@ -37,7 +37,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 				market, err := conn.GetMarket(slug)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(market.MarketId).ToNot(BeEmpty())
+				Expect(market.MarketID).ToNot(BeEmpty())
 			})
 		})
 	})
@@ -71,21 +71,17 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 					err = conn.SubscribeOrderBook(market)
 					Expect(err).ToNot(HaveOccurred())
 
-					orderbookChannels := conn.GetOrderbookChannels()
-					Expect(orderbookChannels).ToNot(BeNil(), "Market orderbookChannels should not be nil")
-
-					outcome, exists := orderbookChannels[market.Slug]
-					Expect(exists).To(BeTrue(), "Market book channel should exist for subscribed market")
-					Expect(outcome).ToNot(BeNil(), "Market book channel should not be nil")
+					orderbookChannel := conn.GetOrderBookUpdates()
+					Expect(orderbookChannel).ToNot(BeNil(), "Market orderbookChannels should not be nil")
 
 					// Verify order book data
-					orderBook := runner.VerifyOrderBookData(outcome, 3*time.Second)
+					orderBook := runner.VerifyOrderBookData(orderbookChannel, 3*time.Second)
 					Expect(orderBook.Bids).ToNot(BeNil())
 					Expect(orderBook.Asks).ToNot(BeNil())
 
 					connector_test.LogSuccess(
 						"Received order book data for market %s with %d bids and %d asks",
-						market.MarketId,
+						market.MarketID,
 						len(orderBook.Bids),
 						len(orderBook.Asks),
 					)
@@ -126,7 +122,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 					connector_test.LogSuccess(
 						"Received price change data for market %s, outcome %s",
-						market.MarketId,
+						market.MarketID,
 						priceChange.Outcome.Pair.Outcome(),
 					)
 
@@ -192,7 +188,7 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 				connector_test.LogSuccess(
 					"Received trade data for market %s, price %s, quantity %s",
-					market.MarketId,
+					market.MarketID,
 					order.Price.String(),
 					order.Quantity.String(),
 				)

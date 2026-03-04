@@ -3,7 +3,7 @@ package polymarket
 import (
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"go.uber.org/fx"
 )
@@ -26,5 +26,5 @@ var Module = fx.Options(
 
 // registerPolymarket registers the Polymarket Spot connector with the SDK's ConnectorRegistry
 func registerPolymarket(polymarketConn prediction.WebSocketConnector, reg registry.ConnectorRegistry) {
-	reg.RegisterPredictionMarketConnector(types.Polymarket, polymarketConn)
+	reg.RegisterPrediction(types.Polymarket, polymarketConn)
 }

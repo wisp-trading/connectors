@@ -10,8 +10,8 @@ import (
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/order_manager"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
 	"github.com/wisp-trading/sdk/pkg/types/temporal"
 )
@@ -26,39 +26,29 @@ type polymarket struct {
 	ctx           context.Context
 	initialized   bool
 
-	// WebSocket state management
-	wsContext context.Context
-	wsCancel  context.CancelFunc
-	wsMutex   sync.RWMutex
+	subscribedMarkets map[prediction.MarketID]prediction.Market
 
-	tradeChannel chan connector.Trade
-
-	// Separate channels per outcome subscription (key: "btc-updown-4h:YES-USDC")
-	orderBookChannels map[string]chan connector.OrderBook
-	orderBookMu       sync.RWMutex
+	orderBookChannel chan prediction.OrderBook
 
 	priceChangeChannels map[string]chan prediction.PriceChange
 	priceChangeMu       sync.RWMutex
 
-	tradesChannel chan connector.Trade
-	orderChannel  chan connector.Order
+	tradeChannel chan connector.Trade
+	orderChannel chan connector.Order
 
-	// Separate channels per outcome subscription for klines (key: "btc-updown-4h:YES-USDC")
-	klineChannels map[string]chan connector.Kline
-	klineMu       sync.RWMutex
 	orderManager  order_manager.OrderManager
 	clobWebsocket websocket.Websocket
 	gammaClient   gamma.GammaClient
 }
 
 func (p *polymarket) GetConnectorInfo() *connector.Info {
-	//TODO implement me
-	panic("implement me")
+	return &connector.Info{
+		Name: connector.ExchangeName("polymarket"),
+	}
 }
 
 func (p *polymarket) NewConfig() connector.Config {
-	//TODO implement me
-	panic("implement me")
+	return config.NewConfig()
 }
 
 func (p *polymarket) SupportsTradingOperations() bool {
@@ -89,12 +79,11 @@ func NewPolymarket(
 		timeProvider:        timeProvider,
 		ctx:                 context.Background(),
 		initialized:         false,
-		orderBookChannels:   make(map[string]chan connector.OrderBook),
+		orderBookChannel:    make(chan prediction.OrderBook, 100),
 		priceChangeChannels: make(map[string]chan prediction.PriceChange),
-		tradesChannel:       make(chan connector.Trade, 100),
-		klineChannels:       make(map[string]chan connector.Kline),
 		tradeChannel:        make(chan connector.Trade, 100),
 		orderChannel:        make(chan connector.Order, 100),
+		subscribedMarkets:   make(map[prediction.MarketID]prediction.Market),
 	}
 }
 

@@ -3,8 +3,8 @@ package polymarket
 import (
 	"context"
 
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
@@ -62,7 +62,7 @@ func (p *polymarket) SubscribeTrades(market prediction.Market) error {
 			if done {
 				return
 			}
-			p.tradesChannel <- trade
+			p.tradeChannel <- trade
 		}
 	}()
 

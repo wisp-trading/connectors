@@ -3,7 +3,7 @@ package polymarket
 import (
 	"fmt"
 
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (p *polymarket) StartWebSocket() error {
@@ -24,9 +24,11 @@ func (p *polymarket) StopWebSocket() error {
 		return fmt.Errorf("websocket service not initialized")
 	}
 
-	for marketID := range p.orderBookChannels {
-		if err := p.UnsubscribeMarket(prediction.Market{Slug: marketID}); err != nil {
-			p.appLogger.Warn("Failed to unsubscribe from market %s: %v", marketID, err)
+	for _, market := range p.subscribedMarkets {
+		for _, outcome := range market.Outcomes {
+			if err := p.UnsubscribeMarket(prediction.Market{Slug: outcome.OutcomeID.String()}); err != nil {
+				p.appLogger.Warn("Failed to unsubscribe from market %s: %v", outcome.OutcomeID.String(), err)
+			}
 		}
 	}
 

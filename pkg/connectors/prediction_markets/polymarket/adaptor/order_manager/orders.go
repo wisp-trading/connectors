@@ -5,8 +5,8 @@ import (
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
 )
 
 // PlaceOrder places an order on Polymarket
@@ -17,7 +17,7 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 	}
 
 	size, err := c.client.TickSize(ctx, &clobtypes.TickSizeRequest{
-		TokenID: order.Outcome.OutcomeId,
+		TokenID: order.Outcome.OutcomeID.String(),
 	})
 	if err != nil {
 		return clobtypes.OrderResponse{}, err
@@ -25,7 +25,7 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 
 	// Build the order using the SDK builder
 	signableOrder, err := clob.NewOrderBuilder(c.client, c.signer).
-		TokenID(order.Outcome.OutcomeId).
+		TokenID(order.Outcome.OutcomeID.String()).
 		Side(side).
 		Price(order.Price.InexactFloat64()).
 		Size(order.Amount.InexactFloat64()).

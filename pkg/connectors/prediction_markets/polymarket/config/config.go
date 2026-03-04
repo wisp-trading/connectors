@@ -8,18 +8,17 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
+func NewConfig() connector.Config {
+	return &Config{}
+}
+
 // Config holds the configuration for Polymarket connector
 type Config struct {
 	// Authentication
-	APIKey            string `json:"api_key"`
-	APISecret         string `json:"api_secret"`
-	Passphrase        string `json:"passphrase"`
 	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
 	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
 
-	// Trading Configuration
-	ChainID       int64 `json:"chain_id,omitempty"`       // Polygon chain ID (default: 137)
-	SignatureType int   `json:"signature_type,omitempty"` // Signature type (default: 2 for Safe proxy wallet)
+	SignatureType int `json:"signature_type,omitempty"` // Signature type (default: 2 for Safe proxy wallet)
 }
 
 var _ connector.Config = (*Config)(nil)
@@ -31,16 +30,6 @@ func (c Config) ExchangeName() connector.ExchangeName {
 
 // Validate checks if the configuration is valid and sets defaults
 func (c *Config) Validate() error {
-	// Validate required authentication fields
-	if c.APIKey == "" {
-		return fmt.Errorf("api_key is required")
-	}
-	if c.APISecret == "" {
-		return fmt.Errorf("api_secret is required")
-	}
-	if c.Passphrase == "" {
-		return fmt.Errorf("passphrase is required")
-	}
 	if c.PrivateKey == "" {
 		return fmt.Errorf("private_key is required")
 	}
@@ -57,11 +46,6 @@ func (c *Config) Validate() error {
 	// Validate funder address format (Ethereum address: 0x + 40 hex chars)
 	if !strings.HasPrefix(c.PolymarketAddress, "0x") || len(c.PolymarketAddress) != 42 || !isHexString(c.PolymarketAddress[2:]) {
 		return fmt.Errorf("funder_address must be a valid Ethereum address (0x followed by 40 hex characters)")
-	}
-
-	// Set default chain ID (Polygon mainnet)
-	if c.ChainID == 0 {
-		c.ChainID = 137
 	}
 
 	// Set default signature type (Safe proxy wallet)

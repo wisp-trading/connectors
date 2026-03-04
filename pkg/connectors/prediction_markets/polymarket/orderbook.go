@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
@@ -17,13 +16,9 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 		return fmt.Errorf("invalid market: %w", err)
 	}
 
-	p.orderBookMu.Lock()
-	if _, exists := p.orderBookChannels[market.Slug]; !exists {
-		p.orderBookChannels[market.Slug] = make(chan connector.OrderBook, 100)
-		p.appLogger.Info("Created order book channel for market %s", market.Slug)
+	if _, exists := p.subscribedMarkets[market.MarketID]; exists {
+		return fmt.Errorf("already subscribed to market %s", market.Slug)
 	}
-	orderBookChannel := p.orderBookChannels[market.Slug]
-	p.orderBookMu.Unlock()
 
 	// Get channel from SDK wrapper
 	msgChannel, err := p.clobWebsocket.SubscribeOrderbook(market)
@@ -37,7 +32,7 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 			orderBook := p.parseOrderbookEvent(msg, market)
 
 			select {
-			case orderBookChannel <- orderBook:
+			case p.orderBookChannel <- orderBook:
 				// Successfully sent
 			default:
 				p.appLogger.Warn("Order book channel full for market %s, dropping message", market.Slug)
@@ -52,7 +47,7 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 func (p *polymarket) FetchOrderBooks(
 	market prediction.Market,
 	outcome prediction.Outcome,
-) (*connector.OrderBook, error) {
+) (*prediction.OrderBook, error) {
 	ctx := context.Background()
 	orderbook, err := p.orderManager.GetOrderBook(ctx, outcome)
 	if err != nil {

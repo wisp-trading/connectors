@@ -8,8 +8,9 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/wisp-trading/connectors/pkg/connectors"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+
 	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"github.com/wisp-trading/sdk/wisp"
 )
@@ -39,7 +40,7 @@ func NewPredictionMarketTestRunner(connectorName connector.ExchangeName, config 
 	}
 
 	// Get PREDICTION MARKET connector from registry
-	conn, exists := reg.GetPredictionMarketConnector(connectorName)
+	conn, exists := reg.Prediction(connectorName)
 	if !exists {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("prediction market connector %s not found in registry", connectorName)
@@ -92,17 +93,17 @@ func (tr *PredictionMarketTestRunner) GetWebSocketCapable() prediction.WebSocket
 
 // VerifyOrderBookData waits for order book data from channel with timeout
 func (tr *PredictionMarketTestRunner) VerifyOrderBookData(
-	obChan <-chan connector.OrderBook,
+	obChan <-chan prediction.OrderBook,
 	timeout time.Duration,
-) connector.OrderBook {
+) prediction.OrderBook {
 	select {
 	case ob, ok := <-obChan:
 		if !ok {
-			return connector.OrderBook{}
+			return prediction.OrderBook{}
 		}
 		return ob
 	case <-time.After(timeout):
-		return connector.OrderBook{}
+		return prediction.OrderBook{}
 	}
 }
 

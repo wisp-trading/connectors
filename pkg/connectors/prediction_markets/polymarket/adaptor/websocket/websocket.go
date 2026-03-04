@@ -2,7 +2,7 @@ package websocket
 
 import (
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/ws"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 type Websocket interface {

@@ -40,7 +40,7 @@ func NewSpotTestRunner(connectorName connector.ExchangeName, config connector.Co
 	}
 
 	// Get SPOT connector from registry
-	conn, exists := reg.GetSpotConnector(connectorName)
+	conn, exists := reg.Spot(connectorName)
 	if !exists {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("spot connector %s not found in registry", connectorName)

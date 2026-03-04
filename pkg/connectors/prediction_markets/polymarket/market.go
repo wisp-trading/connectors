@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/wisp-trading/sdk/pkg/types/connector"
-	"github.com/wisp-trading/sdk/pkg/types/connector/prediction"
+	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
 func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
@@ -35,7 +34,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 
 	outcomes := make([]prediction.Outcome, len(outcomeIds))
 
-	for i, _ := range outcomeIds {
+	for i := range outcomeIds {
 		pair := prediction.NewPredictionPair(
 			marketData.Slug,
 			outcomeLabels[i], // "YES", "NO", "UP", "DOWN", etc.
@@ -44,20 +43,21 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 
 		outcomes[i] = prediction.Outcome{
 			Pair:      pair,
-			OutcomeId: outcomeIds[i], // The CLOB token ID for orderbook
+			OutcomeID: prediction.OutcomeIDFromString(outcomeIds[i]), // The CLOB token ID for orderbook
 		}
 	}
 
 	// Handle resolution date (if closed)
 	resolutionTime, err := time.Parse(time.RFC3339, marketData.EndDate)
 	if err != nil {
-		fmt.Printf("Warning: failed to parse resolution time for market %s: %v\n", slug, err)
+		p.appLogger.Error("Failed to parse resolution time for market %s: %v", slug, err)
+		return prediction.Market{}, fmt.Errorf("failed to parse resolution time: %w", err)
 	}
 
 	market := prediction.Market{
-		MarketId:       marketData.ConditionID,
+		MarketID:       prediction.MarketIDFromString(marketData.ConditionID), // The Polymarket condition ID
 		Slug:           marketData.Slug,
-		Exchange:       connector.ExchangeName("Polymarket"),
+		Exchange:       p.GetConnectorInfo().Name,
 		OutcomeType:    outcomeType,
 		Outcomes:       outcomes,
 		Active:         marketData.Active,
@@ -97,19 +97,6 @@ func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.R
 }
 
 func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
-	p.orderBookMu.Lock()
-	ch, exists := p.orderBookChannels[market.Slug]
-	if exists {
-		close(ch)
-		delete(p.orderBookChannels, market.Slug)
-	}
-	p.orderBookMu.Unlock()
-
-	if !exists {
-		p.appLogger.Warn("Market %s not subscribed", market.Slug)
-		return nil
-	}
-
 	err := p.clobWebsocket.UnsubscribeMarket(market)
 	if err != nil {
 		return err
