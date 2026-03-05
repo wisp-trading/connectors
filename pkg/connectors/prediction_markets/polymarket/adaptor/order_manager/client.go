@@ -16,6 +16,7 @@ type OrderManager interface {
 	CancelOrder(ctx context.Context, orderID string) (clobtypes.CancelResponse, error)
 	GetOrderBook(ctx context.Context, outcome prediction.Outcome) (clobtypes.OrderBookResponse, error)
 	GetBalance(ctx context.Context) (clobtypes.BalanceAllowanceResponse, error)
+	GetMarketBalance(ctx context.Context, market prediction.Market) (map[prediction.OutcomeID]clobtypes.BalanceAllowanceResponse, error)
 	RedeemPosition(ctx context.Context, market prediction.Market) (string, error)
 }
 
