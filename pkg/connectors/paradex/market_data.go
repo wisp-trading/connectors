@@ -32,7 +32,7 @@ func (p *paradex) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
 	}
 
 	return &connector.Price{
-		Symbol:    symbol,
+		Pair:      pair,
 		Price:     priceValue,
 		BidPrice:  priceValue,
 		AskPrice:  priceValue,

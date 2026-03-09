@@ -85,7 +85,7 @@ func (h *hyperliquid) FetchPrice(pair portfolio.Pair) (*connector.Price, error) 
 	}
 
 	return &connector.Price{
-		Symbol:    symbol,
+		Pair:      pair,
 		Price:     price,
 		Source:    "Hyperliquid",
 		Timestamp: h.timeProvider.Now(),

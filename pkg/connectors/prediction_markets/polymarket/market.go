@@ -54,6 +54,12 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		return prediction.Market{}, fmt.Errorf("failed to parse resolution time: %w", err)
 	}
 
+	startTime, err := time.Parse(time.RFC3339, marketData.StartDate)
+	if err != nil {
+		p.appLogger.Error("Failed to parse start time for market %s: %v", slug, err)
+		return prediction.Market{}, fmt.Errorf("failed to parse start time: %w", err)
+	}
+
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(marketData.ConditionID), // The Polymarket condition ID
 		Slug:           marketData.Slug,
@@ -63,6 +69,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		Active:         marketData.Active,
 		Closed:         marketData.Closed,
 		ResolutionTime: &resolutionTime,
+		StartTime:      &startTime,
 	}
 
 	return market, nil

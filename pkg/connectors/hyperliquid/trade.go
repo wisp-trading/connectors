@@ -95,7 +95,7 @@ func (h *hyperliquid) CancelOrder(orderID string, pair ...portfolio.Pair) (*conn
 
 	return &connector.CancelResponse{
 		OrderID:   orderID,
-		Symbol:    symbol,
+		Pair:      pair[0],
 		Status:    connector.OrderStatusCanceled,
 		Timestamp: h.timeProvider.Now(),
 	}, nil

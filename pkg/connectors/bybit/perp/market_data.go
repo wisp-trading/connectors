@@ -70,7 +70,7 @@ func (b *bybit) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
 					if lastPrice, ok := tickerData["lastPrice"].(string); ok {
 						if price, err := numerical.NewFromString(lastPrice); err == nil {
 							return &connector.Price{
-								Symbol:    pair.Symbol(),
+								Pair:      pair,
 								Price:     price,
 								Source:    b.GetConnectorInfo().Name,
 								Timestamp: b.timeProvider.Now(),

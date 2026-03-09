@@ -131,7 +131,6 @@ func (b *bybit) parseOrder(data map[string]interface{}) connector.Order {
 		order.ClientOrderID = orderLinkId
 	}
 	if symbol, ok := data["symbol"].(string); ok {
-		order.Symbol = symbol
 		var err error
 		order.Pair, err = b.symbolToPair(symbol)
 		if err != nil {

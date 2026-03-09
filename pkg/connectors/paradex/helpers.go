@@ -5,6 +5,7 @@ import (
 
 	"github.com/trishtzy/go-paradex/models"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
@@ -22,10 +23,15 @@ func (p *paradex) convertParadexOrder(paradexOrder *models.ResponsesOrderResp) c
 	createdAt := time.Unix(paradexOrder.CreatedAt/1000, (paradexOrder.CreatedAt%1000)*1000000)
 	updatedAt := time.Unix(paradexOrder.LastUpdatedAt/1000, (paradexOrder.LastUpdatedAt%1000)*1000000)
 
+	pair := portfolio.NewPair(
+		portfolio.NewAsset(paradexOrder.Market),
+		portfolio.NewAsset("USDC"),
+	)
+
 	return connector.Order{
 		ID:            paradexOrder.ID,
 		ClientOrderID: paradexOrder.ClientID,
-		Symbol:        paradexOrder.Market,
+		Pair:          pair,
 		Side:          p.convertOrderSide(paradexOrder.Side.ResponsesOrderSide),
 		Type:          p.convertOrderType(paradexOrder.Type.ResponsesOrderType),
 		Status:        p.convertOrderStatus(paradexOrder.Status.ResponsesOrderStatus),
