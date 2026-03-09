@@ -105,7 +105,7 @@ func (g *gateSpot) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
 	}
 
 	return &connector.Price{
-		Symbol:    pair.Symbol(),
+		Pair:      pair,
 		Price:     price,
 		Source:    types.GateSpot,
 		Timestamp: g.timeProvider.Now(),
