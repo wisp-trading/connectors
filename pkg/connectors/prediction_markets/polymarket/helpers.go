@@ -3,7 +3,6 @@ package polymarket
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -140,8 +139,8 @@ func (p *polymarket) parsePriceLevel(levels []clobtypes.PriceLevel) ([]connector
 }
 
 // parsePriceChange converts a websocket price change event to a prediction.PriceChange struct
-func (p *polymarket) parsePriceChange(msg ws.PriceChangeEvent, market prediction.Market) (prediction.PriceChange, error) {
-	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(msg.AssetId))
+func (p *polymarket) parsePriceChange(msg ws.PriceEvent, market prediction.Market) (prediction.PriceChange, error) {
+	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(msg.AssetID))
 	if err != nil {
 		return prediction.PriceChange{}, err
 	}
@@ -205,25 +204,19 @@ func (p *polymarket) parseOrder(market prediction.Market, event ws.OrderEvent) (
 		return connector.Order{}, true
 	}
 
-	quantity, err := numerical.NewFromString(event.OriginalSize)
+	quantity, err := numerical.NewFromString(event.Size)
 	if err != nil {
 		p.appLogger.Error("Failed to parse quantity for order event: %v", err)
 		return connector.Order{}, true
 	}
 
-	// Timestamp is a string in milliseconds, need to parse it
-	timestampMs, err := strconv.ParseInt(event.Timestamp, 10, 64)
-	if err != nil {
-		p.appLogger.Error("Failed to parse timestamp for order event: %v", err)
-		return connector.Order{}, true
-	}
-	timeStamp := time.UnixMilli(timestampMs)
+	timeStamp := time.UnixMilli(event.Timestamp)
 
 	// Map Polymarket status to your connector status
 	status := mapPolymarketStatus(event.Status)
 
 	order := connector.Order{
-		ID:        event.ID,
+		ID:        event.OrderID,
 		Pair:      outcome.Pair.Pair,
 		Price:     price,
 		Quantity:  quantity,
