@@ -17,7 +17,7 @@ require (
 	github.com/sonirico/go-hyperliquid v0.5.0
 	github.com/stretchr/testify v1.11.1
 	github.com/trishtzy/go-paradex v0.1.3
-	github.com/wisp-trading/sdk v0.0.9-0.20260205083312-894515b7b197
+	github.com/wisp-trading/sdk v0.1.0
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1
 )
@@ -103,7 +103,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/mod v0.30.0 // indirect
-	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
