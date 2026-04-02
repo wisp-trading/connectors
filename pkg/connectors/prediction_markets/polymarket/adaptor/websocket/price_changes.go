@@ -7,7 +7,7 @@ import (
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
-func (w websocket) SubscribePriceChanges(market prediction.Market) (<-chan ws.PriceEvent, error) {
+func (w websocket) SubscribePriceChanges(market prediction.Market) (<-chan ws.PriceChangeEvent, error) {
 	assetIds := make([]string, len(market.Outcomes))
 	for i, outcome := range market.Outcomes {
 		assetIds[i] = outcome.OutcomeID.String()
