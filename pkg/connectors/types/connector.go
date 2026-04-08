@@ -5,11 +5,12 @@ import (
 )
 
 const (
-	Hyperliquid connector.ExchangeName = "hyperliquid"
-	Paradex     connector.ExchangeName = "paradex"
-	Bybit       connector.ExchangeName = "bybit"
-	GateSpot    connector.ExchangeName = "gate_spot"
-	Polymarket  connector.ExchangeName = "polymarket"
+	Hyperliquid     connector.ExchangeName = "hyperliquid"
+	Paradex         connector.ExchangeName = "paradex"
+	Bybit           connector.ExchangeName = "bybit"
+	GateSpot        connector.ExchangeName = "gate_spot"
+	Polymarket      connector.ExchangeName = "polymarket"
+	DeribitOptions  connector.ExchangeName = "deribit_options"
 )
 
 var AllConnectors = []connector.ExchangeName{
@@ -18,4 +19,5 @@ var AllConnectors = []connector.ExchangeName{
 	Bybit,
 	GateSpot,
 	Polymarket,
+	DeribitOptions,
 }
