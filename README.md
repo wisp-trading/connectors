@@ -34,7 +34,7 @@ binance := connectors.NewBinanceConnector(config)
 
 ## Documentation
 
-For detailed guides, examples, and API reference, visit the [Wisp documentation](https://docs.usewisp.dev).
+For detailed guides, examples, and API reference, visit the [Wisp documentation](https://usewisp.dev/docs).
 
 ## Contributing
 
