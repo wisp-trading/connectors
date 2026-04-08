@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
+	deribitconfig "github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
 	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
@@ -167,5 +168,52 @@ func getPolymarketConfig() *polymarketconfig.Config {
 		PrivateKey:        os.Getenv("POLYMARKET_PRIVATE_KEY"),
 		PolymarketAddress: os.Getenv("POLYMARKET_ADDRESS"),
 		SignatureType:     signatureType,
+	}
+}
+
+// ========================================
+// OPTIONS CONNECTOR CONFIGURATION
+// ========================================
+const (
+	testOptionsConnectorName = types.DeribitOptions
+	testOptionsSymbol        = "BTC"
+)
+
+// GetTestOptionsConnectorName returns the options connector name for tests
+func GetTestOptionsConnectorName() connector.ExchangeName {
+	return testOptionsConnectorName
+}
+
+// GetOptionsConnectorConfig returns the config for the options connector under test
+func GetOptionsConnectorConfig() connector.Config {
+	return getDeribitOptionsConfig()
+}
+
+// getDeribitOptionsConfig creates a Deribit Options config from environment variables
+func getDeribitOptionsConfig() *deribitconfig.Config {
+	useTestnet, _ := strconv.ParseBool(os.Getenv("DERIBIT_TESTNET"))
+
+	// Set defaults if not in environment
+	baseURL := os.Getenv("DERIBIT_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://test.deribit.com/api/v2"
+	}
+	wsURL := os.Getenv("DERIBIT_WS_URL")
+	if wsURL == "" {
+		wsURL = "wss://test.deribit.com/ws/api/v2"
+	}
+
+	// If not explicitly set, default to testnet for integration tests
+	if os.Getenv("DERIBIT_TESTNET") == "" {
+		useTestnet = true
+	}
+
+	return &deribitconfig.Config{
+		ClientID:        os.Getenv("DERIBIT_CLIENT_ID"),
+		ClientSecret:    os.Getenv("DERIBIT_CLIENT_SECRET"),
+		BaseURL:         baseURL,
+		WebSocketURL:    wsURL,
+		UseTestnet:      useTestnet,
+		DefaultSlippage: 0.001, // 0.1% default slippage
 	}
 }
