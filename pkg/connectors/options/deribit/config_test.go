@@ -1,16 +1,9 @@
 package deribit
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestConfig(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Deribit Config Suite")
-}
 
 var _ = Describe("Config Validation", func() {
 	It("should require client_id", func() {
@@ -88,6 +81,6 @@ var _ = Describe("Config Validation", func() {
 			ClientSecret: "test-secret",
 		}
 
-		Expect(cfg.ExchangeName()).To(Equal("deribit_options"))
+		Expect(string(cfg.ExchangeName())).To(Equal("deribit_options"))
 	})
 })

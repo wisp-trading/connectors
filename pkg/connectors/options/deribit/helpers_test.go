@@ -1,7 +1,6 @@
 package deribit
 
 import (
-	"testing"
 	"time"
 
 	optionsConnector "github.com/wisp-trading/sdk/pkg/types/connector/options"
@@ -10,11 +9,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestHelpers(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Deribit Helpers Suite")
-}
 
 var _ = Describe("Instrument Name Formatting", func() {
 	It("should format instrument name correctly for CALL option", func() {

@@ -22,6 +22,8 @@ require (
 	go.uber.org/zap v1.27.1
 )
 
+replace github.com/wisp-trading/sdk => ../sdk
+
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
