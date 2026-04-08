@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	optionsTypes "github.com/wisp-trading/sdk/pkg/types/connector/options"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
 	"go.uber.org/fx"
 )
@@ -76,4 +78,19 @@ func LogDebug(format string, args ...interface{}) {
 
 func LogError(format string, args ...interface{}) {
 	fmt.Printf("[ERROR] "+format+"\n", args...)
+}
+
+// CreateOptionsContract creates a test options contract
+func CreateOptionsContract(symbol string, strike float64, optionType string) optionsTypes.OptionContract {
+	pair := portfolio.NewPair(
+		portfolio.NewAsset(symbol),
+		portfolio.NewAsset("USDT"),
+	)
+
+	return optionsTypes.OptionContract{
+		Pair:       pair,
+		Strike:     strike,
+		Expiration: time.Now().AddDate(0, 0, 30), // 30 days out
+		OptionType: optionType,
+	}
 }
