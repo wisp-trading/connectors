@@ -2,21 +2,24 @@ package deribit
 
 import (
 	"github.com/wisp-trading/connectors/pkg/connectors/options/deribit/adaptor"
+	deribitWS "github.com/wisp-trading/connectors/pkg/connectors/options/deribit/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
-	"github.com/wisp-trading/sdk/pkg/types/connector/options"
-	"github.com/wisp-trading/sdk/pkg/types/logging"
+	optionsConnector "github.com/wisp-trading/sdk/pkg/types/connector/options"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
-	"github.com/wisp-trading/sdk/pkg/types/temporal"
 	"go.uber.org/fx"
 )
 
-// Module provides the Deribit options connector and its dependencies
+// Module provides the Deribit options connector, its HTTP client, and its WebSocket service.
 var Module = fx.Options(
+	// Wire all WebSocket infrastructure (connection manager, reconnect, base service, etc.)
+	deribitWS.WebSocketModule,
+
 	fx.Provide(
 		adaptor.NewClient,
 		fx.Annotate(
 			NewDeribitOptions,
-			fx.ParamTags(``, ``, ``, ``),
+			// NewDeribitOptions params: client, appLogger, tradingLogger, timeProvider, wsService
+			fx.ParamTags(``, ``, ``, ``, ``),
 			fx.ResultTags(`name:"deribit_options"`),
 		),
 	),
@@ -26,18 +29,9 @@ var Module = fx.Options(
 	)),
 )
 
-// registerDeribitOptions registers the Deribit Options connector with the SDK's ConnectorRegistry
-func registerDeribitOptions(deribitConn options.Connector, reg registry.ConnectorRegistry) {
+// registerDeribitOptions registers the connector with the SDK's ConnectorRegistry.
+// We register as options.Connector (the base interface) so the registry type is satisfied;
+// the full WebSocketConnector is accessible via type assertion on the registered value.
+func registerDeribitOptions(deribitConn optionsConnector.WebSocketConnector, reg registry.ConnectorRegistry) {
 	reg.RegisterOptions(types.DeribitOptions, deribitConn)
-}
-
-// ProvideConnector explicitly provides the options connector for dependency injection
-// Usage: fx.Provide(deribit.ProvideConnector) in your main module
-func ProvideConnector(
-	client adaptor.Client,
-	appLogger logging.ApplicationLogger,
-	tradingLogger logging.TradingLogger,
-	timeProvider temporal.TimeProvider,
-) interface{} {
-	return NewDeribitOptions(client, appLogger, tradingLogger, timeProvider)
 }

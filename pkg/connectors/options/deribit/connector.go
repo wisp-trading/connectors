@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/wisp-trading/connectors/pkg/connectors/options/deribit/adaptor"
+	deribitWS "github.com/wisp-trading/connectors/pkg/connectors/options/deribit/websocket"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	optionsConnector "github.com/wisp-trading/sdk/pkg/types/connector/options"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
@@ -15,8 +16,12 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
-// deribitOptions implements the options.Connector interface
+// defaultWSURL is the Deribit production WebSocket endpoint.
+const defaultWSURL = "wss://www.deribit.com/ws/api/v2"
+
+// deribitOptions implements options.WebSocketConnector (which embeds options.Connector).
 type deribitOptions struct {
+	// HTTP / REST
 	client        adaptor.Client
 	config        *Config
 	appLogger     logging.ApplicationLogger
@@ -24,24 +29,33 @@ type deribitOptions struct {
 	timeProvider  temporal.TimeProvider
 	initialized   bool
 	mu            sync.RWMutex
+
+	// WebSocket
+	wsService deribitWS.Service
+	wsChannelState
 }
 
-// Ensure deribitOptions implements the options.Connector interface at compile time
-var _ optionsConnector.Connector = (*deribitOptions)(nil)
-
-// NewDeribitOptions creates a new Deribit options connector
+// NewDeribitOptions creates a new Deribit options connector.
+// wsService is injected via fx and handles the WebSocket lifecycle.
 func NewDeribitOptions(
 	client adaptor.Client,
 	appLogger logging.ApplicationLogger,
 	tradingLogger logging.TradingLogger,
 	timeProvider temporal.TimeProvider,
-) optionsConnector.Connector {
+	wsService deribitWS.Service,
+) optionsConnector.WebSocketConnector {
 	return &deribitOptions{
 		client:        client,
 		appLogger:     appLogger,
 		tradingLogger: tradingLogger,
 		timeProvider:  timeProvider,
 		initialized:   false,
+		wsService:     wsService,
+		wsChannelState: wsChannelState{
+			optionChans: make(map[string]chan optionsConnector.OptionUpdate),
+			tradeChans:  make(map[string]chan connector.Trade),
+			obChans:     make(map[string]chan connector.OrderBook),
+		},
 	}
 }
 
