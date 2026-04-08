@@ -34,14 +34,11 @@ func (d *deribitOptions) fetchExpirations(ctx context.Context, pair portfolio.Pa
 	}
 
 	// Extract unique expirations
+	// Deribit returns quote_currency as the settlement currency (e.g. "BTC"), not the
+	// trading pair quote (e.g. "USDT"). Match on base_currency only.
 	expirationMap := make(map[int64]bool)
 	for _, instr := range instruments {
-		baseCurrency := portfolio.NewAsset(instr.BaseCurrency)
-		quoteCurrency := portfolio.NewAsset(instr.QuoteCurrency)
-		instrPair := portfolio.NewPair(baseCurrency, quoteCurrency)
-
-		// Only include instruments matching the requested pair
-		if instrPair.Base().Symbol() == pair.Base().Symbol() && instrPair.Quote().Symbol() == pair.Quote().Symbol() {
+		if instr.BaseCurrency == pair.Base().Symbol() {
 			expirationMap[instr.ExpirationTs] = true
 		}
 	}
@@ -77,19 +74,14 @@ func (d *deribitOptions) fetchStrikes(ctx context.Context, pair portfolio.Pair, 
 		return nil, fmt.Errorf("failed to parse instruments: %w", err)
 	}
 
-	// Extract strikes for matching pair and expiration
+	// Extract strikes for matching base currency and expiration.
+	// Deribit's quote_currency is the settlement currency (e.g. "BTC"), not the
+	// trading pair quote (e.g. "USDT"). Match on base_currency only.
 	strikeMap := make(map[float64]bool)
-	expirationMs := expiration.UnixMilli()
+	expirationMs := expiration.UTC().UnixMilli()
 
 	for _, instr := range instruments {
-		baseCurrency := portfolio.NewAsset(instr.BaseCurrency)
-		quoteCurrency := portfolio.NewAsset(instr.QuoteCurrency)
-		instrPair := portfolio.NewPair(baseCurrency, quoteCurrency)
-
-		// Check if pair and expiration match
-		if instrPair.Base().Symbol() == pair.Base().Symbol() &&
-			instrPair.Quote().Symbol() == pair.Quote().Symbol() &&
-			instr.ExpirationTs == expirationMs {
+		if instr.BaseCurrency == pair.Base().Symbol() && instr.ExpirationTs == expirationMs {
 			strikeMap[instr.Strike] = true
 		}
 	}

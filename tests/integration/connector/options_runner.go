@@ -11,6 +11,7 @@ import (
 	optionsTypes "github.com/wisp-trading/sdk/pkg/markets/options/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/options"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
 	wispTypes "github.com/wisp-trading/sdk/pkg/types/wisp"
 	"github.com/wisp-trading/sdk/wisp"
@@ -19,10 +20,12 @@ import (
 // OptionsTestRunner manages the lifecycle of options connector tests
 type OptionsTestRunner struct {
 	*BaseRunnerImpl
-	conn         options.Connector
-	wsConn       options.WebSocketConnector
-	wisp         wispTypes.Wisp
-	optionsStore optionsTypes.OptionsStore
+	conn                 options.Connector
+	wsConn               options.WebSocketConnector
+	wisp                 wispTypes.Wisp
+	optionsStore         optionsTypes.OptionsStore
+	optionsWatchlist     optionsTypes.OptionsWatchlist
+	batchIngestorFactory optionsTypes.OptionsBatchIngestorFactory
 }
 
 // NewOptionsTestRunner creates a new test runner for options connectors
@@ -30,11 +33,13 @@ func NewOptionsTestRunner(connectorName connector.ExchangeName, config connector
 	var reg registry.ConnectorRegistry
 	var wispInstance wispTypes.Wisp
 	var optionsStore optionsTypes.OptionsStore
+	var optionsWatchlist optionsTypes.OptionsWatchlist
+	var batchIngestorFactory optionsTypes.OptionsBatchIngestorFactory
 
 	app := fx.New(
 		wisp.Module,
 		connectors.Module,
-		fx.Populate(&reg, &wispInstance, &optionsStore),
+		fx.Populate(&reg, &wispInstance, &optionsStore, &optionsWatchlist, &batchIngestorFactory),
 		fx.NopLogger,
 	)
 
@@ -58,6 +63,12 @@ func NewOptionsTestRunner(connectorName connector.ExchangeName, config connector
 		return nil, fmt.Errorf("failed to initialize connector: %w", err)
 	}
 
+	// Mark connector ready so the ingestor factory can find it via FilterOptions(ReadyOnly())
+	if err := reg.MarkReady(connectorName); err != nil {
+		_ = app.Stop(context.Background())
+		return nil, fmt.Errorf("failed to mark connector ready: %w", err)
+	}
+
 	// Try to get WebSocket interface
 	wsConn, _ := conn.(options.WebSocketConnector)
 
@@ -70,10 +81,12 @@ func NewOptionsTestRunner(connectorName connector.ExchangeName, config connector
 			cancel: cancel,
 			reg:    reg,
 		},
-		conn:         conn,
-		wsConn:       wsConn,
-		wisp:         wispInstance,
-		optionsStore: optionsStore,
+		conn:                 conn,
+		wsConn:               wsConn,
+		wisp:                 wispInstance,
+		optionsStore:         optionsStore,
+		optionsWatchlist:     optionsWatchlist,
+		batchIngestorFactory: batchIngestorFactory,
 	}, nil
 }
 
@@ -115,4 +128,20 @@ func (tr *OptionsTestRunner) GetWisp() wispTypes.Wisp {
 // This allows tests to verify that connector data reaches the store
 func (tr *OptionsTestRunner) GetOptionsStore() optionsTypes.OptionsStore {
 	return tr.optionsStore
+}
+
+// WatchExpiration adds an expiration to the watchlist so the ingestor will collect its data.
+// This must be called before CollectNow to populate the store.
+func (tr *OptionsTestRunner) WatchExpiration(pair portfolio.Pair, expiration time.Time) error {
+	exchangeName := connector.ExchangeName(tr.conn.GetConnectorInfo().Name)
+	return tr.optionsWatchlist.RequireExpiration(exchangeName, pair, expiration)
+}
+
+// CollectNow creates ingestors from the factory and triggers an immediate collection,
+// running the full chain: connector.GetExpirationData() → store.Set*()
+func (tr *OptionsTestRunner) CollectNow() {
+	ingestors := tr.batchIngestorFactory.CreateIngestors()
+	for _, ingestor := range ingestors {
+		ingestor.CollectNow()
+	}
 }

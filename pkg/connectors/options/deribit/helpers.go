@@ -10,11 +10,21 @@ import (
 )
 
 // formatInstrumentName converts an options contract to Deribit's instrument name format
-// Format: "BTC-31DEC25-50000-C" (or -P for put)
-// This matches Deribit's naming convention
+// Format: "BTC-8APR26-59000-C" (or -P for put)
+// This matches Deribit's naming convention: SYMBOL-DDMMMYY-STRIKE-TYPE
+// NOTE: Uses UTC time to match Deribit's instrument naming (which is UTC-based)
 func formatInstrumentName(contract optionsConnector.OptionContract) string {
 	base := contract.Pair.Base().Symbol()
-	expirationDate := contract.Expiration.Format("02JAN06") // e.g., "31DEC25"
+
+	// Convert to UTC to match Deribit's instrument naming convention
+	expirationUTC := contract.Expiration.UTC()
+
+	// Format expiration as DDMMMYY (e.g., "08APR26") in UTC
+	day := expirationUTC.Day()
+	monthName := strings.ToUpper(expirationUTC.Format("Jan")[:3])
+	year := expirationUTC.Year() % 100 // Last 2 digits
+	expirationDate := fmt.Sprintf("%d%s%02d", day, monthName, year)
+
 	strike := int64(contract.Strike)
 	optionType := strings.ToUpper(contract.OptionType[0:1]) // "C" or "P"
 
@@ -22,7 +32,7 @@ func formatInstrumentName(contract optionsConnector.OptionContract) string {
 }
 
 // parseInstrumentName extracts contract details from a Deribit instrument name
-// Expects format: "BTC-31DEC25-50000-C"
+// Expects format: "BTC-8APR26-59000-C"
 func parseInstrumentName(name string, quote portfolio.Asset) (optionsConnector.OptionContract, error) {
 	parts := strings.Split(name, "-")
 	if len(parts) < 4 {
@@ -32,9 +42,9 @@ func parseInstrumentName(name string, quote portfolio.Asset) (optionsConnector.O
 	base := portfolio.NewAsset(parts[0])
 	pair := portfolio.NewPair(base, quote)
 
-	// Parse expiration date
+	// Parse expiration date from format DDMMMYY (e.g., "08APR26")
 	expirationStr := parts[1]
-	expiration, err := time.Parse("02JAN06", expirationStr)
+	expiration, err := parseDateFromDeribit(expirationStr)
 	if err != nil {
 		return optionsConnector.OptionContract{}, fmt.Errorf("failed to parse expiration: %w", err)
 	}
@@ -61,14 +71,27 @@ func parseInstrumentName(name string, quote portfolio.Asset) (optionsConnector.O
 }
 
 // formatDateForDeribit formats a time.Time to Deribit's date format
-// Returns format like "31DEC25"
+// Returns format like "08APR26" (DDMMMYY)
 func formatDateForDeribit(t time.Time) string {
-	return t.Format("02JAN06")
+	day := t.Day()
+	monthName := strings.ToUpper(t.Format("Jan")[:3])
+	year := t.Year() % 100
+	return fmt.Sprintf("%02d%s%02d", day, monthName, year)
 }
 
 // parseDateFromDeribit parses Deribit's date format to time.Time
-// Expects format like "31DEC25"
+// Expects format like "08APR26" (DDMMMYY)
 func parseDateFromDeribit(dateStr string) (time.Time, error) {
-	return time.Parse("02JAN06", dateStr)
+	if len(dateStr) != 7 {
+		return time.Time{}, fmt.Errorf("invalid date format: expected DDMMMYY, got %s", dateStr)
+	}
+
+	day := dateStr[0:2]
+	month := dateStr[2:5]
+	year := dateStr[5:7]
+
+	// Parse with Go's reference format (needs lowercase month)
+	dateFormatStr := fmt.Sprintf("%s%s%s", day, strings.ToLower(month), year)
+	return time.Parse("02Jan06", dateFormatStr)
 }
 

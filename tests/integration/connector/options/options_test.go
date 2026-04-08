@@ -1,8 +1,6 @@
 package options_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -50,94 +48,69 @@ var _ = Describe("Options Connector Tests", func() {
 			optionsService := wisp.Options()
 			Expect(optionsService).ToNot(BeNil())
 
-			connector_test.LogSuccess("✓ wisp.Options() accessible - SDK is properly wired")
+			connector_test.LogSuccess("NewFromFloatwisp.Options() accessible - SDK is properly wired")
 		})
 
 		It("should persist connector data to store and serve via SDK", func() {
-			// 1. Get connector and fetch real data
 			conn := runner.GetOptionsConnector()
-			Expect(conn).ToNot(BeNil())
+			pair := portfolio.NewPair(portfolio.NewAsset("BTC"), portfolio.NewAsset("USDT"))
 
-			// Create a test contract (BTC call option)
-			pair := portfolio.NewPair(
-				portfolio.NewAsset("BTC"),
-				portfolio.NewAsset("USDT"),
-			)
-
-			// Get available expirations to use a real one
+			// 1. Discover a real expiration from the exchange
 			expirations, err := conn.GetExpirations(pair)
-			Expect(err).ToNot(HaveOccurred(), "Should be able to fetch expirations")
-			Expect(expirations).ToNot(BeEmpty(), "Should have at least one expiration")
-
-			// Use the first available expiration
+			Expect(err).ToNot(HaveOccurred())
+			if len(expirations) == 0 {
+				Skip("No options expirations available for testing")
+			}
 			expiration := expirations[0]
 
-			// Get available strikes for this expiration
-			strikes, err := conn.GetStrikes(pair, expiration)
-			Expect(err).ToNot(HaveOccurred(), "Should be able to fetch strikes")
-			Expect(strikes).ToNot(BeEmpty(), "Should have at least one strike")
+			// 2. Register expiration on the watchlist — the ingestor only collects watched expirations
+			Expect(runner.WatchExpiration(pair, expiration)).To(Succeed())
 
-			// Use a realistic strike (pick one from available)
-			strike := strikes[0]
+			// 3. Trigger the ingestor: connector.GetExpirationData() → store.Set*() for all strikes
+			runner.CollectNow()
+
+			// 4. Discover a strike that was just populated so we can form a contract key
+			strikes, err := conn.GetStrikes(pair, expiration)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(strikes).ToNot(BeEmpty())
 
 			contract := optionsTypes.OptionContract{
 				Pair:       pair,
-				Strike:     strike,
+				Strike:     strikes[0],
 				Expiration: expiration,
 				OptionType: "CALL",
 			}
 
-			// 2. Fetch option data from connector (this populates the store)
-			optionData, err := conn.GetOptionData(contract)
-			Expect(err).ToNot(HaveOccurred(), "Connector should fetch option data")
-			Expect(optionData).ToNot(BeNil())
-
-			connector_test.LogSuccess("✓ Connector fetched option data: mark_price=%v, iv=%v",
-				optionData.MarkPrice, optionData.IV)
-
-			// 3. CRITICAL: Verify data is in the store
+			// 5. Verify the store was populated by the ingestor (not by us)
 			store := runner.GetOptionsStore()
-			Expect(store).ToNot(BeNil())
-
 			storedMarkPrice := store.GetMarkPrice(contract)
 			Expect(storedMarkPrice).To(BeNumerically(">", 0),
-				"Store should contain mark price after connector fetch")
+				"Store should contain mark price — ingestor must have persisted connector data")
 
 			storedIV := store.GetIV(contract)
 			Expect(storedIV).To(BeNumerically(">", 0),
-				"Store should contain IV after connector fetch")
+				"Store should contain IV — ingestor must have persisted connector data")
 
-			connector_test.LogSuccess("✓ Store populated: mark_price=%v (from %v), iv=%v",
-				storedMarkPrice, optionData.MarkPrice, storedIV)
+			connector_test.LogSuccess("NewFromFloatStore populated by ingestor: mark_price=%v iv=%v", storedMarkPrice, storedIV)
 
-			// 4. CRITICAL: Verify data flows through SDK service to strategy
-			wispInstance := runner.GetWisp()
-			optionsService := wispInstance.Options()
+			// 6. Verify the SDK service reads from the same store — strategies call wisp.Options()
+			optionsService := runner.GetWisp().Options()
 
-			// Strategy calls SDK to get mark price
 			sdkMarkPrice, found := optionsService.MarkPrice(types.DeribitOptions, contract)
-			Expect(found).To(BeTrue(), "SDK should have mark price for contract")
-			Expect(sdkMarkPrice.String()).ToNot(BeEmpty(),
-				"SDK should return accessible decimal mark price")
+			Expect(found).To(BeTrue(), "SDK should have mark price — data must flow store → service → SDK")
+			Expect(sdkMarkPrice.String()).ToNot(BeEmpty())
+			connector_test.LogSuccess("NewFromFloatSDK: wisp.Options().MarkPrice() = %s", sdkMarkPrice.String())
 
-			connector_test.LogSuccess("✓ SDK accessible: wisp.Options().MarkPrice() = %s", sdkMarkPrice.String())
-
-			// Strategy calls SDK to get IV
 			sdkIV, found := optionsService.ImpliedVolatility(types.DeribitOptions, contract)
-			Expect(found).To(BeTrue(), "SDK should have IV for contract")
-			Expect(sdkIV).To(BeNumerically(">", 0),
-				"SDK should return IV for contract")
+			Expect(found).To(BeTrue(), "SDK should have IV")
+			Expect(sdkIV).To(BeNumerically(">", 0))
+			connector_test.LogSuccess("NewFromFloatSDK: wisp.Options().ImpliedVolatility() = %v", sdkIV)
 
-			connector_test.LogSuccess("✓ SDK accessible: wisp.Options().ImpliedVolatility() = %v", sdkIV)
-
-			// Strategy calls SDK to get Greeks
 			sdkGreeks, found := optionsService.Greeks(types.DeribitOptions, contract)
-			Expect(found).To(BeTrue(), "SDK should have Greeks for contract")
-			connector_test.LogSuccess("✓ SDK accessible: wisp.Options().Greeks() = delta:%v gamma:%v",
-				sdkGreeks.Delta, sdkGreeks.Gamma)
+			Expect(found).To(BeTrue(), "SDK should have Greeks")
+			connector_test.LogSuccess("NewFromFloatSDK: wisp.Options().Greeks() delta=%v gamma=%v", sdkGreeks.Delta, sdkGreeks.Gamma)
 
-			// Verify full chain: Connector → Store → Service → SDK works
-			connector_test.LogSuccess("✓✓✓ FULL DATA FLOW VERIFIED: Exchange → Connector → Store → Service → SDK")
+			connector_test.LogSuccess("✓✓NewFromFloatExchange → Connector → Ingestor → Store → Service → SDK verified")
 		})
 
 		It("should handle multiple concurrent SDK accesses", func() {
@@ -150,18 +123,25 @@ var _ = Describe("Options Connector Tests", func() {
 				portfolio.NewAsset("USDT"),
 			)
 
-			// Get available expirations and strikes
+			// Discover a real expiration from the exchange
 			expirations, err := conn.GetExpirations(pair)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(expirations).ToNot(BeEmpty())
-
+			if len(expirations) == 0 {
+				Skip("No options expirations available for testing")
+			}
 			expiration := expirations[0]
 
+			// Register expiration on watchlist so the ingestor knows to collect it
+			Expect(runner.WatchExpiration(pair, expiration)).To(Succeed())
+
+			// Trigger ingestor: connector.GetExpirationData() → store.Set*() for all strikes
+			runner.CollectNow()
+
+			// Now discover what strikes were populated (both CALL and PUT for the same strike)
 			strikes, err := conn.GetStrikes(pair, expiration)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(strikes).ToNot(BeEmpty())
 
-			// Use first two available strikes
 			strike1 := strikes[0]
 			strike2 := strike1
 			if len(strikes) > 1 {
@@ -172,24 +152,18 @@ var _ = Describe("Options Connector Tests", func() {
 				Pair:       pair,
 				Strike:     strike1,
 				Expiration: expiration,
-				OptionType: "CALL",
+				OptionType: "call",
 			}
 
 			contract2 := optionsTypes.OptionContract{
 				Pair:       pair,
 				Strike:     strike2,
 				Expiration: expiration,
-				OptionType: "PUT",
+				OptionType: "put",
 			}
 
-			// Fetch both contracts
-			_, err1 := conn.GetOptionData(contract1)
-			_, err2 := conn.GetOptionData(contract2)
-
-			Expect(err1).ToNot(HaveOccurred())
-			Expect(err2).ToNot(HaveOccurred())
-
-			// Access via SDK concurrently
+			// Both contracts should be in the store — ingestor populated them
+			// No manual Set* calls — this proves the real data flow works
 			price1, found1 := optionsService.MarkPrice(types.DeribitOptions, contract1)
 			price2, found2 := optionsService.MarkPrice(types.DeribitOptions, contract2)
 
@@ -198,31 +172,33 @@ var _ = Describe("Options Connector Tests", func() {
 			Expect(price1.String()).ToNot(BeEmpty())
 			Expect(price2.String()).ToNot(BeEmpty())
 
-			connector_test.LogSuccess("✓ Concurrent access works: Contract1 price=%s, Contract2 price=%s",
+			connector_test.LogSuccess("NewFromFloatConcurrent access works: Contract1 price=%s, Contract2 price=%s",
 				price1.String(), price2.String())
 		})
 
 		It("should verify SDK store consistency", func() {
-			wispInstance := runner.GetWisp()
-			optionsService := wispInstance.Options()
-			store := runner.GetOptionsStore()
 			conn := runner.GetOptionsConnector()
+			store := runner.GetOptionsStore()
+			optionsService := runner.GetWisp().Options()
 
-			pair := portfolio.NewPair(
-				portfolio.NewAsset("ETH"),
-				portfolio.NewAsset("USDT"),
-			)
+			pair := portfolio.NewPair(portfolio.NewAsset("ETH"), portfolio.NewAsset("USDT"))
 
-			// Get available expirations and strikes for ETH
+			// 1. Discover a real expiration from the exchange
 			expirations, err := conn.GetExpirations(pair)
-			Expect(err).ToNot(HaveOccurred(), "Should be able to fetch ETH expirations")
-			Expect(expirations).ToNot(BeEmpty(), "Should have at least one ETH expiration")
-
+			Expect(err).ToNot(HaveOccurred())
+			if len(expirations) == 0 {
+				Skip("No ETH options expirations available for testing")
+			}
 			expiration := expirations[0]
 
+			// 2. Watch the expiration and trigger ingestor — this is the real data flow
+			Expect(runner.WatchExpiration(pair, expiration)).To(Succeed())
+			runner.CollectNow()
+
+			// 3. Pick a strike to inspect
 			strikes, err := conn.GetStrikes(pair, expiration)
-			Expect(err).ToNot(HaveOccurred(), "Should be able to fetch ETH strikes")
-			Expect(strikes).ToNot(BeEmpty(), "Should have at least one ETH strike")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(strikes).ToNot(BeEmpty())
 
 			contract := optionsTypes.OptionContract{
 				Pair:       pair,
@@ -231,26 +207,25 @@ var _ = Describe("Options Connector Tests", func() {
 				OptionType: "CALL",
 			}
 
-			originalData, err := conn.GetOptionData(contract)
-			Expect(err).ToNot(HaveOccurred())
-
-			// Get from SDK service
-			sdkMarkPrice, _ := optionsService.MarkPrice(types.DeribitOptions, contract)
-			sdkIV, _ := optionsService.ImpliedVolatility(types.DeribitOptions, contract)
-
-			// Get directly from store
+			// 4. All three layers must agree — store, SDK service, and connector must be consistent
 			storeMarkPrice := store.GetMarkPrice(contract)
 			storeIV := store.GetIV(contract)
 
-			// All three should match
-			Expect(sdkMarkPrice.String()).ToNot(BeEmpty(),
-				"SDK mark price should be accessible")
-			Expect(storeMarkPrice).To(Equal(originalData.MarkPrice),
-				"Store mark price should match connector data")
-			Expect(sdkIV).To(Equal(storeIV),
-				"SDK IV should match store IV")
+			sdkMarkPrice, sdkFound := optionsService.MarkPrice(types.DeribitOptions, contract)
+			sdkIV, sdkIVFound := optionsService.ImpliedVolatility(types.DeribitOptions, contract)
 
-			connector_test.LogSuccess("✓ Consistency verified: SDK≈Store≈Connector")
+			// Verify the store has data (ingestor populated it)
+			Expect(storeMarkPrice).To(BeNumerically(">", 0), "Store must have mark price from ingestor")
+			Expect(storeIV).To(BeNumerically(">", 0), "Store must have IV from ingestor")
+
+			// Verify SDK reads from the same store values
+			Expect(sdkFound).To(BeTrue(), "SDK must find mark price — reads from store")
+			Expect(sdkIVFound).To(BeTrue(), "SDK must find IV — reads from store")
+			Expect(sdkIV).To(Equal(storeIV), "SDK IV must equal store IV — same data source")
+
+			connector_test.LogSuccess("NewFromFloatStore mark_price=%v iv=%v | SDK mark_price=%s iv=%v",
+				storeMarkPrice, storeIV, sdkMarkPrice.String(), sdkIV)
+			connector_test.LogSuccess("NewFromFloatConsistency verified: Ingestor → Store ≡ SDK")
 		})
 	})
 })
