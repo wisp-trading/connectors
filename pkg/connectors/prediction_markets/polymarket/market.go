@@ -115,7 +115,8 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 	ctx := context.Background()
 
 	req := &gamma.MarketsRequest{
-		Active: boolPtr(true),
+		Active:     boolPtr(true),
+		IncludeTag: boolPtr(true),
 	}
 
 	// Apply filters if provided
@@ -226,6 +227,23 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		return prediction.Market{}, fmt.Errorf("failed to parse start time: %w", err)
 	}
 
+	// Convert gamma tags to prediction tags
+	tags := make([]prediction.Tag, len(gammaMarket.Tags))
+	for i, tag := range gammaMarket.Tags {
+		tags[i] = prediction.Tag{
+			ID:    tag.ID,
+			Label: tag.Label,
+			Slug:  tag.Slug,
+		}
+	}
+
+	// Extract the parent event slug so we can build a valid Polymarket URL.
+	// Polymarket URLs use the event slug: https://polymarket.com/event/{event_slug}
+	eventSlug := ""
+	if len(gammaMarket.Events) > 0 {
+		eventSlug = gammaMarket.Events[0].Slug
+	}
+
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(gammaMarket.ConditionID),
 		Slug:           gammaMarket.Slug,
@@ -236,6 +254,8 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		Closed:         gammaMarket.Closed,
 		ResolutionTime: &resolutionTime,
 		StartTime:      &startTime,
+		Tags:           tags,
+		EventSlug:      eventSlug,
 	}
 
 	return market, nil
