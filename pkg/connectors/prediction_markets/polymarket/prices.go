@@ -19,20 +19,35 @@ func (p *polymarket) SubscribePriceChanges(market prediction.Market) error {
 	}
 
 	p.priceChangeMu.Lock()
-	if _, exists := p.priceChangeChannels[market.Slug]; !exists {
-		p.priceChangeChannels[market.Slug] = make(chan prediction.PriceChange, 100)
-		p.appLogger.Info("Created price change channel for market %s", market.Slug)
+	if _, exists := p.priceChangeChannels[market.Slug]; exists {
+		p.priceChangeMu.Unlock()
+		p.appLogger.Info("Already subscribed to price changes for market %s", market.Slug)
+		return nil
 	}
+
+	p.priceChangeChannels[market.Slug] = make(chan prediction.PriceChange, 100)
 	priceChangeChannel := p.priceChangeChannels[market.Slug]
+	p.appLogger.Info("Created price change channel for market %s", market.Slug)
 	p.priceChangeMu.Unlock()
 
 	ctx := context.Background()
 	stream, err := p.clobWebsocket.SubscribePrices(ctx, market)
 	if err != nil {
+		p.priceChangeMu.Lock()
+		delete(p.priceChangeChannels, market.Slug)
+		p.priceChangeMu.Unlock()
 		return fmt.Errorf("failed to subscribe to prices: %w", err)
 	}
 
 	go func() {
+		defer func() {
+			p.priceChangeMu.Lock()
+			delete(p.priceChangeChannels, market.Slug)
+			close(priceChangeChannel)
+			p.priceChangeMu.Unlock()
+			p.appLogger.Info("Unsubscribed from price changes for market %s", market.Slug)
+		}()
+
 		for msg := range stream {
 			priceChange, err := p.parsePriceChange(msg, market)
 			if err != nil {

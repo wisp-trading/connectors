@@ -37,13 +37,13 @@ func (p *polymarket) parseOrderbookEvent(msg ws.OrderbookEvent, market predictio
 
 	bids, err := p.parseOrderbookLevel(msg.Bids)
 	if err != nil {
-		fmt.Printf("Error converting bids: %v\n", err)
+		p.appLogger.Error("Failed to parse orderbook bids for asset %s: %v", msg.AssetID, err)
 		return orderbook
 	}
 
 	asks, err := p.parseOrderbookLevel(msg.Asks)
 	if err != nil {
-		fmt.Printf("Error converting asks: %v\n", err)
+		p.appLogger.Error("Failed to parse orderbook asks for asset %s: %v", msg.AssetID, err)
 		return orderbook
 	}
 
@@ -97,13 +97,13 @@ func (p *polymarket) parseOrderbook(
 
 	bids, err := p.parsePriceLevel(msg.Bids)
 	if err != nil {
-		fmt.Printf("Error converting bids: %v\n", err)
+		p.appLogger.Error("Failed to parse CLOB orderbook bids: %v", err)
 		return orderbook
 	}
 
 	asks, err := p.parsePriceLevel(msg.Asks)
 	if err != nil {
-		fmt.Printf("Error converting asks: %v\n", err)
+		p.appLogger.Error("Failed to parse CLOB orderbook asks: %v", err)
 		return orderbook
 	}
 
@@ -147,7 +147,7 @@ func (p *polymarket) parsePriceChange(msg ws.PriceEvent, market prediction.Marke
 
 	price, err := numerical.NewFromString(msg.Price)
 	if err != nil {
-		fmt.Printf("Error converting price change: %v\n", err)
+		p.appLogger.Error("Failed to parse price for asset %s: %v", msg.AssetID, err)
 		return prediction.PriceChange{}, err
 	}
 

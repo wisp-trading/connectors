@@ -2,6 +2,7 @@ package polymarket
 
 import (
 	"context"
+	"fmt"
 
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
@@ -53,20 +54,32 @@ func (p *polymarket) SubscribeTrades(market prediction.Market) error {
 	ctx := context.Background()
 	tradeChannel, err := p.clobWebsocket.SubscribeUserTrades(ctx, market)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to subscribe to user trades: %w", err)
 	}
 
 	// Process trade events
 	go func() {
+		defer func() {
+			p.appLogger.Info("Unsubscribed from trades for market %s", market.Slug)
+		}()
+
 		for tradeEvent := range tradeChannel {
 			trade, done := p.parseTrade(market, tradeEvent)
 			if done {
+				p.appLogger.Error("Failed to parse trade event for market %s, stopping subscription", market.Slug)
 				return
 			}
-			p.tradeChannel <- trade
+
+			select {
+			case p.tradeChannel <- trade:
+				// Successfully sent
+			default:
+				p.appLogger.Warn("Trade channel full for market %s, dropping message", market.Slug)
+			}
 		}
 	}()
 
+	p.appLogger.Info("Subscribed to trades for market %s", market.Slug)
 	return nil
 }
 
@@ -74,20 +87,32 @@ func (p *polymarket) SubscribeOrders(market prediction.Market) error {
 	ctx := context.Background()
 	orderChannel, err := p.clobWebsocket.SubscribeUserOrders(ctx, market)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to subscribe to user orders: %w", err)
 	}
 
 	// Process order events
 	go func() {
+		defer func() {
+			p.appLogger.Info("Unsubscribed from orders for market %s", market.Slug)
+		}()
+
 		for orderEvent := range orderChannel {
 			order, done := p.parseOrder(market, orderEvent)
 			if done {
+				p.appLogger.Error("Failed to parse order event for market %s, stopping subscription", market.Slug)
 				return
 			}
-			p.orderChannel <- order
+
+			select {
+			case p.orderChannel <- order:
+				// Successfully sent
+			default:
+				p.appLogger.Warn("Order channel full for market %s, dropping message", market.Slug)
+			}
 		}
 	}()
 
+	p.appLogger.Info("Subscribed to orders for market %s", market.Slug)
 	return nil
 }
 
