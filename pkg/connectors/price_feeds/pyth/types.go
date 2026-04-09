@@ -7,6 +7,7 @@ import (
 
 // PriceUpdate represents a parsed Pyth price feed update
 type PriceUpdate struct {
+	ID        string
 	Price     float64
 	Exponent  int32
 	Timestamp time.Time

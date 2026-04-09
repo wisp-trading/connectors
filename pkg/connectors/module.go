@@ -7,6 +7,7 @@ import (
 	"github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket"
+	"github.com/wisp-trading/connectors/pkg/connectors/price_feeds/pyth"
 	"go.uber.org/fx"
 )
 
@@ -19,4 +20,5 @@ var Module = fx.Options(
 	gate.Module,
 	polymarket.Module,
 	deribit.Module,
+	pyth.Module,
 )

@@ -8,14 +8,15 @@ import (
 
 	"github.com/gorilla/websocket"
 	priceFeedTypes "github.com/wisp-trading/sdk/pkg/markets/price_feeds/types"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
 const (
 	pythHermesWS = "wss://hermes.pyth.network/ws"
 )
 
-// Service manages the Pyth Hermes WebSocket connection
-// It receives price updates and passes them to a Store for persistence
+// Service manages the Pyth Hermes WebSocket connection and emits price updates.
+// The connector is transport-only; an ingestor consumes updates and persists them.
 type Service interface {
 	// Connect establishes the WebSocket connection and subscribes to feeds
 	Connect(ctx context.Context, feedIDs []string) error
@@ -26,25 +27,23 @@ type Service interface {
 	// ErrorChannel returns a channel of errors from the connection
 	ErrorChannel() <-chan error
 	// Subscribe returns a channel that receives price updates for the given feed
-	Subscribe(feedID string) <-chan priceFeedTypes.PriceSnapshot
+	Subscribe(feedID string) <-chan priceFeedTypes.PriceFeedUpdate
 }
 
 type service struct {
 	ws          *websocket.Conn
-	store       priceFeedTypes.PriceFeedsStore
 	mu          sync.RWMutex
 	connected   bool
-	subscribers map[string][]chan priceFeedTypes.PriceSnapshot
+	subscribers map[string][]chan priceFeedTypes.PriceFeedUpdate
 	errorCh     chan error
 	ctx         context.Context
 	cancel      context.CancelFunc
 }
 
-// NewService creates a new Pyth price feed service
-func NewService(store priceFeedTypes.PriceFeedsStore) Service {
+// NewService creates a new Pyth price feed service (connector only, no storage).
+func NewService() Service {
 	return &service{
-		store:       store,
-		subscribers: make(map[string][]chan priceFeedTypes.PriceSnapshot),
+		subscribers: make(map[string][]chan priceFeedTypes.PriceFeedUpdate),
 		errorCh:     make(chan error, 64),
 	}
 }
@@ -126,17 +125,18 @@ func (s *service) ErrorChannel() <-chan error {
 	return s.errorCh
 }
 
-// Subscribe returns a channel that receives price updates
-func (s *service) Subscribe(feedID string) <-chan priceFeedTypes.PriceSnapshot {
+// Subscribe returns a channel that receives price updates for a feed.
+// Ingestors subscribe to consume updates and persist them to storage.
+func (s *service) Subscribe(feedID string) <-chan priceFeedTypes.PriceFeedUpdate {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ch := make(chan priceFeedTypes.PriceSnapshot, 10)
+	ch := make(chan priceFeedTypes.PriceFeedUpdate, 10)
 	s.subscribers[feedID] = append(s.subscribers[feedID], ch)
 	return ch
 }
 
-// readLoop processes incoming WebSocket messages
+// readLoop processes incoming WebSocket messages and broadcasts to subscribers
 func (s *service) readLoop() {
 	defer func() {
 		s.mu.Lock()
@@ -167,14 +167,13 @@ func (s *service) readLoop() {
 
 		// Handle subscription updates
 		if envelope.Type == "price_update" {
-			s.handlePriceUpdate(envelope.Result)
+			s.handlePriceUpdate(envelope.ID, envelope.Result)
 		}
 	}
 }
 
-// handlePriceUpdate processes a price update from Pyth
-// Persists to store and broadcasts to subscribers
-func (s *service) handlePriceUpdate(result interface{}) {
+// handlePriceUpdate broadcasts updates to all subscribers
+func (s *service) handlePriceUpdate(feedID string, result interface{}) {
 	data, err := json.Marshal(result)
 	if err != nil {
 		return
@@ -189,20 +188,21 @@ func (s *service) handlePriceUpdate(result interface{}) {
 	defer s.mu.Unlock()
 
 	for _, update := range updates.Parsed {
-		// Record to store for persistence
-		snap := priceFeedTypes.PriceSnapshot{
-			FeedID:    priceFeedTypes.PriceFeedID("pyth"),
+		// Set the feed ID on the update
+		update.ID = feedID
+
+		// Broadcast to subscribers (ingestors consume these)
+		feedUpdate := priceFeedTypes.PriceFeedUpdate{
+			FeedID:    priceFeedTypes.PriceFeedID("pyth:" + update.ID),
 			Price:     update.Price,
 			Timestamp: update.Timestamp,
+			Source:    connector.ExchangeName("pyth"),
 		}
-		_ = s.store.RecordPrice(snap)
 
-		// Broadcast to subscribers
-		if subs, ok := s.subscribers["pyth"]; ok {
-
+		if subs, ok := s.subscribers[feedID]; ok {
 			for _, ch := range subs {
 				select {
-				case ch <- snap:
+				case ch <- feedUpdate:
 				default:
 				}
 			}
