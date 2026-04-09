@@ -7,11 +7,8 @@ import (
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
-func (w websocket) SubscribeOrders(market prediction.Market) (<-chan ws.OrderEvent, error) {
-	ctx := context.Background()
-
+func (w websocket) SubscribeUserOrders(ctx context.Context, market prediction.Market) (<-chan ws.OrderEvent, error) {
 	orderStream, err := w.client.SubscribeUserOrders(ctx, []string{market.MarketID.String()})
-
 	if err != nil {
 		return nil, err
 	}

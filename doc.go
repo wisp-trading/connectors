@@ -8,6 +8,6 @@
 // trading across spot, perpetual, options, and prediction markets with
 // a unified API.
 //
-// For documentation, visit https://docs.usewisp.dev
+// For documentation, visit https://usewisp.dev/docs
 // For the main framework, visit https://github.com/wisp-trading/wisp
 package connectors

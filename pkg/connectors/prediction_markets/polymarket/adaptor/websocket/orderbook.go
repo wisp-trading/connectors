@@ -7,12 +7,11 @@ import (
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
-func (w websocket) SubscribeOrderbook(market prediction.Market) (<-chan ws.OrderbookEvent, error) {
+func (w websocket) SubscribeOrderbook(ctx context.Context, market prediction.Market) (<-chan ws.OrderbookEvent, error) {
 	assetIds := make([]string, len(market.Outcomes))
 	for i, outcome := range market.Outcomes {
 		assetIds[i] = outcome.OutcomeID.String()
 	}
 
-	ctx := context.Background()
 	return w.client.SubscribeOrderbook(ctx, assetIds)
 }
