@@ -17,17 +17,27 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	}
 
 	if _, exists := p.subscribedMarkets[market.MarketID]; exists {
-		return fmt.Errorf("already subscribed to market %s", market.Slug)
+		p.appLogger.Info("Already subscribed to order book for market %s", market.Slug)
+		return nil
 	}
 
 	// Get channel from SDK wrapper
-	msgChannel, err := p.clobWebsocket.SubscribeOrderbook(market)
+	ctx := context.Background()
+	msgChannel, err := p.clobWebsocket.SubscribeOrderbook(ctx, market)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to orderbook: %w", err)
 	}
 
+	// Mark market as subscribed
+	p.subscribedMarkets[market.MarketID] = market
+
 	// Convert messages in a goroutine
 	go func() {
+		defer func() {
+			delete(p.subscribedMarkets, market.MarketID)
+			p.appLogger.Info("Unsubscribed from order book for market %s", market.Slug)
+		}()
+
 		for msg := range msgChannel {
 			orderBook := p.parseOrderbookEvent(msg, market)
 
