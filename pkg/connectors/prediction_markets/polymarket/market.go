@@ -120,20 +120,44 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 
 	// Apply filters if provided
 	if filter != nil {
+		// Pagination
+		if filter.Limit != nil {
+			req.Limit = filter.Limit
+		}
+		if filter.Offset != nil {
+			req.Offset = filter.Offset
+		}
+
+		// Volume filters
 		if filter.MinVolume != "" {
 			req.VolumeMin = stringPtr(filter.MinVolume)
 		}
+		if filter.MaxVolume != "" {
+			req.VolumeMax = stringPtr(filter.MaxVolume)
+		}
+
+		// Liquidity filters
 		if filter.MinLiquidity != "" {
 			req.LiquidityMin = stringPtr(filter.MinLiquidity)
 		}
+		if filter.MaxLiquidity != "" {
+			req.LiquidityMax = stringPtr(filter.MaxLiquidity)
+		}
+
+		// Date range filters
 		if filter.MinEndDate != "" {
 			req.EndDateMin = filter.MinEndDate
 		}
 		if filter.MaxEndDate != "" {
 			req.EndDateMax = filter.MaxEndDate
 		}
+
+		// Status filters
 		if filter.Active != nil {
 			req.Active = filter.Active
+		}
+		if filter.Closed != nil {
+			req.Closed = filter.Closed
 		}
 	}
 
