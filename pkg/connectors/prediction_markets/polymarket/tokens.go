@@ -2,6 +2,7 @@ package polymarket
 
 import (
 	"context"
+	"math/big"
 
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
@@ -16,6 +17,14 @@ func (p *polymarket) Redeem(market prediction.Market) (string, error) {
 	}
 
 	return hash, nil
+}
+
+func (p *polymarket) SplitPosition(market prediction.Market, amountUSDC *big.Int) (string, error) {
+	return p.orderManager.SplitPosition(context.Background(), market, amountUSDC)
+}
+
+func (p *polymarket) MergePositions(market prediction.Market, amountUSDC *big.Int) (string, error) {
+	return p.orderManager.MergePositions(context.Background(), market, amountUSDC)
 }
 
 func (p *polymarket) GetTokensToRedeem(market prediction.Market) ([]prediction.Balance, error) {

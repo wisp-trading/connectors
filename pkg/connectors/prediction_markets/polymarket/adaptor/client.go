@@ -60,8 +60,16 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 		Passphrase: key.Passphrase,
 	}
 
+	sigType := auth.SignatureType(config.SignatureType)
 	polymarketAddress := common.HexToAddress(config.PolymarketAddress)
-	clobClient = clobClient.WithAuth(signer, creds).WithFunder(polymarketAddress).WithSignatureType(auth.SignatureGnosisSafe)
+
+	// For non-EOA wallets (Proxy=1, GnosisSafe=2), set the funder address explicitly.
+	// For EOA (0), the signer address IS the maker — no funder needed.
+	if sigType == auth.SignatureEOA {
+		clobClient = clobClient.WithAuth(signer, creds).WithSignatureType(sigType)
+	} else {
+		clobClient = clobClient.WithAuth(signer, creds).WithFunder(polymarketAddress).WithSignatureType(sigType)
+	}
 	clobWebsocket := client.CLOBWS
 	tokenManager := client.CTF
 
