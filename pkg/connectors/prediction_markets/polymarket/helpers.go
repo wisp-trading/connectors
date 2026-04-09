@@ -3,6 +3,7 @@ package polymarket
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -139,7 +140,7 @@ func (p *polymarket) parsePriceLevel(levels []clobtypes.PriceLevel) ([]connector
 }
 
 // parsePriceChange converts a websocket price change event to a prediction.PriceChange struct
-func (p *polymarket) parsePriceChange(msg ws.PriceEvent, market prediction.Market) (prediction.PriceChange, error) {
+func (p *polymarket) parsePriceChange(msg ws.PriceChangeEvent, market prediction.Market) (prediction.PriceChange, error) {
 	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(msg.AssetID))
 	if err != nil {
 		return prediction.PriceChange{}, err
@@ -178,8 +179,13 @@ func (p *polymarket) parseTrade(market prediction.Market, tradeEvent ws.TradeEve
 		return connector.Trade{}, true
 	}
 
-	// Polymarket timestamp is already in seconds as int64
-	timeStamp := time.Unix(tradeEvent.Timestamp, 0)
+	// Polymarket timestamp is a string of seconds
+	tsInt, err := strconv.ParseInt(tradeEvent.Timestamp, 10, 64)
+	if err != nil {
+		p.appLogger.Error("Failed to parse timestamp for trade event: %v", err)
+		return connector.Trade{}, true
+	}
+	timeStamp := time.Unix(tsInt, 0)
 
 	trade := connector.Trade{
 		ID:        tradeEvent.ID,
@@ -205,21 +211,26 @@ func (p *polymarket) parseOrder(market prediction.Market, event ws.OrderEvent) (
 		return connector.Order{}, true
 	}
 
-	// Use total Size, with Filled for the filled amount
-	quantity, err := numerical.NewFromString(event.Size)
+	// Use OriginalSize as the total order size
+	quantity, err := numerical.NewFromString(event.OriginalSize)
 	if err != nil {
 		p.appLogger.Error("Failed to parse quantity for order event: %v", err)
 		return connector.Order{}, true
 	}
 
-	// Polymarket timestamp is already in seconds as int64
-	timeStamp := time.Unix(event.Timestamp, 0)
+	// Polymarket timestamp is a string of seconds
+	tsInt, err := strconv.ParseInt(event.Timestamp, 10, 64)
+	if err != nil {
+		p.appLogger.Error("Failed to parse timestamp for order event: %v", err)
+		return connector.Order{}, true
+	}
+	timeStamp := time.Unix(tsInt, 0)
 
 	// Map Polymarket status to connector status
 	status := mapPolymarketStatus(event.Status)
 
 	order := connector.Order{
-		ID:        event.OrderID,
+		ID:        event.ID,
 		Pair:      outcome.Pair.Pair,
 		Price:     price,
 		Quantity:  quantity,

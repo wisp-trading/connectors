@@ -63,14 +63,44 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 
 	// Apply filters if provided
 	if filter != nil {
+		// Pagination
+		if filter.Limit != nil {
+			req.Limit = filter.Limit
+		}
+		if filter.Offset != nil {
+			req.Offset = filter.Offset
+		}
+
+		// Volume filters
 		if filter.MinVolume != "" {
 			req.VolumeMin = stringPtr(filter.MinVolume)
 		}
+		if filter.MaxVolume != "" {
+			req.VolumeMax = stringPtr(filter.MaxVolume)
+		}
+
+		// Liquidity filters
 		if filter.MinLiquidity != "" {
 			req.LiquidityMin = stringPtr(filter.MinLiquidity)
 		}
+		if filter.MaxLiquidity != "" {
+			req.LiquidityMax = stringPtr(filter.MaxLiquidity)
+		}
+
+		// Date range filters
+		if filter.MinEndDate != "" {
+			req.EndDateMin = filter.MinEndDate
+		}
+		if filter.MaxEndDate != "" {
+			req.EndDateMax = filter.MaxEndDate
+		}
+
+		// Status filters
 		if filter.Active != nil {
 			req.Active = filter.Active
+		}
+		if filter.Closed != nil {
+			req.Closed = filter.Closed
 		}
 	}
 
@@ -139,6 +169,20 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		return prediction.Market{}, fmt.Errorf("failed to parse start time: %w", err)
 	}
 
+	// Convert gamma tags to prediction tags
+	tags := make([]prediction.Tag, len(gammaMarket.Tags))
+	for i, tag := range gammaMarket.Tags {
+		tags[i] = prediction.Tag{
+			ID:    tag.ID,
+			Label: tag.Label,
+			Slug:  tag.Slug,
+		}
+	}
+
+	// gamma.Market does not expose an Events field; the market's own slug
+	// is used as a fallback URL key.
+	eventSlug := gammaMarket.Slug
+
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(gammaMarket.ConditionID),
 		Slug:           gammaMarket.Slug,
@@ -149,6 +193,8 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		Closed:         gammaMarket.Closed,
 		ResolutionTime: &resolutionTime,
 		StartTime:      &startTime,
+		Tags:           tags,
+		EventSlug:      eventSlug,
 	}
 
 	return market, nil

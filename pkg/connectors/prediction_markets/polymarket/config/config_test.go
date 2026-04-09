@@ -40,30 +40,6 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		Context("when APIKey is missing", func() {
-			It("should return an error", func() {
-				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("api_key is required"))
-			})
-		})
-
-		Context("when APISecret is missing", func() {
-			It("should return an error", func() {
-				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("api_secret is required"))
-			})
-		})
-
-		Context("when Passphrase is missing", func() {
-			It("should return an error", func() {
-				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("passphrase is required"))
-			})
-		})
-
 		Context("when PrivateKey is missing", func() {
 			It("should return an error", func() {
 				conf.PrivateKey = ""

@@ -9,7 +9,7 @@ import (
 
 type Websocket interface {
 	SubscribeOrderbook(ctx context.Context, market prediction.Market) (<-chan ws.OrderbookEvent, error)
-	SubscribePrices(ctx context.Context, market prediction.Market) (<-chan ws.PriceEvent, error)
+	SubscribePrices(ctx context.Context, market prediction.Market) (<-chan ws.PriceChangeEvent, error)
 	SubscribeUserTrades(ctx context.Context, market prediction.Market) (<-chan ws.TradeEvent, error)
 	SubscribeUserOrders(ctx context.Context, market prediction.Market) (<-chan ws.OrderEvent, error)
 	Close()
