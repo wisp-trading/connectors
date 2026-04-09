@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
@@ -79,7 +80,8 @@ func (p *polymarket) FetchOrderBooksForMarket(market prediction.Market) (map[str
 	for i, book := range books {
 		if i < len(market.Outcomes) {
 			outcome := market.Outcomes[i]
-			parsed := p.parseOrderbook(book, market, outcome)
+			// Cast OrderBook to OrderBookResponse (same underlying type)
+			parsed := p.parseOrderbook(clobtypes.OrderBookResponse(book), market, outcome)
 			result[outcome.OutcomeID.String()] = &parsed
 		}
 	}
