@@ -58,8 +58,7 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 	ctx := context.Background()
 
 	req := &gamma.MarketsRequest{
-		Active:     boolPtr(true),
-		IncludeTag: boolPtr(true),
+		Active: boolPtr(true),
 	}
 
 	// Apply filters if provided
@@ -180,12 +179,9 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		}
 	}
 
-	// Extract the parent event slug so we can build a valid Polymarket URL.
-	// Polymarket URLs use the event slug: https://polymarket.com/event/{event_slug}
-	eventSlug := ""
-	if len(gammaMarket.Events) > 0 {
-		eventSlug = gammaMarket.Events[0].Slug
-	}
+	// gamma.Market does not expose an Events field; the market's own slug
+	// is used as a fallback URL key.
+	eventSlug := gammaMarket.Slug
 
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(gammaMarket.ConditionID),

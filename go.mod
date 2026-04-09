@@ -23,6 +23,7 @@ require (
 )
 
 replace github.com/wisp-trading/sdk => ../sdk
+replace github.com/GoPolymarket/polymarket-go-sdk => ../polymarket-go-sdk
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect

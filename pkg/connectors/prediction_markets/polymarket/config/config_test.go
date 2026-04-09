@@ -32,11 +32,11 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should set default SignatureType to 1", func() {
+			It("should set default SignatureType to 2", func() {
 				conf.SignatureType = 0
 				err := conf.Validate()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.SignatureType).To(Equal(1))
+				Expect(conf.SignatureType).To(Equal(2))
 			})
 		})
 
