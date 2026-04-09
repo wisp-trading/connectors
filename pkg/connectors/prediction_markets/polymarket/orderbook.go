@@ -67,3 +67,22 @@ func (p *polymarket) FetchOrderBooks(
 	orderBook := p.parseOrderbook(orderbook, market, outcome)
 	return &orderBook, nil
 }
+
+func (p *polymarket) FetchOrderBooksForMarket(market prediction.Market) (map[string]*prediction.OrderBook, error) {
+	ctx := context.Background()
+	books, err := p.orderManager.GetOrderBooks(ctx, market.Outcomes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch orderbooks for market %s: %w", market.MarketID, err)
+	}
+
+	result := make(map[string]*prediction.OrderBook, len(books))
+	for i, book := range books {
+		if i < len(market.Outcomes) {
+			outcome := market.Outcomes[i]
+			parsed := p.parseOrderbook(book, market, outcome)
+			result[outcome.OutcomeID.String()] = &parsed
+		}
+	}
+
+	return result, nil
+}
