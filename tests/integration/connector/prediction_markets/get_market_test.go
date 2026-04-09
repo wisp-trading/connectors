@@ -38,9 +38,9 @@ var _ = Describe("Prediction Market Data Tests", func() {
 					return
 				}
 
-				Expect(market.MarketID).To(Equal("0x0b4cc3b739e1dfe5d73274740e7308b6fb389c5af040c3a174923d928d134bee"))
+				Expect(market.MarketID).To(Equal(prediction.MarketID("0x0b4cc3b739e1dfe5d73274740e7308b6fb389c5af040c3a174923d928d134bee")))
 				Expect(market.Slug).To(Equal("will-jesus-christ-return-before-2027"))
-				Expect(market.Exchange).To(Equal(connector.ExchangeName("Polymarket")))
+				Expect(market.Exchange).To(Equal(connector.ExchangeName("polymarket")))
 				Expect(market.OutcomeType).To(Equal(prediction.OutcomeTypeBinary))
 				Expect(market.Active).To(BeTrue())
 				Expect(market.Closed).To(BeFalse())
