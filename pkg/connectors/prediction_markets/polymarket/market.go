@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/gamma"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
@@ -108,4 +109,114 @@ func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
 	// TODO: Implement when polymarket SDK adds UnsubscribeMarketAssets support
 	p.appLogger.Info("Unsubscribe for market %s not yet implemented", market.Slug)
 	return nil
+}
+
+func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Market, error) {
+	ctx := context.Background()
+
+	req := &gamma.MarketsRequest{
+		Active: boolPtr(true),
+	}
+
+	// Apply filters if provided
+	if filter != nil {
+		if filter.MinVolume != "" {
+			req.VolumeMin = stringPtr(filter.MinVolume)
+		}
+		if filter.MinLiquidity != "" {
+			req.LiquidityMin = stringPtr(filter.MinLiquidity)
+		}
+		if filter.Active != nil {
+			req.Active = filter.Active
+		}
+	}
+
+	gammaMarkets, err := p.gammaClient.MarketsAll(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch markets: %w", err)
+	}
+
+	markets := make([]prediction.Market, 0, len(gammaMarkets))
+	for _, gammaMarket := range gammaMarkets {
+		market, err := p.buildMarketFromGamma(&gammaMarket)
+		if err != nil {
+			p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
+			continue
+		}
+		markets = append(markets, market)
+	}
+
+	return markets, nil
+}
+
+// buildMarketFromGamma converts a gamma.Market to prediction.Market
+// Reuses the same logic as GetMarket to ensure consistency
+func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction.Market, error) {
+	// Build outcomes from conditions
+	outcomeIds := parseClobTokenIds(*gammaMarket)
+	if outcomeIds == nil {
+		return prediction.Market{}, fmt.Errorf("failed to parse outcome IDs for market %s", gammaMarket.Slug)
+	}
+
+	outcomeLabels := parseOutcomes(*gammaMarket)
+	if outcomeLabels == nil {
+		return prediction.Market{}, fmt.Errorf("failed to parse outcome labels for market %s", gammaMarket.Slug)
+	}
+
+	// Determine outcome type (binary for YES/NO, categorical for multi-outcome)
+	outcomeType := prediction.OutcomeTypeBinary
+	if len(outcomeIds) > 2 {
+		outcomeType = prediction.OutcomeTypeCategorical
+	}
+
+	outcomes := make([]prediction.Outcome, len(outcomeIds))
+	for i := range outcomeIds {
+		pair := prediction.NewPredictionPair(
+			gammaMarket.Slug,
+			outcomeLabels[i],
+			getQuoteAsset(),
+		)
+
+		outcomes[i] = prediction.Outcome{
+			Pair:      pair,
+			OutcomeID: prediction.OutcomeIDFromString(outcomeIds[i]),
+		}
+	}
+
+	// Handle resolution date
+	resolutionTime, err := time.Parse(time.RFC3339, gammaMarket.EndDate)
+	if err != nil {
+		p.appLogger.Error("Failed to parse resolution time for market %s: %v", gammaMarket.Slug, err)
+		return prediction.Market{}, fmt.Errorf("failed to parse resolution time: %w", err)
+	}
+
+	startTime, err := time.Parse(time.RFC3339, gammaMarket.StartDate)
+	if err != nil {
+		p.appLogger.Error("Failed to parse start time for market %s: %v", gammaMarket.Slug, err)
+		return prediction.Market{}, fmt.Errorf("failed to parse start time: %w", err)
+	}
+
+	market := prediction.Market{
+		MarketID:       prediction.MarketIDFromString(gammaMarket.ConditionID),
+		Slug:           gammaMarket.Slug,
+		Exchange:       p.GetConnectorInfo().Name,
+		OutcomeType:    outcomeType,
+		Outcomes:       outcomes,
+		Active:         gammaMarket.Active,
+		Closed:         gammaMarket.Closed,
+		ResolutionTime: &resolutionTime,
+		StartTime:      &startTime,
+	}
+
+	return market, nil
+}
+
+// boolPtr is a helper to convert bool to *bool
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+// stringPtr is a helper to convert string to *string
+func stringPtr(s string) *string {
+	return &s
 }
