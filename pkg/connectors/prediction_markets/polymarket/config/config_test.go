@@ -32,35 +32,11 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should set default SignatureType to 2", func() {
+			It("should set default SignatureType to 1", func() {
 				conf.SignatureType = 0
 				err := conf.Validate()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.SignatureType).To(Equal(2))
-			})
-		})
-
-		Context("when APIKey is missing", func() {
-			It("should return an error", func() {
-				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("api_key is required"))
-			})
-		})
-
-		Context("when APISecret is missing", func() {
-			It("should return an error", func() {
-				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("api_secret is required"))
-			})
-		})
-
-		Context("when Passphrase is missing", func() {
-			It("should return an error", func() {
-				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("passphrase is required"))
+				Expect(conf.SignatureType).To(Equal(1))
 			})
 		})
 

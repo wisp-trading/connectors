@@ -18,7 +18,7 @@ type Config struct {
 	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
 	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
 
-	SignatureType int `json:"signature_type,omitempty"` // Signature type (default: 2 for Safe proxy wallet)
+	SignatureType int `json:"signature_type,omitempty"` // Signature type: 0=EOA, 1=Proxy/magic.link, 2=GnosisSafe (default: 1)
 }
 
 var _ connector.Config = (*Config)(nil)
@@ -48,9 +48,9 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("funder_address must be a valid Ethereum address (0x followed by 40 hex characters)")
 	}
 
-	// Set default signature type (Safe proxy wallet)
+	// Set default signature type (Proxy/magic.link wallet)
 	if c.SignatureType == 0 {
-		c.SignatureType = 2
+		c.SignatureType = 1
 	}
 
 	return nil
