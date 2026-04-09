@@ -126,6 +126,12 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 		if filter.MinLiquidity != "" {
 			req.LiquidityMin = stringPtr(filter.MinLiquidity)
 		}
+		if filter.MinEndDate != "" {
+			req.EndDateMin = filter.MinEndDate
+		}
+		if filter.MaxEndDate != "" {
+			req.EndDateMax = filter.MaxEndDate
+		}
 		if filter.Active != nil {
 			req.Active = filter.Active
 		}
