@@ -2,6 +2,7 @@ package order_manager
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -30,7 +31,7 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 		Price(order.Price.InexactFloat64()).
 		Size(order.Amount.InexactFloat64()).
 		OrderType(clobtypes.OrderTypeGTC).
-		TickSize(size.MinimumTickSize).
+		TickSize(strconv.FormatFloat(size.MinimumTickSize, 'f', -1, 64)).
 		Build()
 
 	if err != nil {
