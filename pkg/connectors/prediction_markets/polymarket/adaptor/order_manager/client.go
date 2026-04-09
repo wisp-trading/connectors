@@ -2,6 +2,7 @@ package order_manager
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
@@ -19,6 +20,10 @@ type OrderManager interface {
 	GetBalance(ctx context.Context) (clobtypes.BalanceAllowanceResponse, error)
 	GetMarketBalance(ctx context.Context, market prediction.Market) (map[prediction.OutcomeID]clobtypes.BalanceAllowanceResponse, error)
 	RedeemPosition(ctx context.Context, market prediction.Market) (string, error)
+	// SplitPosition deposits amountUSDC and mints YES+NO tokens (6 decimal units).
+	SplitPosition(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error)
+	// MergePositions burns YES+NO tokens and returns amountUSDC (6 decimal units).
+	MergePositions(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error)
 }
 
 // orderManager implementation
