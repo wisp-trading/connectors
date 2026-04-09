@@ -50,7 +50,8 @@ func (p *polymarket) CancelOrder(orderID string, outcome ...prediction.Outcome) 
 }
 
 func (p *polymarket) SubscribeTrades(market prediction.Market) error {
-	tradeChannel, err := p.clobWebsocket.SubscribeTrades(market)
+	ctx := context.Background()
+	tradeChannel, err := p.clobWebsocket.SubscribeUserTrades(ctx, market)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,8 @@ func (p *polymarket) SubscribeTrades(market prediction.Market) error {
 }
 
 func (p *polymarket) SubscribeOrders(market prediction.Market) error {
-	orderChannel, err := p.clobWebsocket.SubscribeOrders(market)
+	ctx := context.Background()
+	orderChannel, err := p.clobWebsocket.SubscribeUserOrders(ctx, market)
 	if err != nil {
 		return err
 	}

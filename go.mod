@@ -3,10 +3,10 @@ module github.com/wisp-trading/connectors
 go 1.24.2
 
 require (
-	github.com/GoPolymarket/polymarket-go-sdk v1.0.9
+	github.com/GoPolymarket/polymarket-go-sdk v1.1.0
 	github.com/antihax/optional v1.0.0
 	github.com/bybit-exchange/bybit.go.api v0.0.0-20250727214011-c9347d6804d6
-	github.com/ethereum/go-ethereum v1.17.0
+	github.com/ethereum/go-ethereum v1.17.1
 	github.com/gate/gateapi-go/v7 v7.2.8
 	github.com/go-openapi/runtime v0.29.0
 	github.com/go-openapi/strfmt v0.24.0
@@ -39,7 +39,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dontpanicdao/caigo v0.4.1 // indirect
-	github.com/ethereum/c-kzg-4844/v2 v2.1.5 // indirect
+	github.com/ethereum/c-kzg-4844/v2 v2.1.6 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

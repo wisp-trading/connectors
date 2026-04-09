@@ -3,7 +3,6 @@ package polymarket
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
@@ -140,7 +139,7 @@ func (p *polymarket) parsePriceLevel(levels []clobtypes.PriceLevel) ([]connector
 }
 
 // parsePriceChange converts a websocket price change event to a prediction.PriceChange struct
-func (p *polymarket) parsePriceChange(msg ws.PriceChangeEvent, market prediction.Market) (prediction.PriceChange, error) {
+func (p *polymarket) parsePriceChange(msg ws.PriceEvent, market prediction.Market) (prediction.PriceChange, error) {
 	outcome, err := market.FindOutcomeById(prediction.OutcomeIDFromString(msg.AssetID))
 	if err != nil {
 		return prediction.PriceChange{}, err
@@ -179,14 +178,8 @@ func (p *polymarket) parseTrade(market prediction.Market, tradeEvent ws.TradeEve
 		return connector.Trade{}, true
 	}
 
-	// Polymarket timestamp is in seconds as a string, convert to int64
-	timestampInt, err := strconv.ParseInt(tradeEvent.Timestamp, 10, 64)
-	if err != nil {
-		p.appLogger.Error("Failed to parse timestamp for trade event: %v", err)
-		return connector.Trade{}, true
-	}
-	
-	timeStamp := time.Unix(timestampInt, 0)
+	// Polymarket timestamp is already in seconds as int64
+	timeStamp := time.Unix(tradeEvent.Timestamp, 0)
 
 	trade := connector.Trade{
 		ID:        tradeEvent.ID,
@@ -212,37 +205,21 @@ func (p *polymarket) parseOrder(market prediction.Market, event ws.OrderEvent) (
 		return connector.Order{}, true
 	}
 
-	// Try to get the order size - use SizeMatched for filled amount or OriginalSize for total
-	var sizeStr string
-	if event.SizeMatched != "" {
-		sizeStr = event.SizeMatched
-	} else if event.OriginalSize != "" {
-		sizeStr = event.OriginalSize
-	} else {
-		p.appLogger.Error("Failed to find size field in order event")
-		return connector.Order{}, true
-	}
-
-	quantity, err := numerical.NewFromString(sizeStr)
+	// Use total Size, with Filled for the filled amount
+	quantity, err := numerical.NewFromString(event.Size)
 	if err != nil {
 		p.appLogger.Error("Failed to parse quantity for order event: %v", err)
 		return connector.Order{}, true
 	}
 
-	// Polymarket timestamp is in milliseconds as a string, convert to int64
-	timestampInt, err := strconv.ParseInt(event.Timestamp, 10, 64)
-	if err != nil {
-		p.appLogger.Error("Failed to parse timestamp for order event: %v", err)
-		return connector.Order{}, true
-	}
-	
-	timeStamp := time.UnixMilli(timestampInt)
+	// Polymarket timestamp is already in seconds as int64
+	timeStamp := time.Unix(event.Timestamp, 0)
 
-	// Map Polymarket status to your connector status
+	// Map Polymarket status to connector status
 	status := mapPolymarketStatus(event.Status)
 
 	order := connector.Order{
-		ID:        event.ID,
+		ID:        event.OrderID,
 		Pair:      outcome.Pair.Pair,
 		Price:     price,
 		Quantity:  quantity,

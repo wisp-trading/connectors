@@ -21,7 +21,8 @@ func (p *polymarket) SubscribeOrderBook(market prediction.Market) error {
 	}
 
 	// Get channel from SDK wrapper
-	msgChannel, err := p.clobWebsocket.SubscribeOrderbook(market)
+	ctx := context.Background()
+	msgChannel, err := p.clobWebsocket.SubscribeOrderbook(ctx, market)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to orderbook: %w", err)
 	}

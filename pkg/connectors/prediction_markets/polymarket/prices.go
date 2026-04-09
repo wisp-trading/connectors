@@ -1,6 +1,7 @@
 package polymarket
 
 import (
+	"context"
 	"fmt"
 
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
@@ -25,9 +26,10 @@ func (p *polymarket) SubscribePriceChanges(market prediction.Market) error {
 	priceChangeChannel := p.priceChangeChannels[market.Slug]
 	p.priceChangeMu.Unlock()
 
-	stream, err := p.clobWebsocket.SubscribePriceChanges(market)
+	ctx := context.Background()
+	stream, err := p.clobWebsocket.SubscribePrices(ctx, market)
 	if err != nil {
-		return fmt.Errorf("failed to subscribe to price changes: %w", err)
+		return fmt.Errorf("failed to subscribe to prices: %w", err)
 	}
 
 	go func() {
