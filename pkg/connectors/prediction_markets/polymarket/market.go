@@ -16,7 +16,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		return prediction.Market{}, fmt.Errorf("failed to get market: %w", err)
 	}
 
-	return p.buildMarketFromGamma(marketData)
+	return p.buildMarketFromGamma(marketData, "")
 }
 
 func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.RecurrenceInterval) (prediction.Market, error) {
@@ -57,7 +57,7 @@ func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
 func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Market, error) {
 	ctx := context.Background()
 
-	req := &gamma.MarketsRequest{
+	req := &gamma.EventsRequest{
 		Active: boolPtr(true),
 	}
 
@@ -104,27 +104,34 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 		}
 	}
 
-	gammaMarkets, err := p.gammaClient.MarketsAll(ctx, req)
+	// Fetch via EventsAll so each market carries its parent event slug.
+	// gamma.Market does not reference its parent event; gamma.Event embeds
+	// Markets, so fetching through events is the only way to get the slug
+	// needed to construct a correct Polymarket URL.
+	events, err := p.gammaClient.EventsAll(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch markets: %w", err)
+		return nil, fmt.Errorf("failed to fetch events: %w", err)
 	}
 
-	markets := make([]prediction.Market, 0, len(gammaMarkets))
-	for _, gammaMarket := range gammaMarkets {
-		market, err := p.buildMarketFromGamma(&gammaMarket)
-		if err != nil {
-			p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
-			continue
+	markets := make([]prediction.Market, 0)
+	for _, event := range events {
+		for _, gammaMarket := range event.Markets {
+			market, err := p.buildMarketFromGamma(&gammaMarket, event.Slug)
+			if err != nil {
+				p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
+				continue
+			}
+			markets = append(markets, market)
 		}
-		markets = append(markets, market)
 	}
 
 	return markets, nil
 }
 
-// buildMarketFromGamma converts a gamma.Market to prediction.Market
-// Reuses the same logic as GetMarket to ensure consistency
-func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction.Market, error) {
+// buildMarketFromGamma converts a gamma.Market to prediction.Market.
+// eventSlug is the parent event's slug (used for URL construction); pass empty
+// string when the event context is unavailable (e.g. single-market lookups).
+func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market, eventSlug string) (prediction.Market, error) {
 	// Build outcomes from conditions
 	outcomeIds := parseClobTokenIds(*gammaMarket)
 	if outcomeIds == nil {
@@ -179,9 +186,11 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		}
 	}
 
-	// gamma.Market does not expose an Events field; the market's own slug
-	// is used as a fallback URL key.
-	eventSlug := gammaMarket.Slug
+	// Fall back to the market's own slug only when no event slug was provided
+	// (e.g. single-market lookups via GetMarket/GetRecurringMarket).
+	if eventSlug == "" {
+		eventSlug = gammaMarket.Slug
+	}
 
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(gammaMarket.ConditionID),
