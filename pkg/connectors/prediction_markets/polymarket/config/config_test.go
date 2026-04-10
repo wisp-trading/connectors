@@ -14,6 +14,7 @@ var _ = Describe("Config", func() {
 		conf = &config.Config{
 			PrivateKey:        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 			PolymarketAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
+			PolygonRPCURL:     "https://polygon-mainnet.example.com/v2/test",
 		}
 	})
 
@@ -71,6 +72,15 @@ var _ = Describe("Config", func() {
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("private_key must be a valid hex string"))
+			})
+		})
+
+		Context("when PolygonRPCURL is missing", func() {
+			It("should return an error", func() {
+				conf.PolygonRPCURL = ""
+				err := conf.Validate()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("polygon_rpc_url is required"))
 			})
 		})
 

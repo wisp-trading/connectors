@@ -20,10 +20,11 @@ type Config struct {
 
 	SignatureType int `json:"signature_type,omitempty"` // Signature type: 0=EOA, 1=Proxy/magic.link, 2=GnosisSafe (default: 2)
 
-	// On-chain (optional) — required only for SplitPosition / MergePositions (NegRisk arb).
-	// When set, the CTF client is initialised with a Polygon RPC backend.
-	// Example: "https://polygon-rpc.com" or any Polygon mainnet (chain 137) JSON-RPC endpoint.
-	PolygonRPCURL string `json:"polygon_rpc_url,omitempty"`
+	// On-chain — required for SplitPosition / MergePositions (NegRisk arb).
+	// The CTF client is initialised with this Polygon RPC backend; without it
+	// all on-chain calls fail at runtime with [CTF-002].
+	// Example: "https://polygon-mainnet.g.alchemy.com/v2/<key>"
+	PolygonRPCURL string `json:"polygon_rpc_url"`
 }
 
 var _ connector.Config = (*Config)(nil)
@@ -56,6 +57,12 @@ func (c *Config) Validate() error {
 	// Set default signature type (GnosisSafe wallet)
 	if c.SignatureType == 0 {
 		c.SignatureType = 2
+	}
+
+	// Polygon RPC is required for on-chain CTF operations (SplitPosition / MergePositions).
+	// Add polygon_rpc_url to your wisp.yml credentials section.
+	if c.PolygonRPCURL == "" {
+		return fmt.Errorf("polygon_rpc_url is required (needed for on-chain CTF split/merge operations)")
 	}
 
 	return nil
