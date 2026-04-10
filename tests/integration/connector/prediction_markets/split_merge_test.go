@@ -18,26 +18,11 @@ import (
 // This is the smallest meaningful amount and keeps real on-chain costs minimal.
 var splitMergeAmount = big.NewInt(1_000_000)
 
-// findNegRiskMarket returns the first active NegRisk market available on the connector.
-// It fetches a small page of active markets and scans for one with NegRisk=true.
-func findNegRiskMarket(conn prediction.Connector) (prediction.Market, error) {
-	limit := 50
-	active := true
-	markets, err := conn.Markets(&prediction.MarketsFilter{
-		Limit:  &limit,
-		Active: &active,
-	})
-	if err != nil {
-		return prediction.Market{}, fmt.Errorf("failed to fetch markets: %w", err)
-	}
-
-	for _, m := range markets {
-		if m.NegRisk {
-			return m, nil
-		}
-	}
-	return prediction.Market{}, fmt.Errorf("no active NegRisk market found in first %d results", limit)
-}
+// splitMergeMarketSlug is a long-running market used as the test fixture.
+// SplitPosition and MergePositions only require a valid condition ID; any
+// active market will do. Use GetMarket (single fast API call) rather than
+// paginating Markets() to avoid multi-second Gamma API delays.
+const splitMergeMarketSlug = "will-jesus-christ-return-before-2027"
 
 var _ = Describe("CTF Split and Merge Integration Tests", func() {
 	var runner *connector_test.PredictionMarketTestRunner
@@ -66,8 +51,8 @@ var _ = Describe("CTF Split and Merge Integration Tests", func() {
 		It("mints YES+NO tokens on Polygon and returns a non-empty tx hash", func() {
 			conn := runner.GetPredictionMarketConnector()
 
-			market, err := findNegRiskMarket(conn)
-			Expect(err).ToNot(HaveOccurred(), "could not find a NegRisk market to test against")
+			market, err := conn.GetMarket(splitMergeMarketSlug)
+			Expect(err).ToNot(HaveOccurred(), "could not fetch test market")
 
 			fmt.Fprintf(GinkgoWriter, "SplitPosition: market=%s id=%s amount=%s USDC\n",
 				market.Slug, market.MarketID, splitMergeAmount.String())
@@ -86,8 +71,8 @@ var _ = Describe("CTF Split and Merge Integration Tests", func() {
 		It("burns YES+NO tokens on Polygon and returns a non-empty tx hash", func() {
 			conn := runner.GetPredictionMarketConnector()
 
-			market, err := findNegRiskMarket(conn)
-			Expect(err).ToNot(HaveOccurred(), "could not find a NegRisk market to test against")
+			market, err := conn.GetMarket(splitMergeMarketSlug)
+			Expect(err).ToNot(HaveOccurred(), "could not fetch test market")
 
 			fmt.Fprintf(GinkgoWriter, "MergePositions: market=%s id=%s amount=%s USDC\n",
 				market.Slug, market.MarketID, splitMergeAmount.String())
@@ -106,8 +91,8 @@ var _ = Describe("CTF Split and Merge Integration Tests", func() {
 		It("splits $1 into YES+NO tokens then merges back to $1 USDC", func() {
 			conn := runner.GetPredictionMarketConnector()
 
-			market, err := findNegRiskMarket(conn)
-			Expect(err).ToNot(HaveOccurred(), "could not find a NegRisk market to test against")
+			market, err := conn.GetMarket(splitMergeMarketSlug)
+			Expect(err).ToNot(HaveOccurred(), "could not fetch test market")
 
 			fmt.Fprintf(GinkgoWriter, "Round-trip: market=%s id=%s\n", market.Slug, market.MarketID)
 
