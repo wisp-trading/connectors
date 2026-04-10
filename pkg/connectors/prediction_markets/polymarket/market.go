@@ -3,6 +3,7 @@ package polymarket
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/gamma"
@@ -16,7 +17,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		return prediction.Market{}, fmt.Errorf("failed to get market: %w", err)
 	}
 
-	return p.buildMarketFromGamma(marketData)
+	return p.buildMarketFromGamma(marketData, "")
 }
 
 func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.RecurrenceInterval) (prediction.Market, error) {
@@ -57,45 +58,40 @@ func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
 func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Market, error) {
 	ctx := context.Background()
 
-	req := &gamma.MarketsRequest{
+	// Fetch via EventsAll: date range and status are safe to push to the API at
+	// event level (an event's dates encompass its markets). Volume/liquidity are
+	// applied client-side per-market from the embedded markets array so filtering
+	// is precise. The event slug is available on each gamma.Event, which is the
+	// only way to get it without a separate join call.
+	req := &gamma.EventsRequest{
 		Active: boolPtr(true),
 	}
 
-	// Apply filters if provided
 	if filter != nil {
-		// Pagination
 		if filter.Limit != nil {
 			req.Limit = filter.Limit
 		}
 		if filter.Offset != nil {
 			req.Offset = filter.Offset
 		}
-
-		// Volume filters
 		if filter.MinVolume != "" {
 			req.VolumeMin = stringPtr(filter.MinVolume)
 		}
 		if filter.MaxVolume != "" {
 			req.VolumeMax = stringPtr(filter.MaxVolume)
 		}
-
-		// Liquidity filters
 		if filter.MinLiquidity != "" {
 			req.LiquidityMin = stringPtr(filter.MinLiquidity)
 		}
 		if filter.MaxLiquidity != "" {
 			req.LiquidityMax = stringPtr(filter.MaxLiquidity)
 		}
-
-		// Date range filters
 		if filter.MinEndDate != "" {
 			req.EndDateMin = filter.MinEndDate
 		}
 		if filter.MaxEndDate != "" {
 			req.EndDateMax = filter.MaxEndDate
 		}
-
-		// Status filters
 		if filter.Active != nil {
 			req.Active = filter.Active
 		}
@@ -104,27 +100,75 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 		}
 	}
 
-	gammaMarkets, err := p.gammaClient.MarketsAll(ctx, req)
+	events, err := p.gammaClient.EventsAll(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch markets: %w", err)
+		return nil, fmt.Errorf("failed to fetch events: %w", err)
 	}
 
-	markets := make([]prediction.Market, 0, len(gammaMarkets))
-	for _, gammaMarket := range gammaMarkets {
-		market, err := p.buildMarketFromGamma(&gammaMarket)
-		if err != nil {
-			p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
-			continue
+	markets := make([]prediction.Market, 0)
+	for _, event := range events {
+		for _, gammaMarket := range event.Markets {
+			if filter != nil && !marketPassesFilter(&gammaMarket, filter) {
+				continue
+			}
+			market, err := p.buildMarketFromGamma(&gammaMarket, event.Slug)
+			if err != nil {
+				p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
+				continue
+			}
+			markets = append(markets, market)
 		}
-		markets = append(markets, market)
 	}
 
 	return markets, nil
 }
 
-// buildMarketFromGamma converts a gamma.Market to prediction.Market
-// Reuses the same logic as GetMarket to ensure consistency
-func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction.Market, error) {
+// marketPassesFilter applies per-market volume and liquidity filters client-side.
+// Markets embedded in EventsAll responses carry these values as decimal strings.
+func marketPassesFilter(m *gamma.Market, f *prediction.MarketsFilter) bool {
+	if f.MinLiquidity != "" {
+		min, err := strconv.ParseFloat(f.MinLiquidity, 64)
+		if err == nil {
+			liq, err := strconv.ParseFloat(m.Liquidity, 64)
+			if err != nil || liq < min {
+				return false
+			}
+		}
+	}
+	if f.MaxLiquidity != "" {
+		max, err := strconv.ParseFloat(f.MaxLiquidity, 64)
+		if err == nil {
+			liq, err := strconv.ParseFloat(m.Liquidity, 64)
+			if err != nil || liq > max {
+				return false
+			}
+		}
+	}
+	if f.MinVolume != "" {
+		min, err := strconv.ParseFloat(f.MinVolume, 64)
+		if err == nil {
+			vol, err := strconv.ParseFloat(m.Volume, 64)
+			if err != nil || vol < min {
+				return false
+			}
+		}
+	}
+	if f.MaxVolume != "" {
+		max, err := strconv.ParseFloat(f.MaxVolume, 64)
+		if err == nil {
+			vol, err := strconv.ParseFloat(m.Volume, 64)
+			if err != nil || vol > max {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// buildMarketFromGamma converts a gamma.Market to prediction.Market.
+// eventSlug is the parent event's slug (used for URL construction); pass empty
+// string when the event context is unavailable (e.g. single-market lookups).
+func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market, eventSlug string) (prediction.Market, error) {
 	// Build outcomes from conditions
 	outcomeIds := parseClobTokenIds(*gammaMarket)
 	if outcomeIds == nil {
@@ -179,9 +223,11 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market) (prediction
 		}
 	}
 
-	// gamma.Market does not expose an Events field; the market's own slug
-	// is used as a fallback URL key.
-	eventSlug := gammaMarket.Slug
+	// Fall back to the market's own slug only when no event slug was provided
+	// (e.g. single-market lookups via GetMarket/GetRecurringMarket).
+	if eventSlug == "" {
+		eventSlug = gammaMarket.Slug
+	}
 
 	market := prediction.Market{
 		MarketID:       prediction.MarketIDFromString(gammaMarket.ConditionID),
