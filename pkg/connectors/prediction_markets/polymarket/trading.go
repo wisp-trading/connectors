@@ -10,7 +10,25 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
+// polymarketMinOrderSizeUSDC is the minimum order value enforced by Polymarket.
+// Orders below this threshold are rejected by the API with a NET-002 error.
+const polymarketMinOrderSizeUSDC = 1.0
+
 func (p *polymarket) PlaceLimitOrder(order prediction.LimitOrder) (*connector.OrderResponse, error) {
+	// Exchange-level pre-flight: validate minimum order size before calling the API.
+	// For both BUY and SELL, Polymarket requires the USDC value (shares × price) ≥ $1.
+	orderValueUSDC := order.Amount.Mul(order.Price)
+	minSize := numerical.NewFromFloat(polymarketMinOrderSizeUSDC)
+	if orderValueUSDC.LessThan(minSize) {
+		return nil, fmt.Errorf(
+			"order rejected: value $%.2f is below Polymarket minimum of $%.2f (%.4f shares @ $%.4f)",
+			orderValueUSDC.InexactFloat64(),
+			polymarketMinOrderSizeUSDC,
+			order.Amount.InexactFloat64(),
+			order.Price.InexactFloat64(),
+		)
+	}
+
 	ctx := context.Background()
 
 	resp, err := p.orderManager.PlaceOrder(ctx, order)
