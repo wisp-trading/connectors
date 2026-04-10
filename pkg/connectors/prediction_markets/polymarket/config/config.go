@@ -19,6 +19,11 @@ type Config struct {
 	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
 
 	SignatureType int `json:"signature_type,omitempty"` // Signature type: 0=EOA, 1=Proxy/magic.link, 2=GnosisSafe (default: 2)
+
+	// On-chain (optional) — required only for SplitPosition / MergePositions (NegRisk arb).
+	// When set, the CTF client is initialised with a Polygon RPC backend.
+	// Example: "https://polygon-rpc.com" or any Polygon mainnet (chain 137) JSON-RPC endpoint.
+	PolygonRPCURL string `json:"polygon_rpc_url,omitempty"`
 }
 
 var _ connector.Config = (*Config)(nil)

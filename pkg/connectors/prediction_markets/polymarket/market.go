@@ -17,7 +17,7 @@ func (p *polymarket) GetMarket(slug string) (prediction.Market, error) {
 		return prediction.Market{}, fmt.Errorf("failed to get market: %w", err)
 	}
 
-	return p.buildMarketFromGamma(marketData, "")
+	return p.buildMarketFromGamma(marketData, "", 0)
 }
 
 func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.RecurrenceInterval) (prediction.Market, error) {
@@ -38,7 +38,7 @@ func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.R
 	// Fetch market
 	market, err := p.GetMarket(slug)
 	if err != nil {
-		return prediction.Market{}, fmt.Errorf("failed to get market: %w", err)
+		return prediction.Market{}, fmt.Errorf("failed to get recurring market: %w", err)
 	}
 
 	market.RecurringMarket = &prediction.RecurringMarket{
@@ -111,7 +111,7 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 			if filter != nil && !marketPassesFilter(&gammaMarket, filter) {
 				continue
 			}
-			market, err := p.buildMarketFromGamma(&gammaMarket, event.Slug)
+			market, err := p.buildMarketFromGamma(&gammaMarket, event.Slug, event.NegRiskFeeBips)
 			if err != nil {
 				p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
 				continue
@@ -168,7 +168,8 @@ func marketPassesFilter(m *gamma.Market, f *prediction.MarketsFilter) bool {
 // buildMarketFromGamma converts a gamma.Market to prediction.Market.
 // eventSlug is the parent event's slug (used for URL construction); pass empty
 // string when the event context is unavailable (e.g. single-market lookups).
-func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market, eventSlug string) (prediction.Market, error) {
+// negRiskFeeBips is the NegRisk merge/split fee from the parent event (0 when unknown).
+func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market, eventSlug string, negRiskFeeBips int) (prediction.Market, error) {
 	// Build outcomes from conditions
 	outcomeIds := parseClobTokenIds(*gammaMarket)
 	if outcomeIds == nil {
@@ -200,17 +201,25 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market, eventSlug s
 		}
 	}
 
-	// Handle resolution date
-	resolutionTime, err := time.Parse(time.RFC3339, gammaMarket.EndDate)
-	if err != nil {
-		p.appLogger.Error("Failed to parse resolution time for market %s: %v", gammaMarket.Slug, err)
-		return prediction.Market{}, fmt.Errorf("failed to parse resolution time: %w", err)
+	// Handle resolution date — field may be empty for some markets
+	var resolutionTime *time.Time
+	if gammaMarket.EndDate != "" {
+		t, err := time.Parse(time.RFC3339, gammaMarket.EndDate)
+		if err != nil {
+			p.appLogger.Warn("Failed to parse resolution time for market %s: %v", gammaMarket.Slug, err)
+		} else {
+			resolutionTime = &t
+		}
 	}
 
-	startTime, err := time.Parse(time.RFC3339, gammaMarket.StartDate)
-	if err != nil {
-		p.appLogger.Error("Failed to parse start time for market %s: %v", gammaMarket.Slug, err)
-		return prediction.Market{}, fmt.Errorf("failed to parse start time: %w", err)
+	var startTime *time.Time
+	if gammaMarket.StartDate != "" {
+		t, err := time.Parse(time.RFC3339, gammaMarket.StartDate)
+		if err != nil {
+			p.appLogger.Warn("Failed to parse start time for market %s: %v", gammaMarket.Slug, err)
+		} else {
+			startTime = &t
+		}
 	}
 
 	// Convert gamma tags to prediction tags
@@ -237,10 +246,12 @@ func (p *polymarket) buildMarketFromGamma(gammaMarket *gamma.Market, eventSlug s
 		Outcomes:       outcomes,
 		Active:         gammaMarket.Active,
 		Closed:         gammaMarket.Closed,
-		ResolutionTime: &resolutionTime,
-		StartTime:      &startTime,
+		ResolutionTime: resolutionTime,
+		StartTime:      startTime,
 		Tags:           tags,
 		EventSlug:      eventSlug,
+		NegRisk:        gammaMarket.NegRisk,
+		NegRiskFeeBips: negRiskFeeBips,
 	}
 
 	return market, nil

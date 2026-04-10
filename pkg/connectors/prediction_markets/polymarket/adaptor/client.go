@@ -3,11 +3,17 @@ package adaptor
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"strings"
 	"sync"
 
-	"github.com/GoPolymarket/polymarket-go-sdk"
+	polymarket "github.com/GoPolymarket/polymarket-go-sdk"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/gamma"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/order_manager"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/adaptor/websocket"
@@ -46,7 +52,21 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 		return nil, nil, nil, fmt.Errorf("failed to create signer: %w", err)
 	}
 
-	client := polymarket.NewClient(polymarket.WithUseServerTime(true))
+	clientOpts := []polymarket.Option{polymarket.WithUseServerTime(true)}
+
+	// When a Polygon RPC URL is configured, build a CTF client with a NegRisk backend
+	// so SplitPosition and MergePositions (on-chain EVM calls) can be executed.
+	// Without this, ctf.NewClient() is used — a lightweight client that only computes
+	// IDs client-side and cannot submit transactions (CTF-002 backend required error).
+	if config.PolygonRPCURL != "" {
+		ctfClient, err := buildCTFClient(config)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to build CTF client: %w", err)
+		}
+		clientOpts = append(clientOpts, polymarket.WithCTF(ctfClient))
+	}
+
+	client := polymarket.NewClient(clientOpts...)
 	clobClient := client.CLOB.WithAuth(signer, nil)
 
 	key, err := clobClient.DeriveAPIKey(context.Background())
@@ -107,4 +127,28 @@ func (c *polymarketClient) IsConfigured() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.configured
+}
+
+// buildCTFClient creates a CTF client backed by an Ethereum RPC connection.
+// This is required for on-chain operations (SplitPosition / MergePositions).
+// The private key is used to derive the transactor; the chain ID is always
+// Polygon mainnet (137) since Polymarket is deployed there.
+func buildCTFClient(cfg *config.Config) (ctf.Client, error) {
+	backend, err := ethclient.Dial(cfg.PolygonRPCURL)
+	if err != nil {
+		return nil, fmt.Errorf("dial polygon rpc %q: %w", cfg.PolygonRPCURL, err)
+	}
+
+	privKeyHex := strings.TrimPrefix(cfg.PrivateKey, "0x")
+	key, err := crypto.HexToECDSA(privKeyHex)
+	if err != nil {
+		return nil, fmt.Errorf("parse private key: %w", err)
+	}
+
+	txOpts, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(ctf.PolygonChainID))
+	if err != nil {
+		return nil, fmt.Errorf("create transactor: %w", err)
+	}
+
+	return ctf.NewClientWithNegRisk(backend, txOpts, int64(ctf.PolygonChainID))
 }
