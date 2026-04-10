@@ -3,6 +3,7 @@ package polymarket
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/gamma"
@@ -57,45 +58,40 @@ func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
 func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Market, error) {
 	ctx := context.Background()
 
+	// Fetch via EventsAll: date range and status are safe to push to the API at
+	// event level (an event's dates encompass its markets). Volume/liquidity are
+	// applied client-side per-market from the embedded markets array so filtering
+	// is precise. The event slug is available on each gamma.Event, which is the
+	// only way to get it without a separate join call.
 	req := &gamma.EventsRequest{
 		Active: boolPtr(true),
 	}
 
-	// Apply filters if provided
 	if filter != nil {
-		// Pagination
 		if filter.Limit != nil {
 			req.Limit = filter.Limit
 		}
 		if filter.Offset != nil {
 			req.Offset = filter.Offset
 		}
-
-		// Volume filters
 		if filter.MinVolume != "" {
 			req.VolumeMin = stringPtr(filter.MinVolume)
 		}
 		if filter.MaxVolume != "" {
 			req.VolumeMax = stringPtr(filter.MaxVolume)
 		}
-
-		// Liquidity filters
 		if filter.MinLiquidity != "" {
 			req.LiquidityMin = stringPtr(filter.MinLiquidity)
 		}
 		if filter.MaxLiquidity != "" {
 			req.LiquidityMax = stringPtr(filter.MaxLiquidity)
 		}
-
-		// Date range filters
 		if filter.MinEndDate != "" {
 			req.EndDateMin = filter.MinEndDate
 		}
 		if filter.MaxEndDate != "" {
 			req.EndDateMax = filter.MaxEndDate
 		}
-
-		// Status filters
 		if filter.Active != nil {
 			req.Active = filter.Active
 		}
@@ -104,10 +100,6 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 		}
 	}
 
-	// Fetch via EventsAll so each market carries its parent event slug.
-	// gamma.Market does not reference its parent event; gamma.Event embeds
-	// Markets, so fetching through events is the only way to get the slug
-	// needed to construct a correct Polymarket URL.
 	events, err := p.gammaClient.EventsAll(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch events: %w", err)
@@ -116,6 +108,9 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 	markets := make([]prediction.Market, 0)
 	for _, event := range events {
 		for _, gammaMarket := range event.Markets {
+			if filter != nil && !marketPassesFilter(&gammaMarket, filter) {
+				continue
+			}
 			market, err := p.buildMarketFromGamma(&gammaMarket, event.Slug)
 			if err != nil {
 				p.appLogger.Warn("Failed to parse market %s: %v", gammaMarket.Slug, err)
@@ -126,6 +121,48 @@ func (p *polymarket) Markets(filter *prediction.MarketsFilter) ([]prediction.Mar
 	}
 
 	return markets, nil
+}
+
+// marketPassesFilter applies per-market volume and liquidity filters client-side.
+// Markets embedded in EventsAll responses carry these values as decimal strings.
+func marketPassesFilter(m *gamma.Market, f *prediction.MarketsFilter) bool {
+	if f.MinLiquidity != "" {
+		min, err := strconv.ParseFloat(f.MinLiquidity, 64)
+		if err == nil {
+			liq, err := strconv.ParseFloat(m.Liquidity, 64)
+			if err != nil || liq < min {
+				return false
+			}
+		}
+	}
+	if f.MaxLiquidity != "" {
+		max, err := strconv.ParseFloat(f.MaxLiquidity, 64)
+		if err == nil {
+			liq, err := strconv.ParseFloat(m.Liquidity, 64)
+			if err != nil || liq > max {
+				return false
+			}
+		}
+	}
+	if f.MinVolume != "" {
+		min, err := strconv.ParseFloat(f.MinVolume, 64)
+		if err == nil {
+			vol, err := strconv.ParseFloat(m.Volume, 64)
+			if err != nil || vol < min {
+				return false
+			}
+		}
+	}
+	if f.MaxVolume != "" {
+		max, err := strconv.ParseFloat(f.MaxVolume, 64)
+		if err == nil {
+			vol, err := strconv.ParseFloat(m.Volume, 64)
+			if err != nil || vol > max {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // buildMarketFromGamma converts a gamma.Market to prediction.Market.
