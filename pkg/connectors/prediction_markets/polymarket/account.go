@@ -17,22 +17,18 @@ func (p *polymarket) GetBalance(_ portfolio.Asset) (*connector.AssetBalance, err
 	ctx := context.Background()
 
 	response, err := p.orderManager.GetBalance(ctx)
-
 	if err != nil {
 		return nil, err
 	}
 
 	balance, err := numerical.NewFromString(response.Balance)
-
 	if err != nil {
 		return nil, err
 	}
 
-	// Polymarket returns balance in smallest units (1e6 = 1 USD)
-	normalizedBalance := balance.Div(numerical.NewFromInt(1_000_000))
-
+	// Balance is in raw USDC units (6 decimals): divide by 1e6 to get dollars.
 	return &connector.AssetBalance{
 		Asset: portfolio.NewAsset("USD"),
-		Free:  normalizedBalance,
+		Free:  balance.Div(numerical.NewFromInt(1_000_000)),
 	}, nil
 }
