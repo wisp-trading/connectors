@@ -10,7 +10,7 @@ import (
 )
 
 func (c *orderManager) RedeemPosition(ctx context.Context, market prediction.Market) (string, error) {
-	usdcAddress := common.HexToAddress("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")
+	usdcAddress := common.HexToAddress(usdcAddressHex) // native USDC on Polygon mainnet
 	conditionId := common.HexToHash(market.MarketID.String())
 	parentCollectionId := common.Hash{} // [32]byte all zeros
 

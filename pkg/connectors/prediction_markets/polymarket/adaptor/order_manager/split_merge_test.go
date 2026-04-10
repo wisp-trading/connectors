@@ -56,6 +56,10 @@ func (s *stubCTFClient) RedeemNegRisk(_ context.Context, _ *ctf.RedeemNegRiskReq
 	return ctf.RedeemNegRiskResponse{}, nil
 }
 
+func (s *stubCTFClient) EnsureCollateralApproved(_ context.Context, _ common.Address, _ *big.Int) error {
+	return nil
+}
+
 // ---- helpers ----
 
 // testMarket builds a prediction.Market with a known condition ID.
@@ -65,8 +69,8 @@ func testMarket(conditionIDHex string) prediction.Market {
 	}
 }
 
-// usdcAddress is the Polygon mainnet USDC contract, matching the constant in split.go.
-var usdcAddress = common.HexToAddress("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174")
+// usdcAddress is the native USDC on Polygon mainnet, matching usdcAddressHex in split.go.
+var usdcAddress = common.HexToAddress("0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359")
 
 // ---- specs ----
 
