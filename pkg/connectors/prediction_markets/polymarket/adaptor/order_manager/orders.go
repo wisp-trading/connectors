@@ -9,6 +9,20 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
+// toClobOrderType maps the SDK TimeInForce to the Polymarket CLOB order type.
+// FOK ensures the entire order fills immediately or is cancelled — no resting on the book.
+// FAK (IOC) fills what it can and cancels the rest. Default is GTC.
+func toClobOrderType(tif connector.TimeInForce) clobtypes.OrderType {
+	switch tif {
+	case connector.TimeInForceFOK:
+		return clobtypes.OrderTypeFOK
+	case connector.TimeInForceFAK:
+		return clobtypes.OrderTypeFAK
+	default:
+		return clobtypes.OrderTypeGTC
+	}
+}
+
 // PlaceOrder places an order on Polymarket
 func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrder) (clobtypes.OrderResponse, error) {
 	side := "BUY"
@@ -29,7 +43,7 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 		Side(side).
 		Price(order.Price.InexactFloat64()).
 		Size(order.Amount.InexactFloat64()).
-		OrderType(clobtypes.OrderTypeGTC).
+		OrderType(toClobOrderType(order.TimeInForce)).
 		TickSize(size.MinimumTickSize).
 		Build()
 
