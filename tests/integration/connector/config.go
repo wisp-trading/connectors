@@ -168,6 +168,7 @@ func getPolymarketConfig() *polymarketconfig.Config {
 		PrivateKey:        os.Getenv("POLYMARKET_PRIVATE_KEY"),
 		PolymarketAddress: os.Getenv("POLYMARKET_ADDRESS"),
 		SignatureType:     signatureType,
+		PolygonRPCURL:     os.Getenv("POLYGON_RPC_URL"),
 	}
 }
 
