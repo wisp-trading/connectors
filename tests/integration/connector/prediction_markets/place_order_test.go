@@ -44,9 +44,10 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				market, obChan, err := getMarketAndSubscribeOrderbook(conn, "will-jesus-christ-return-before-2027")
 				Expect(err).ToNot(HaveOccurred())
 
-				// Place limit order at best bid to avoid immediate fill
-				amount := numerical.NewFromFloat(5.0)
-				orderResponse, err := placeLimitOrderAtBestBid(runner, conn, market, obChan, amount, 0)
+				// Place limit order at best bid to avoid immediate fill.
+				// Use a $1.10 target so the order always clears the $1.00 exchange minimum.
+				targetValue := numerical.NewFromFloat(1.10)
+				orderResponse, err := placeLimitOrderAtBestBidValue(runner, conn, market, obChan, targetValue, 0)
 				Expect(err).ToNot(HaveOccurred(), "Order placement should succeed")
 				Expect(orderResponse).ToNot(BeNil())
 				Expect(orderResponse.OrderID).ToNot(BeEmpty(), "Should receive order ID")

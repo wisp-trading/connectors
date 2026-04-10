@@ -101,7 +101,9 @@ func cancelOrderAndVerify(
 }
 
 // placeLimitOrderAtBestBid places a limit buy order at the current best bid price
-// This ensures the order doesn't immediately fill
+// for the specified share amount. The caller is responsible for ensuring the
+// resulting order value meets the exchange minimum ($1.00 on Polymarket).
+// Prefer placeLimitOrderAtBestBidValue when the required USD amount is known.
 func placeLimitOrderAtBestBid(
 	runner *connector_test.PredictionMarketTestRunner,
 	conn prediction.WebSocketConnector,
@@ -124,6 +126,43 @@ func placeLimitOrderAtBestBid(
 		Side:       connector.OrderSideBuy,
 		Price:      bestBid,
 		Amount:     amount,
+		Expiration: 1 * time.Hour,
+	}
+
+	return placeLimitOrderAtPrice(conn, params)
+}
+
+// placeLimitOrderAtBestBidValue places a limit buy order at the current best bid
+// price, sizing the share amount so the total order value equals targetUSDC.
+// This ensures the order meets the exchange minimum regardless of the bid price.
+func placeLimitOrderAtBestBidValue(
+	runner *connector_test.PredictionMarketTestRunner,
+	conn prediction.WebSocketConnector,
+	market prediction.Market,
+	obChan <-chan prediction.OrderBook,
+	targetUSDC numerical.Decimal,
+	outcomeIdx int,
+) (*connector.OrderResponse, error) {
+	// Wait for orderbook data
+	orderBook := runner.VerifyOrderBookData(obChan, 30*time.Second)
+	if len(orderBook.Bids) == 0 {
+		return nil, fmt.Errorf("no bids in orderbook")
+	}
+
+	bestBid := orderBook.Bids[0].Price
+	if bestBid.IsZero() {
+		return nil, fmt.Errorf("best bid price is zero")
+	}
+
+	// shares = targetUSDC / bestBid, rounded up to ensure value >= target
+	shares := targetUSDC.Div(bestBid).RoundUp(0)
+
+	params := OrderPlacementParams{
+		Market:     market,
+		OutcomeIdx: outcomeIdx,
+		Side:       connector.OrderSideBuy,
+		Price:      bestBid,
+		Amount:     shares,
 		Expiration: 1 * time.Hour,
 	}
 
