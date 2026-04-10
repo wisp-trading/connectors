@@ -29,7 +29,7 @@ var splitMergeAmount = big.NewInt(1_000_000)
 const splitMergeMarketSlug = "will-jesus-christ-return-before-2027"
 
 // usdcContractAddress is the USDC ERC-20 on Polygon mainnet.
-const usdcContractAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+const usdcContractAddress = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
 
 // minMATICForGas is the minimum MATIC balance (in wei) required in the EOA.
 // 0.01 MATIC is comfortably above what a single CTF call costs (~0.001–0.003 MATIC).
