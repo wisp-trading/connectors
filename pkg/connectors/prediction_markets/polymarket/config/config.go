@@ -16,9 +16,18 @@ func NewConfig() connector.Config {
 type Config struct {
 	// Authentication
 	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
-	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address
+	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address (only used when signature_type != 0)
 
-	SignatureType int `json:"signature_type,omitempty"` // Signature type: 0=EOA, 1=Proxy/magic.link, 2=GnosisSafe (default: 2)
+	// SignatureType controls which address the CLOB uses as the order maker/funder:
+	//   0 = EOA (default) — maker is derived from private_key; on-chain ops (split/merge) use EOA
+	//   1 = Proxy / magic.link
+	//   2 = GnosisSafe — maker is polymarket_address (Safe); incompatible with on-chain ops
+	//
+	// IMPORTANT: when polygon_rpc_url is set (on-chain ops enabled), signature_type MUST be 0.
+	// SplitPosition and MergePositions are always submitted by the EOA private key (msg.sender = EOA).
+	// Using signature_type 2 causes CLOB fills to credit the Safe while on-chain ops run from the EOA
+	// — positions end up at different addresses and MergePositions will revert.
+	SignatureType int `json:"signature_type,omitempty"`
 
 	// On-chain — required for SplitPosition / MergePositions (NegRisk arb).
 	// The CTF client is initialised with this Polygon RPC backend; without it
@@ -54,9 +63,17 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("funder_address must be a valid Ethereum address (0x followed by 40 hex characters)")
 	}
 
-	// Set default signature type (GnosisSafe wallet)
-	if c.SignatureType == 0 {
-		c.SignatureType = 2
+	// When on-chain operations are enabled (polygon_rpc_url is set), signature_type must be 0 (EOA).
+	// SplitPosition/MergePositions are submitted by the EOA private key (msg.sender = EOA address).
+	// Using signature_type 2 (Safe) would credit CLOB fills to the Safe while on-chain ops run from
+	// the EOA — positions end up at different addresses and MergePositions will revert on-chain.
+	if c.PolygonRPCURL != "" && c.SignatureType != 0 {
+		return fmt.Errorf(
+			"signature_type %d is incompatible with on-chain operations: "+
+				"SplitPosition/MergePositions always run from the EOA (private key); "+
+				"CLOB fills would be credited to the Safe instead — set signature_type: 0",
+			c.SignatureType,
+		)
 	}
 
 	// Polygon RPC is required for on-chain CTF operations (SplitPosition / MergePositions).

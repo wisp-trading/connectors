@@ -10,6 +10,10 @@ import (
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
+func maxUint256() *big.Int {
+	return new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+}
+
 // usdcAddressHex is the native USDC ERC-20 on Polygon mainnet (chain 137).
 // Polymarket migrated from the bridged USDC.e (0x2791…) to native USDC in 2024.
 const usdcAddressHex = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"

@@ -56,3 +56,4 @@ func (c *orderManager) GetMarketBalance(ctx context.Context, market prediction.M
 
 	return balances, nil
 }
+
