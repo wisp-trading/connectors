@@ -15,6 +15,10 @@ import (
 // OrderManager wraps Polymarket CLOB API
 type OrderManager interface {
 	PlaceOrder(ctx context.Context, order prediction.LimitOrder) (clobtypes.OrderResponse, error)
+	// PlaceOrders submits multiple orders in a single CLOB batch request (POST /orders).
+	// All orders are built, signed, and submitted atomically — either all reach the CLOB
+	// in one HTTP call or none do. Individual orders may still be rejected (e.g., FOK not filled).
+	PlaceOrders(ctx context.Context, orders []prediction.LimitOrder) (clobtypes.PostOrdersResponse, error)
 	CancelOrder(ctx context.Context, orderID string) (clobtypes.CancelResponse, error)
 	GetOrderBook(ctx context.Context, outcome prediction.Outcome) (clobtypes.OrderBookResponse, error)
 	GetOrderBooks(ctx context.Context, outcomes []prediction.Outcome) ([]clobtypes.OrderBook, error)

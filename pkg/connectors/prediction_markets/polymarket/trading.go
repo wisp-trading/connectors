@@ -44,13 +44,34 @@ func (p *polymarket) PlaceLimitOrder(order prediction.LimitOrder) (*connector.Or
 }
 
 func (p *polymarket) PlaceLimitOrders(orders []prediction.LimitOrder) ([]*connector.OrderResponse, error) {
-	responses := make([]*connector.OrderResponse, 0, len(orders))
-	for _, order := range orders {
-		resp, err := p.PlaceLimitOrder(order)
-		if err != nil {
-			return responses, fmt.Errorf("order %d of %d failed: %w", len(responses)+1, len(orders), err)
+	if len(orders) == 0 {
+		return nil, nil
+	}
+
+	// Validate all orders upfront before submitting the batch.
+	minSize := numerical.NewFromFloat(polymarketMinOrderSizeUSDC)
+	for i, order := range orders {
+		orderValueUSDC := order.Amount.Mul(order.Price)
+		if orderValueUSDC.LessThan(minSize) {
+			return nil, fmt.Errorf(
+				"order %d rejected: value $%.2f is below Polymarket minimum of $%.2f",
+				i, orderValueUSDC.InexactFloat64(), polymarketMinOrderSizeUSDC,
+			)
 		}
-		responses = append(responses, resp)
+	}
+
+	ctx := context.Background()
+	batchResp, err := p.orderManager.PlaceOrders(ctx, orders)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*connector.OrderResponse, 0, len(batchResp))
+	for _, r := range batchResp {
+		responses = append(responses, &connector.OrderResponse{
+			OrderID: r.ID,
+			Status:  connector.OrderStatus(r.Status),
+		})
 	}
 	return responses, nil
 }

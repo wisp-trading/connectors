@@ -82,6 +82,65 @@ func (_c *OrderManager_PlaceOrder_Call) RunAndReturn(run func(context.Context, p
 	return _c
 }
 
+// PlaceOrders provides a mock function with given fields: ctx, orders
+func (_m *OrderManager) PlaceOrders(ctx context.Context, orders []prediction.LimitOrder) (clobtypes.PostOrdersResponse, error) {
+	ret := _m.Called(ctx, orders)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PlaceOrders")
+	}
+
+	var r0 clobtypes.PostOrdersResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []prediction.LimitOrder) (clobtypes.PostOrdersResponse, error)); ok {
+		return rf(ctx, orders)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []prediction.LimitOrder) clobtypes.PostOrdersResponse); ok {
+		r0 = rf(ctx, orders)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(clobtypes.PostOrdersResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []prediction.LimitOrder) error); ok {
+		r1 = rf(ctx, orders)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// OrderManager_PlaceOrders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PlaceOrders'
+type OrderManager_PlaceOrders_Call struct {
+	*mock.Call
+}
+
+// PlaceOrders is a helper method to define mock.On call
+//   - ctx context.Context
+//   - orders []prediction.LimitOrder
+func (_e *OrderManager_Expecter) PlaceOrders(ctx interface{}, orders interface{}) *OrderManager_PlaceOrders_Call {
+	return &OrderManager_PlaceOrders_Call{Call: _e.mock.On("PlaceOrders", ctx, orders)}
+}
+
+func (_c *OrderManager_PlaceOrders_Call) Run(run func(ctx context.Context, orders []prediction.LimitOrder)) *OrderManager_PlaceOrders_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].([]prediction.LimitOrder))
+	})
+	return _c
+}
+
+func (_c *OrderManager_PlaceOrders_Call) Return(_a0 clobtypes.PostOrdersResponse, _a1 error) *OrderManager_PlaceOrders_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *OrderManager_PlaceOrders_Call) RunAndReturn(run func(context.Context, []prediction.LimitOrder) (clobtypes.PostOrdersResponse, error)) *OrderManager_PlaceOrders_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewOrderManager creates a new instance of OrderManager. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewOrderManager(t interface {

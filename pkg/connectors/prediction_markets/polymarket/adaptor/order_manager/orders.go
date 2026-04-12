@@ -112,6 +112,100 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 	return resp, nil
 }
 
+// PlaceOrders builds, signs, and submits multiple orders in a single CLOB batch request.
+// Collateral balance is confirmed once for the batch if any BUY orders are present.
+func (c *orderManager) PlaceOrders(ctx context.Context, orders []prediction.LimitOrder) (clobtypes.PostOrdersResponse, error) {
+	if len(orders) == 0 {
+		return nil, nil
+	}
+
+	// Confirm collateral once for the batch if any leg is a BUY.
+	hasBuy := false
+	for _, o := range orders {
+		if o.Side == connector.OrderSideBuy {
+			hasBuy = true
+			break
+		}
+	}
+	if hasBuy {
+		if err := confirmCollateralBalance(ctx, c); err != nil {
+			fmt.Printf("[polymarket:order] warn: collateral balance confirmation timed out, proceeding anyway: %v\n", err)
+		}
+	}
+
+	signed := make([]clobtypes.SignedOrder, 0, len(orders))
+	for _, order := range orders {
+		side := "BUY"
+		if order.Side == connector.OrderSideSell {
+			side = "SELL"
+		}
+
+		size, err := c.client.TickSize(ctx, &clobtypes.TickSizeRequest{
+			TokenID: order.Outcome.OutcomeID.String(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("tick size lookup failed for %s: %w", order.Outcome.OutcomeID, err)
+		}
+
+		orderSize := order.Amount.InexactFloat64()
+		if order.Side == connector.OrderSideSell {
+			orderSize *= 0.9999
+			orderSize = math.Round(orderSize*100) / 100
+		}
+
+		built, err := clob.NewOrderBuilder(c.client, c.signer).
+			TokenID(order.Outcome.OutcomeID.String()).
+			Side(side).
+			Price(order.Price.InexactFloat64()).
+			Size(orderSize).
+			OrderType(toClobOrderType(order.TimeInForce)).
+			TickSize(size.MinimumTickSize).
+			Build()
+		if err != nil {
+			return nil, fmt.Errorf("order build failed for %s: %w", order.Outcome.OutcomeID, err)
+		}
+
+		signerAddr := c.signer.Address()
+		tokenID := order.Outcome.OutcomeID.String()
+		negRisk := built.NegRisk
+		sigType := 0
+		if built.SignatureType != nil {
+			sigType = *built.SignatureType
+		}
+		fmt.Printf("[polymarket:batch] side=%s token=%s signer=%s maker=%s sig_type=%d neg_risk=%v\n",
+			side, tokenID, signerAddr.Hex(), built.Maker.Hex(), sigType, negRisk)
+
+		s, err := c.client.SignOrder(built)
+		if err != nil {
+			return nil, fmt.Errorf("order signing failed for %s: %w", order.Outcome.OutcomeID, err)
+		}
+
+		// Set order type on the signed order (FOK/FAK/GTC).
+		s.OrderType = toClobOrderType(order.TimeInForce)
+		signed = append(signed, *s)
+	}
+
+	resp, err := c.client.PostOrders(ctx, &clobtypes.SignedOrders{Orders: signed})
+	if err != nil {
+		return nil, fmt.Errorf("batch order submission failed: %w", err)
+	}
+
+	// Check FOK statuses — any cancelled/unmatched FOK order is an error.
+	for i, r := range resp {
+		if i < len(orders) && orders[i].TimeInForce == connector.TimeInForceFOK {
+			s := strings.ToLower(strings.TrimSpace(r.Status))
+			if strings.Contains(s, "cancel") || strings.Contains(s, "unmatch") {
+				return resp, fmt.Errorf(
+					"fok order %d not filled: clob returned status %q for token %s",
+					i, r.Status, orders[i].Outcome.OutcomeID,
+				)
+			}
+		}
+	}
+
+	return resp, nil
+}
+
 func (c *orderManager) CancelOrder(ctx context.Context, orderID string) (clobtypes.CancelResponse, error) {
 	resp, err := c.client.CancelOrder(ctx, &clobtypes.CancelOrderRequest{
 		OrderID: orderID,
