@@ -68,12 +68,10 @@ func (p *polymarket) SubscribePriceChanges(market prediction.Market) error {
 	return nil
 }
 
-func (p *polymarket) FetchPrice(pair portfolio.Pair) (*connector.Price, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) FetchPrice(_ portfolio.Pair) (*connector.Price, error) {
+	return nil, fmt.Errorf("polymarket: FetchPrice not supported; use SubscribePriceChanges or FetchOrderBooksForMarket")
 }
 
-func (p *polymarket) FetchKlines(pair portfolio.Pair, interval string, limit int) ([]connector.Kline, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) FetchKlines(_ portfolio.Pair, _ string, _ int) ([]connector.Kline, error) {
+	return nil, fmt.Errorf("polymarket: kline/candlestick data not available for prediction markets")
 }

@@ -31,6 +31,5 @@ func (p *polymarket) GetOrderBookUpdates() <-chan prediction.OrderBook {
 }
 
 func (p *polymarket) ErrorChannel() <-chan error {
-	//TODO implement me
-	panic("implement me")
+	return p.errChannel
 }

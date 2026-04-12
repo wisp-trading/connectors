@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
@@ -43,8 +44,15 @@ func (p *polymarket) PlaceLimitOrder(order prediction.LimitOrder) (*connector.Or
 }
 
 func (p *polymarket) PlaceLimitOrders(orders []prediction.LimitOrder) ([]*connector.OrderResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	responses := make([]*connector.OrderResponse, 0, len(orders))
+	for _, order := range orders {
+		resp, err := p.PlaceLimitOrder(order)
+		if err != nil {
+			return responses, fmt.Errorf("order %d of %d failed: %w", len(responses)+1, len(orders), err)
+		}
+		responses = append(responses, resp)
+	}
+	return responses, nil
 }
 
 func (p *polymarket) CancelOrder(orderID string, outcome ...prediction.Outcome) (*connector.CancelResponse, error) {
@@ -134,47 +142,96 @@ func (p *polymarket) SubscribeOrders(market prediction.Market) error {
 	return nil
 }
 
-func (p *polymarket) UnsubscribeUserMarket(market prediction.Market) error {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) UnsubscribeUserMarket(_ prediction.Market) error {
+	// WebSocket unsubscription is handled by closing the goroutine via context cancellation.
+	// Individual market unsubscribe is not yet supported by the Polymarket WS SDK.
+	return nil
 }
 
 func (p *polymarket) GetOutcome(marketID, outcomeID string) prediction.Outcome {
-	//TODO implement me
-	panic("implement me")
+	// Look up the outcome from subscribed markets first.
+	for _, m := range p.subscribedMarkets {
+		if m.MarketID.String() == marketID {
+			for _, o := range m.Outcomes {
+				if o.OutcomeID.String() == outcomeID {
+					return o
+				}
+			}
+		}
+	}
+	// Return a minimal outcome with just the IDs populated.
+	return prediction.Outcome{
+		OutcomeID: prediction.OutcomeID(outcomeID),
+	}
 }
 
-func (p *polymarket) PlaceMarketOrder(pair portfolio.Pair, side connector.OrderSide, quantity numerical.Decimal) (*connector.OrderResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) PlaceMarketOrder(_ portfolio.Pair, _ connector.OrderSide, _ numerical.Decimal) (*connector.OrderResponse, error) {
+	return nil, fmt.Errorf("polymarket does not support market orders; use PlaceLimitOrder with FOK time-in-force")
 }
 
-func (p *polymarket) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) GetOpenOrders(_ ...portfolio.Pair) ([]connector.Order, error) {
+	ctx := context.Background()
+	clobOrders, err := p.orderManager.GetOpenOrders(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	orders := make([]connector.Order, 0, len(clobOrders))
+	for _, o := range clobOrders {
+		orders = append(orders, mapCLOBOrder(o))
+	}
+	return orders, nil
 }
 
-func (p *polymarket) GetOrderStatus(orderID string, pair ...portfolio.Pair) (*connector.Order, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) GetOrderStatus(orderID string, _ ...portfolio.Pair) (*connector.Order, error) {
+	ctx := context.Background()
+	clobOrder, err := p.orderManager.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	order := mapCLOBOrder(clobOrder)
+	return &order, nil
 }
 
-func (p *polymarket) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) GetTradingHistory(_ portfolio.Pair, _ int) ([]connector.Trade, error) {
+	// Not implemented — prediction markets use position-based tracking, not trade history.
+	return nil, nil
 }
 
-func (p *polymarket) FetchRecentTrades(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) FetchRecentTrades(_ portfolio.Pair, _ int) ([]connector.Trade, error) {
+	// Not implemented — prediction market trades flow via WebSocket subscriptions.
+	return nil, nil
 }
 
 func (p *polymarket) GetPositions() ([]prediction.Position, error) {
-	//TODO implement me
-	panic("implement me")
+	// Positions are tracked by the Wisp SDK store via the balance ingestor and
+	// order event stream. Direct CLOB API position queries are not available.
+	return nil, nil
 }
 
-func (p *polymarket) GetPositionsByMarket(marketID string) ([]prediction.Position, error) {
-	//TODO implement me
-	panic("implement me")
+func (p *polymarket) GetPositionsByMarket(_ string) ([]prediction.Position, error) {
+	// See GetPositions — positions are tracked at the SDK layer.
+	return nil, nil
+}
+
+// mapCLOBOrder converts a Polymarket CLOB OrderResponse to the SDK connector.Order type.
+func mapCLOBOrder(o clobtypes.OrderResponse) connector.Order {
+	price, _ := numerical.NewFromString(o.Price)
+	origSize, _ := numerical.NewFromString(o.OriginalSize)
+	matched, _ := numerical.NewFromString(o.SizeMatched)
+
+	side := connector.OrderSideBuy
+	if o.Side == "SELL" {
+		side = connector.OrderSideSell
+	}
+
+	return connector.Order{
+		ID:           o.ID,
+		Side:         side,
+		Type:         connector.OrderTypeLimit,
+		Status:       connector.OrderStatus(o.Status),
+		Quantity:     origSize,
+		Price:        price,
+		FilledQty:    matched,
+		RemainingQty: origSize.Sub(matched),
+	}
 }

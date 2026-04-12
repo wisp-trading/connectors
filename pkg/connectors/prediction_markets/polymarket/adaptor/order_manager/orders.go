@@ -123,3 +123,20 @@ func (c *orderManager) CancelOrder(ctx context.Context, orderID string) (clobtyp
 
 	return resp, nil
 }
+
+func (c *orderManager) GetOrder(ctx context.Context, orderID string) (clobtypes.OrderResponse, error) {
+	return c.client.Order(ctx, orderID)
+}
+
+func (c *orderManager) GetOpenOrders(ctx context.Context, market string) ([]clobtypes.OrderResponse, error) {
+	req := &clobtypes.OrdersRequest{}
+	if market != "" {
+		req.Market = market
+	}
+
+	resp, err := c.client.Orders(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
+}

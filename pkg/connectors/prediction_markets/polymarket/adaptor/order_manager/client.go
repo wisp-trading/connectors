@@ -43,6 +43,10 @@ type OrderManager interface {
 	// GetNativeBalance returns the native MATIC balance (in wei) for the signing address.
 	// Requires polygon_rpc_url to be configured; returns 0 when no RPC is available.
 	GetNativeBalance(ctx context.Context) (*big.Int, error)
+	// GetOrder returns a single order by ID from the CLOB API.
+	GetOrder(ctx context.Context, orderID string) (clobtypes.OrderResponse, error)
+	// GetOpenOrders returns all open orders, optionally filtered by market.
+	GetOpenOrders(ctx context.Context, market string) ([]clobtypes.OrderResponse, error)
 }
 
 // orderManager implementation

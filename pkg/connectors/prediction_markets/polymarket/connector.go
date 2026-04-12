@@ -35,6 +35,7 @@ type polymarket struct {
 
 	tradeChannel chan connector.Trade
 	orderChannel chan connector.Order
+	errChannel   chan error
 
 	orderManager  order_manager.OrderManager
 	clobWebsocket websocket.Websocket
@@ -52,13 +53,11 @@ func (p *polymarket) NewConfig() connector.Config {
 }
 
 func (p *polymarket) SupportsTradingOperations() bool {
-	//TODO implement me
-	panic("implement me")
+	return p.initialized
 }
 
 func (p *polymarket) SupportsRealTimeData() bool {
-	//TODO implement me
-	panic("implement me")
+	return p.initialized
 }
 
 // Ensure polymarket implements all interfaces at compile time
@@ -83,6 +82,7 @@ func NewPolymarket(
 		priceChangeChannels: make(map[string]chan prediction.PriceChange),
 		tradeChannel:        make(chan connector.Trade, 100),
 		orderChannel:        make(chan connector.Order, 100),
+		errChannel:          make(chan error, 10),
 		subscribedMarkets:   make(map[prediction.MarketID]prediction.Market),
 	}
 }
