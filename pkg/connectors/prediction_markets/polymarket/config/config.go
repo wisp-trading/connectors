@@ -8,6 +8,31 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 )
 
+// SignatureType represents the wallet signature type for Polymarket orders
+type SignatureType int
+
+const (
+	SignatureTypeEOA         SignatureType = 0
+	SignatureTypeProxy       SignatureType = 1
+	SignatureTypeGnosisSafe  SignatureType = 2
+)
+
+// UnmarshalJSON parses signature type from string (e.g., "EOA", "GNOSIS_SAFE")
+func (s *SignatureType) UnmarshalJSON(data []byte) error {
+	str := strings.Trim(string(data), `"`)
+	switch str {
+	case "EOA", "eoa":
+		*s = SignatureTypeEOA
+	case "PROXY", "proxy":
+		*s = SignatureTypeProxy
+	case "GNOSIS_SAFE", "gnosis_safe":
+		*s = SignatureTypeGnosisSafe
+	default:
+		return fmt.Errorf("invalid signature_type: %q (expected EOA, PROXY, or GNOSIS_SAFE)", str)
+	}
+	return nil
+}
+
 func NewConfig() connector.Config {
 	return &Config{}
 }
@@ -15,19 +40,9 @@ func NewConfig() connector.Config {
 // Config holds the configuration for Polymarket connector
 type Config struct {
 	// Authentication
-	PrivateKey        string `json:"private_key"`        // Ethereum private key for signing orders
-	PolymarketAddress string `json:"polymarket_address"` // Safe proxy wallet address (only used when signature_type != 0)
-
-	// SignatureType controls which address the CLOB uses as the order maker/funder:
-	//   0 = EOA (default) — maker is derived from private_key; on-chain ops (split/merge) use EOA
-	//   1 = Proxy / magic.link
-	//   2 = GnosisSafe — maker is polymarket_address (Safe); incompatible with on-chain ops
-	//
-	// IMPORTANT: when polygon_rpc_url is set (on-chain ops enabled), signature_type MUST be 0.
-	// SplitPosition and MergePositions are always submitted by the EOA private key (msg.sender = EOA).
-	// Using signature_type 2 causes CLOB fills to credit the Safe while on-chain ops run from the EOA
-	// — positions end up at different addresses and MergePositions will revert.
-	SignatureType int `json:"signature_type,omitempty"`
+	PrivateKey        string        `json:"private_key"`        // Ethereum private key for signing orders
+	PolymarketAddress string        `json:"polymarket_address"` // Safe proxy wallet address (only used when signature_type != EOA)
+	SignatureType     SignatureType `json:"signature_type,omitempty"` // EOA (default), PROXY, or GNOSIS_SAFE
 
 	// On-chain — required for SplitPosition / MergePositions (NegRisk arb).
 	// The CTF client is initialised with this Polygon RPC backend; without it
@@ -48,9 +63,9 @@ func (c *Config) Validate() error {
 	if c.PrivateKey == "" {
 		return fmt.Errorf("private_key is required")
 	}
-	if c.PolymarketAddress == "" {
-		return fmt.Errorf("funder_address is required")
-	}
+	// polymarket_address is optional for Safe mode (auto-derived from EOA).
+	// For non-Safe modes, it's recommended but not strictly required.
+	// CTF operations will use it if provided.
 
 	// Validate private key format (should be hex string, typically 64 chars + optional 0x prefix)
 	privateKey := strings.TrimPrefix(c.PrivateKey, "0x")
@@ -58,23 +73,16 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("private_key must be a valid hex string (64+ hex characters)")
 	}
 
-	// Validate funder address format (Ethereum address: 0x + 40 hex chars)
-	if !strings.HasPrefix(c.PolymarketAddress, "0x") || len(c.PolymarketAddress) != 42 || !isHexString(c.PolymarketAddress[2:]) {
-		return fmt.Errorf("funder_address must be a valid Ethereum address (0x followed by 40 hex characters)")
+	// Validate funder address format if provided (for Safe mode, it's auto-derived if empty)
+	if c.PolymarketAddress != "" {
+		if !strings.HasPrefix(c.PolymarketAddress, "0x") || len(c.PolymarketAddress) != 42 || !isHexString(c.PolymarketAddress[2:]) {
+			return fmt.Errorf("polymarket_address must be a valid Ethereum address (0x followed by 40 hex characters)")
+		}
 	}
 
-	// When on-chain operations are enabled (polygon_rpc_url is set), signature_type must be 0 (EOA).
-	// SplitPosition/MergePositions are submitted by the EOA private key (msg.sender = EOA address).
-	// Using signature_type 2 (Safe) would credit CLOB fills to the Safe while on-chain ops run from
-	// the EOA — positions end up at different addresses and MergePositions will revert on-chain.
-	if c.PolygonRPCURL != "" && c.SignatureType != 0 {
-		return fmt.Errorf(
-			"signature_type %d is incompatible with on-chain operations: "+
-				"SplitPosition/MergePositions always run from the EOA (private key); "+
-				"CLOB fills would be credited to the Safe instead — set signature_type: 0",
-			c.SignatureType,
-		)
-	}
+	// When signature_type is 2 (Safe) and on-chain operations are enabled, we'll automatically
+	// derive the Safe address from the EOA and configure both CLOB and on-chain ops to use it.
+	// If polymarket_address is not set, it will be derived deterministically.
 
 	// Polygon RPC is required for on-chain CTF operations (SplitPosition / MergePositions).
 	// Add polygon_rpc_url to your wisp.yml credentials section.

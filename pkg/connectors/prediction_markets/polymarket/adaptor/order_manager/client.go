@@ -8,6 +8,7 @@ import (
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
+	"github.com/ethereum/go-ethereum/common"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
@@ -35,26 +36,36 @@ type OrderManager interface {
 	// approvals so that CLOB order settlement can proceed without on-chain reverts.
 	// Safe to call multiple times — each approval is a no-op if already granted.
 	SetupApprovals(ctx context.Context) error
+	// ConfirmConditionalBalance triggers a CLOB balance refresh for every outcome
+	// in the market and polls until each reports a balance of at least minAmount.
+	// Use after CLOB buy fills to wait for settlement before MergePositions.
+	ConfirmConditionalBalance(ctx context.Context, market prediction.Market, minAmount *big.Int) error
 }
 
 // orderManager implementation
 type orderManager struct {
 	client          clob.Client
 	tokenManagement ctf.Client
-	signer          *auth.PrivateKeySigner
-	rpcURL          string // Alchemy Polygon RPC URL for on-chain reads
+	signer          auth.Signer
+	rpcURL          string
+	sigType         auth.SignatureType
+	safeAddr        common.Address
 }
 
 func NewOrderManager(
 	client clob.Client,
 	manager ctf.Client,
-	signer *auth.PrivateKeySigner,
+	signer auth.Signer,
 	rpcURL string,
+	sigType auth.SignatureType,
+	safeAddr common.Address,
 ) OrderManager {
 	return &orderManager{
 		client:          client,
 		tokenManagement: manager,
 		signer:          signer,
 		rpcURL:          rpcURL,
+		sigType:         sigType,
+		safeAddr:        safeAddr,
 	}
 }

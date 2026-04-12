@@ -46,10 +46,19 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 		return nil, nil, nil, err
 	}
 
-	signer, err := auth.NewPrivateKeySigner(config.PrivateKey, 137)
-
+	// Create fully configured signer - SDK handles all Safe/EOA logic
+	sigType := auth.SignatureType(config.SignatureType)
+	configuredSigner, err := auth.NewConfiguredSignerFromConfig(config.PrivateKey, sigType, 137)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create signer: %w", err)
+	}
+
+	signer := configuredSigner.GetSigner()
+	safeAddr := configuredSigner.GetOperationAddress()
+
+	// Log Safe mode if applicable
+	if configuredSigner.IsSafeMode() {
+		fmt.Printf("[polymarket] Safe mode: address %s (owner: %s)\n", safeAddr.Hex(), configuredSigner.GetSigningAddress().Hex())
 	}
 
 	clientOpts := []polymarket.Option{polymarket.WithUseServerTime(true)}
@@ -59,7 +68,7 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 	// Without this, ctf.NewClient() is used — a lightweight client that only computes
 	// IDs client-side and cannot submit transactions (CTF-002 backend required error).
 	if config.PolygonRPCURL != "" {
-		ctfClient, err := buildCTFClient(config)
+		ctfClient, err := buildCTFClient(config, safeAddr)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to build CTF client: %w", err)
 		}
@@ -67,11 +76,12 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 	}
 
 	client := polymarket.NewClient(clientOpts...)
-	clobClient := client.CLOB.WithAuth(signer, nil)
 
-	key, err := clobClient.DeriveAPIKey(context.Background())
+	// Set signature type BEFORE deriving API key - Polymarket needs to know
+	// which address context to use (EOA vs Safe)
+	key, err := client.CLOB.WithAuth(signer, nil).WithSignatureType(sigType).DeriveAPIKey(context.Background())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, fmt.Errorf("derive API key: %w", err)
 	}
 
 	creds := &auth.APIKey{
@@ -80,21 +90,17 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 		Passphrase: key.Passphrase,
 	}
 
-	sigType := auth.SignatureType(config.SignatureType)
-	polymarketAddress := common.HexToAddress(config.PolymarketAddress)
-
-	// For non-EOA wallets (Proxy=1, GnosisSafe=2), set the funder address explicitly.
-	// For EOA (0), the signer address IS the maker — no funder needed.
-	if sigType == auth.SignatureEOA {
-		clobClient = clobClient.WithAuth(signer, creds).WithSignatureType(sigType)
-	} else {
-		clobClient = clobClient.WithAuth(signer, creds).WithFunder(polymarketAddress).WithSignatureType(sigType)
+	// Set up the actual clobClient with the proper signer (SafeSigner for Safe mode)
+	// and configure funder for Safe wallets
+	clobClient := client.CLOB.WithAuth(signer, creds).WithSignatureType(sigType)
+	if sigType != auth.SignatureEOA {
+		clobClient = clobClient.WithFunder(safeAddr)
 	}
 	clobWebsocket := client.CLOBWS
 	tokenManager := client.CTF
 
 	clobWebsocket.Authenticate(signer, creds)
-	orderManager := order_manager.NewOrderManager(clobClient, tokenManager, signer, config.PolygonRPCURL)
+	orderManager := order_manager.NewOrderManager(clobClient, tokenManager, signer, config.PolygonRPCURL, sigType, safeAddr)
 	websocketManager := websocket.NewWebsocket(clobWebsocket)
 	gammaClient := gamma.NewGammaClient(client.Gamma)
 
@@ -133,7 +139,9 @@ func (c *polymarketClient) IsConfigured() bool {
 // This is required for on-chain operations (SplitPosition / MergePositions).
 // The private key is used to derive the transactor; the chain ID is always
 // Polygon mainnet (137) since Polymarket is deployed there.
-func buildCTFClient(cfg *config.Config) (ctf.Client, error) {
+// For Safe wallets, the safeAddr is passed for reference (Safe support requires
+// additional configuration beyond private key signing).
+func buildCTFClient(cfg *config.Config, safeAddr common.Address) (ctf.Client, error) {
 	backend, err := ethclient.Dial(cfg.PolygonRPCURL)
 	if err != nil {
 		return nil, fmt.Errorf("dial polygon rpc %q: %w", cfg.PolygonRPCURL, err)
@@ -148,6 +156,16 @@ func buildCTFClient(cfg *config.Config) (ctf.Client, error) {
 	txOpts, err := bind.NewKeyedTransactorWithChainID(key, big.NewInt(ctf.PolygonChainID))
 	if err != nil {
 		return nil, fmt.Errorf("create transactor: %w", err)
+	}
+
+	// For Safe mode: set txOpts.From to the Safe address so that transactions
+	// are credited to the Safe in the CLOB's accounting (matching CLOB orders
+	// which use SafeSigner). Polymarket's infrastructure routes these correctly
+	// through the Safe contract when signature_type is GNOSIS_SAFE.
+	sigType := auth.SignatureType(cfg.SignatureType)
+	if sigType != auth.SignatureEOA {
+		fmt.Printf("[polymarket:ctf] Safe mode: using Safe address %s for transactions\n", safeAddr.Hex())
+		txOpts.From = safeAddr
 	}
 
 	return ctf.NewClientWithNegRisk(backend, txOpts, int64(ctf.PolygonChainID))

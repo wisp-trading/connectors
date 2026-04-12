@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,6 +23,16 @@ import (
 // falls back to the Polymarket CLOB API balance. The caller sees the same
 // BalanceAllowanceResponse either way.
 func (c *orderManager) GetBalance(ctx context.Context) (clobtypes.BalanceAllowanceResponse, error) {
+	// For Safe wallets, skip on-chain balance query and go directly to CLOB API
+	// because the CLOB tracks Safe's balance under the Safe address, not the EOA's address.
+	// For EOA wallets, query on-chain first for accuracy.
+	if c.sigType != auth.SignatureEOA {
+		// Safe or Proxy mode: use CLOB API balance (which tracks funder address)
+		return c.client.BalanceAllowance(ctx, &clobtypes.BalanceAllowanceRequest{
+			AssetType: clobtypes.AssetTypeCollateral,
+		})
+	}
+
 	onChain, err := c.tokenManagement.CollateralBalance(ctx, common.HexToAddress(usdcAddressHex))
 	if err == nil {
 		return clobtypes.BalanceAllowanceResponse{Balance: onChain.String()}, nil

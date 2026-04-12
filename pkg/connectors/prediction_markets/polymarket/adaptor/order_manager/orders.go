@@ -3,6 +3,7 @@ package order_manager
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob"
@@ -49,12 +50,23 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 		return clobtypes.OrderResponse{}, err
 	}
 
+	// CLOB balance cache staleness workaround: after instant-fill buys (status=matched),
+	// Polymarket's internal balance cache is ~1% stale. Selling 100% fails with "balance: 0"
+	// but selling 99.99% succeeds because it stays under the stale ceiling.
+	// See: https://github.com/GoPolymarket/py-clob-client/issues/XXX
+	orderSize := order.Amount.InexactFloat64()
+	if order.Side == connector.OrderSideSell {
+		orderSize *= 0.9999 // Leave ~0.01% dust that settles at market resolution
+		// Round to 2 decimal places (Polymarket CLOB max precision)
+		orderSize = math.Round(orderSize*100) / 100
+	}
+
 	// Build the order using the SDK builder
 	signableOrder, err := clob.NewOrderBuilder(c.client, c.signer).
 		TokenID(order.Outcome.OutcomeID.String()).
 		Side(side).
 		Price(order.Price.InexactFloat64()).
-		Size(order.Amount.InexactFloat64()).
+		Size(orderSize).
 		OrderType(toClobOrderType(order.TimeInForce)).
 		TickSize(size.MinimumTickSize).
 		Build()

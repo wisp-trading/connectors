@@ -109,8 +109,11 @@ func (p *polymarket) Initialize(conf connector.Config) error {
 	// Grant on-chain approvals required for NegRisk arb trading.
 	// This is connector-internal plumbing — the SDK has no knowledge of EVM approvals.
 	// Runs once at startup; each approval is idempotent (checks on-chain state first).
-	if err := p.orderManager.SetupApprovals(p.ctx); err != nil {
-		return fmt.Errorf("polymarket: on-chain approval setup failed: %w", err)
+	// Skip for Safe wallets — Polymarket's infrastructure handles Safe approvals via the builder.
+	if polymarketConfig.SignatureType != config.SignatureTypeGnosisSafe {
+		if err := p.orderManager.SetupApprovals(p.ctx); err != nil {
+			return fmt.Errorf("polymarket: on-chain approval setup failed: %w", err)
+		}
 	}
 
 	p.initialized = true

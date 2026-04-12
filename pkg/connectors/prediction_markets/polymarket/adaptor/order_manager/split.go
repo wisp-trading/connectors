@@ -174,6 +174,13 @@ func confirmCollateralBalance(ctx context.Context, c *orderManager) error {
 	}
 }
 
+// ConfirmConditionalBalance triggers a CLOB balance refresh for every outcome
+// in the market and polls until each reports a balance of at least minAmount.
+// Use after CLOB buy fills to wait for on-chain settlement before MergePositions.
+func (c *orderManager) ConfirmConditionalBalance(ctx context.Context, market prediction.Market, minAmount *big.Int) error {
+	return confirmConditionalBalances(ctx, c, market, minAmount)
+}
+
 // MergePositions burns amountUSDC worth of YES + NO tokens and returns USDC.
 // amountUSDC is in raw USDC units (6 decimals): $1.00 = 1_000_000.
 func (c *orderManager) MergePositions(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error) {

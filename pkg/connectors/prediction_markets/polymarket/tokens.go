@@ -27,6 +27,10 @@ func (p *polymarket) MergePositions(market prediction.Market, amountUSDC *big.In
 	return p.orderManager.MergePositions(context.Background(), market, amountUSDC)
 }
 
+func (p *polymarket) ConfirmConditionalBalance(market prediction.Market, minAmount *big.Int) error {
+	return p.orderManager.ConfirmConditionalBalance(context.Background(), market, minAmount)
+}
+
 func (p *polymarket) GetLockedPositions() ([]prediction.LockedPosition, error) {
 	return p.orderManager.GetLockedPositions(context.Background())
 }
