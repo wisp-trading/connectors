@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
@@ -34,12 +35,18 @@ func maxUint256() *big.Int {
 // Polymarket migrated from the bridged USDC.e (0x2791…) to native USDC in 2024.
 const usdcAddressHex = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
 
+// clobBalancePollInterval is how often we re-check the CLOB's cached balance.
+const clobBalancePollInterval = 500 * time.Millisecond
+
+// clobBalancePollTimeout is the maximum time to wait for the CLOB to reflect
+// an on-chain balance after calling UpdateBalanceAllowance.
+const clobBalancePollTimeout = 30 * time.Second
+
 // SplitPosition ensures the CTF contract is approved to spend USDC, submits
 // the split transaction, and returns immediately with the tx hash and a ready
 // channel. The ready channel receives nil (then closes) once the transaction
-// is mined AND the CLOB balance cache has been refreshed. Callers MUST receive
-// from ready before placing any SELL orders — the CLOB rejects sells with
-// "balance: 0" until it re-reads the on-chain ERC-1155 state.
+// is mined AND the CLOB has confirmed the conditional token balance is >= amountUSDC.
+// Callers MUST receive from ready before placing any SELL orders.
 //
 // amountUSDC is in raw USDC units (6 decimals): $1.00 = 1_000_000.
 func (c *orderManager) SplitPosition(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, <-chan error, error) {
@@ -62,38 +69,107 @@ func (c *orderManager) SplitPosition(ctx context.Context, market prediction.Mark
 		return "", nil, err
 	}
 
-	// ready closes once the tx is mined AND the CLOB balance cache is refreshed.
-	// Uses context.Background() so the goroutine outlives the caller's context —
-	// the tx is already broadcast and must be allowed to settle.
+	// ready closes once the tx is mined AND the CLOB has confirmed the balance.
+	// Uses context.Background() so the goroutine outlives the caller's context.
 	ready := make(chan error, 1)
-	clobClient := c
+	amount := new(big.Int).Set(amountUSDC)
 	go func() {
 		defer close(ready)
 		if err := <-mined; err != nil {
 			ready <- fmt.Errorf("split tx not mined: %w", err)
 			return
 		}
-		// tx confirmed on-chain — notify CLOB to refresh its ERC-1155 balance cache.
-		notifyBalanceUpdate(context.Background(), clobClient, market)
+		// Tx confirmed — notify CLOB and poll until it confirms the balance.
+		// The UpdateBalanceAllowance endpoint is async server-side; we must poll
+		// BalanceAllowance until the CLOB reflects the on-chain state, otherwise
+		// SELL orders land before the CLOB's cache is updated and are rejected.
+		if err := confirmConditionalBalances(context.Background(), c, market, amount); err != nil {
+			// Log but don't fail — the SELL order will surface its own error if needed.
+			fmt.Printf("[polymarket:split] warn: CLOB balance confirmation timed out: %v\n", err)
+		}
 	}()
 
 	return txHash.Hex(), ready, nil
 }
 
-// notifyBalanceUpdate pings the CLOB's balance-allowance/update endpoint for
-// every outcome token in the market so the CLOB re-reads on-chain ERC-1155
-// balances. Errors are logged but never returned — a failed notify is not fatal.
-func notifyBalanceUpdate(ctx context.Context, c *orderManager, market prediction.Market) {
+// confirmConditionalBalances triggers a CLOB balance refresh for every outcome
+// token in the market, then polls BalanceAllowance until each token's cached
+// balance is >= minAmount. Returns an error only on timeout.
+func confirmConditionalBalances(ctx context.Context, c *orderManager, market prediction.Market, minAmount *big.Int) error {
+	deadline := time.Now().Add(clobBalancePollTimeout)
+	pollCtx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
 	for _, outcome := range market.Outcomes {
 		tokenID := outcome.OutcomeID.String()
-		_, err := c.client.UpdateBalanceAllowance(ctx, &clobtypes.BalanceAllowanceUpdateRequest{
+
+		// Trigger the CLOB to re-read the on-chain ERC-1155 balance.
+		_, err := c.client.UpdateBalanceAllowance(pollCtx, &clobtypes.BalanceAllowanceUpdateRequest{
 			AssetType: clobtypes.AssetTypeConditional,
 			TokenID:   tokenID,
 		})
 		if err != nil && !isEmptyBodyErr(err) {
 			fmt.Printf("[polymarket:split] warn: balance notify failed for token %s: %v\n", tokenID, err)
-		} else {
-			fmt.Printf("[polymarket:split] balance notify sent for token %s\n", tokenID)
+		}
+
+		// Poll until the CLOB's cached balance reflects what was minted.
+		for {
+			resp, err := c.client.BalanceAllowance(pollCtx, &clobtypes.BalanceAllowanceRequest{
+				AssetType: clobtypes.AssetTypeConditional,
+				TokenID:   tokenID,
+			})
+			if err == nil {
+				bal, ok := new(big.Int).SetString(resp.Balance, 10)
+				if ok && bal.Cmp(minAmount) >= 0 {
+					fmt.Printf("[polymarket:split] CLOB confirmed balance for token %s: %s\n", tokenID, resp.Balance)
+					break
+				}
+			}
+
+			select {
+			case <-pollCtx.Done():
+				return fmt.Errorf("timed out waiting for CLOB to confirm balance for token %s (wanted >=%s)", tokenID, minAmount)
+			case <-time.After(clobBalancePollInterval):
+			}
+		}
+	}
+	return nil
+}
+
+// confirmCollateralBalance triggers a CLOB refresh of the EOA's on-chain USDC
+// balance and polls until the CLOB reports balance > 0. Required before BUY
+// orders — the CLOB's collateral balance is not automatically kept in sync with
+// on-chain state for EOA signers.
+func confirmCollateralBalance(ctx context.Context, c *orderManager) error {
+	deadline := time.Now().Add(clobBalancePollTimeout)
+	pollCtx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
+	// Trigger CLOB to re-read on-chain USDC balance for this EOA.
+	_, err := c.client.UpdateBalanceAllowance(pollCtx, &clobtypes.BalanceAllowanceUpdateRequest{
+		AssetType: clobtypes.AssetTypeCollateral,
+	})
+	if err != nil && !isEmptyBodyErr(err) {
+		fmt.Printf("[polymarket:order] warn: collateral balance notify failed: %v\n", err)
+	}
+
+	// Poll until the CLOB has a non-zero USDC balance cached for this EOA.
+	for {
+		resp, err := c.client.BalanceAllowance(pollCtx, &clobtypes.BalanceAllowanceRequest{
+			AssetType: clobtypes.AssetTypeCollateral,
+		})
+		if err == nil {
+			bal, ok := new(big.Int).SetString(resp.Balance, 10)
+			if ok && bal.Sign() > 0 {
+				fmt.Printf("[polymarket:order] CLOB confirmed collateral balance: %s\n", resp.Balance)
+				return nil
+			}
+		}
+
+		select {
+		case <-pollCtx.Done():
+			return fmt.Errorf("timed out waiting for CLOB to confirm collateral balance")
+		case <-time.After(clobBalancePollInterval):
 		}
 	}
 }

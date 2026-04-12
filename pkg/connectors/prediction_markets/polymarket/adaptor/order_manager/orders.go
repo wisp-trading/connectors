@@ -32,6 +32,16 @@ func (c *orderManager) PlaceOrder(ctx context.Context, order prediction.LimitOrd
 		side = "SELL"
 	}
 
+	// For BUY orders the CLOB must know the EOA's on-chain USDC balance.
+	// UpdateBalanceAllowance triggers an async re-read on Polymarket's side;
+	// we poll BalanceAllowance until they confirm a non-zero balance before
+	// submitting, otherwise orders are rejected with "balance: 0".
+	if order.Side == connector.OrderSideBuy {
+		if err := confirmCollateralBalance(ctx, c); err != nil {
+			fmt.Printf("[polymarket:order] warn: collateral balance confirmation timed out, proceeding anyway: %v\n", err)
+		}
+	}
+
 	size, err := c.client.TickSize(ctx, &clobtypes.TickSizeRequest{
 		TokenID: order.Outcome.OutcomeID.String(),
 	})
