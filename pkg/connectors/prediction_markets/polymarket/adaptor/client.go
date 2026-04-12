@@ -90,16 +90,22 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 		Passphrase: key.Passphrase,
 	}
 
-	// Set up the actual clobClient with the proper signer (SafeSigner for Safe mode)
-	// and configure funder for Safe wallets
-	clobClient := client.CLOB.WithAuth(signer, creds).WithSignatureType(sigType)
+	// For CLOB client: use EOA signer for order signing (API key is derived for EOA address)
+	// For Safe wallets: GetCLOBSigner returns the owner signer, not the SafeSigner
+	clobSigner := configuredSigner.GetCLOBSigner()
+
+	// Set up the clobClient with EOA signer for order signing
+	clobClient := client.CLOB.WithAuth(clobSigner, creds).WithSignatureType(sigType)
 	if sigType != auth.SignatureEOA {
+		// For Safe: tell CLOB that the funder (capital holder) is the Safe address
 		clobClient = clobClient.WithFunder(safeAddr)
 	}
 	clobWebsocket := client.CLOBWS
 	tokenManager := client.CTF
 
-	clobWebsocket.Authenticate(signer, creds)
+	// Authenticate websocket with EOA signer (same as CLOB client)
+	clobWebsocket.Authenticate(clobSigner, creds)
+	// OrderManager uses the full signer (SafeSigner for Safe, EOA for EOA) for on-chain operations
 	orderManager := order_manager.NewOrderManager(clobClient, tokenManager, signer, config.PolygonRPCURL, sigType, safeAddr)
 	websocketManager := websocket.NewWebsocket(clobWebsocket)
 	gammaClient := gamma.NewGammaClient(client.Gamma)
