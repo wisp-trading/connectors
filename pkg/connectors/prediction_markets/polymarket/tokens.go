@@ -19,7 +19,7 @@ func (p *polymarket) Redeem(market prediction.Market) (string, error) {
 	return hash, nil
 }
 
-func (p *polymarket) SplitPosition(market prediction.Market, amountUSDC *big.Int) (string, error) {
+func (p *polymarket) SplitPosition(market prediction.Market, amountUSDC *big.Int) (string, <-chan error, error) {
 	return p.orderManager.SplitPosition(context.Background(), market, amountUSDC)
 }
 

@@ -133,13 +133,14 @@ var _ = Describe("CTF Split and Merge Integration Tests", func() {
 			fmt.Fprintf(GinkgoWriter, "SplitPosition: EOA=%s market=%s amount=$1.00\n",
 				eoa.Hex(), market.Slug)
 
-			txHash, err := conn.SplitPosition(market, splitMergeAmount)
+			txHash, ready, err := conn.SplitPosition(market, splitMergeAmount)
 			Expect(err).ToNot(HaveOccurred(), "SplitPosition should succeed")
 			Expect(txHash).ToNot(BeEmpty(), "should receive a transaction hash")
 			Expect(strings.HasPrefix(txHash, "0x")).To(BeTrue(), "tx hash should be hex-prefixed")
 			Expect(txHash).To(HaveLen(66), "tx hash should be 32 bytes (66 hex chars including 0x)")
 
-			fmt.Fprintf(GinkgoWriter, "SplitPosition tx: %s\n", txHash)
+			fmt.Fprintf(GinkgoWriter, "SplitPosition tx: %s (awaiting confirmation)\n", txHash)
+			Expect(<-ready).ToNot(HaveOccurred(), "split tx should be mined and CLOB notified")
 		})
 	})
 
@@ -175,13 +176,14 @@ var _ = Describe("CTF Split and Merge Integration Tests", func() {
 			fmt.Fprintf(GinkgoWriter, "Round-trip: EOA=%s market=%s\n", eoa.Hex(), market.Slug)
 
 			// ── Split ────────────────────────────────────────────────────────────
-			splitTx, err := conn.SplitPosition(market, splitMergeAmount)
+			splitTx, ready, err := conn.SplitPosition(market, splitMergeAmount)
 			Expect(err).ToNot(HaveOccurred(), "SplitPosition should succeed")
 			Expect(splitTx).ToNot(BeEmpty())
-			fmt.Fprintf(GinkgoWriter, "Split tx:  %s\n", splitTx)
+			fmt.Fprintf(GinkgoWriter, "Split tx:  %s (awaiting confirmation)\n", splitTx)
 
-			// Allow time for the split tx to be mined before merging.
-			time.Sleep(5 * time.Second)
+			// Wait for mining + CLOB notify before merging.
+			Expect(<-ready).ToNot(HaveOccurred(), "split tx should be mined and CLOB notified")
+			fmt.Fprintf(GinkgoWriter, "Split confirmed\n")
 
 			// ── Merge ────────────────────────────────────────────────────────────
 			mergeTx, err := conn.MergePositions(market, splitMergeAmount)

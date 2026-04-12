@@ -21,7 +21,10 @@ type OrderManager interface {
 	GetMarketBalance(ctx context.Context, market prediction.Market) (map[prediction.OutcomeID]clobtypes.BalanceAllowanceResponse, error)
 	RedeemPosition(ctx context.Context, market prediction.Market) (string, error)
 	// SplitPosition deposits amountUSDC and mints YES+NO tokens (6 decimal units).
-	SplitPosition(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error)
+	// Returns the tx hash immediately and a ready channel that closes once the tx
+	// is mined and the CLOB balance cache is refreshed. Callers MUST drain ready
+	// before placing SELL orders.
+	SplitPosition(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (txHash string, ready <-chan error, err error)
 	// MergePositions burns YES+NO tokens and returns amountUSDC (6 decimal units).
 	MergePositions(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error)
 	// GetLockedPositions returns all CTF ERC-1155 positions currently held on-chain
