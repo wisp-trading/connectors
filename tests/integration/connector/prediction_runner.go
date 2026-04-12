@@ -9,6 +9,7 @@ import (
 
 	"github.com/wisp-trading/connectors/pkg/connectors"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
+	predtypes "github.com/wisp-trading/sdk/pkg/markets/prediction/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 
 	"github.com/wisp-trading/sdk/pkg/types/registry"
@@ -18,17 +19,19 @@ import (
 // PredictionMarketTestRunner manages the lifecycle of prediction market connector tests
 type PredictionMarketTestRunner struct {
 	*BaseRunnerImpl
-	conn prediction.Connector
+	conn    prediction.Connector
+	predict predtypes.Predict
 }
 
 // NewPredictionMarketTestRunner creates a new test runner for prediction market connectors
 func NewPredictionMarketTestRunner(connectorName connector.ExchangeName, config connector.Config) (*PredictionMarketTestRunner, error) {
 	var reg registry.ConnectorRegistry
+	var predictService predtypes.Predict
 
 	app := fx.New(
 		wisp.Module,
 		connectors.Module,
-		fx.Populate(&reg),
+		fx.Populate(&reg, &predictService),
 		fx.NopLogger,
 	)
 
@@ -61,13 +64,20 @@ func NewPredictionMarketTestRunner(connectorName connector.ExchangeName, config 
 			cancel: cancel,
 			reg:    reg,
 		},
-		conn: conn,
+		conn:    conn,
+		predict: predictService,
 	}, nil
 }
 
 // GetPredictionMarketConnector returns the prediction market connector instance
 func (tr *PredictionMarketTestRunner) GetPredictionMarketConnector() prediction.Connector {
 	return tr.conn
+}
+
+// GetPredict returns the SDK Predict service, which wraps the connector via the registry.
+// Use this to test the full connector → SDK data flow.
+func (tr *PredictionMarketTestRunner) GetPredict() predtypes.Predict {
+	return tr.predict
 }
 
 // GetBaseConnector returns the base connector for shared tests

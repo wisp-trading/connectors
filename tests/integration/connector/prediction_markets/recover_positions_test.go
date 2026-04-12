@@ -33,9 +33,10 @@ var _ = Describe("Recover locked positions", func() {
 	})
 
 	It("merges all locked YES+NO token pairs back to USDC", func() {
-		conn := runner.GetPredictionMarketConnector()
+		exchange := connector_test.GetTestPredictionMarketConnectorName()
+		predict := runner.GetPredict()
 
-		positions, err := conn.GetLockedPositions()
+		positions, err := predict.GetLockedPositions(exchange)
 		Expect(err).ToNot(HaveOccurred())
 
 		if len(positions) == 0 {
@@ -49,7 +50,7 @@ var _ = Describe("Recover locked positions", func() {
 			fmt.Fprintf(GinkgoWriter, "  market %s: merging %s (raw)\n",
 				pos.Market.MarketID, pos.MergeableAmount)
 
-			txHash, err := conn.MergePositions(pos.Market, pos.MergeableAmount)
+			txHash, err := predict.MergePositions(pos.Market, pos.MergeableAmount)
 			if err != nil {
 				fmt.Fprintf(GinkgoWriter, "  market %s: MergePositions failed: %v\n",
 					pos.Market.MarketID, err)
