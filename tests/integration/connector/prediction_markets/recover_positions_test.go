@@ -2,7 +2,6 @@ package prediction_markets_test
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"time"
 
@@ -40,19 +39,15 @@ var _ = Describe("Recover locked positions", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		if len(positions) == 0 {
-			fmt.Fprintf(GinkgoWriter, "No locked positions found — nothing to recover\n")
+			fmt.Fprintf(GinkgoWriter, "No locked positions — nothing to recover\n")
 			return
 		}
 
 		fmt.Fprintf(GinkgoWriter, "Found %d locked position(s)\n", len(positions))
 
 		for _, pos := range positions {
-			usdc, _ := new(big.Float).Quo(
-				new(big.Float).SetInt(pos.MergeableAmount),
-				big.NewFloat(1_000_000),
-			).Float64()
-			fmt.Fprintf(GinkgoWriter, "  market %s: merging $%.2f USDC\n",
-				pos.Market.MarketID, usdc)
+			fmt.Fprintf(GinkgoWriter, "  market %s: merging %s (raw)\n",
+				pos.Market.MarketID, pos.MergeableAmount)
 
 			txHash, err := conn.MergePositions(pos.Market, pos.MergeableAmount)
 			if err != nil {
@@ -60,6 +55,7 @@ var _ = Describe("Recover locked positions", func() {
 					pos.Market.MarketID, err)
 				continue
 			}
+
 			fmt.Fprintf(GinkgoWriter, "  market %s: tx %s\n", pos.Market.MarketID, txHash)
 			time.Sleep(3 * time.Second)
 		}
