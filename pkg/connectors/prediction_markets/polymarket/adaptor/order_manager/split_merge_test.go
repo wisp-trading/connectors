@@ -98,7 +98,7 @@ var _ = Describe("SplitPosition", func() {
 
 	BeforeEach(func() {
 		stub = &stubCTFClient{}
-		om = order_manager.NewOrderManager(nil, stub, nil)
+		om = order_manager.NewOrderManager(nil, stub, nil, "")
 		market = testMarket(conditionIDHex)
 		ctx = context.Background()
 	})
@@ -181,7 +181,7 @@ var _ = Describe("MergePositions", func() {
 
 	BeforeEach(func() {
 		stub = &stubCTFClient{}
-		om = order_manager.NewOrderManager(nil, stub, nil)
+		om = order_manager.NewOrderManager(nil, stub, nil, "")
 		market = testMarket(conditionIDHex)
 		ctx = context.Background()
 	})

@@ -24,6 +24,10 @@ type OrderManager interface {
 	SplitPosition(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error)
 	// MergePositions burns YES+NO tokens and returns amountUSDC (6 decimal units).
 	MergePositions(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, error)
+	// GetLockedPositions returns all CTF ERC-1155 positions currently held on-chain
+	// by the signing EOA. Uses Alchemy NFT + transfers APIs — requires an Alchemy
+	// Polygon RPC URL; returns empty slice when none is configured.
+	GetLockedPositions(ctx context.Context) ([]prediction.LockedPosition, error)
 	// SetupApprovals grants the exchange contracts all required ERC-20 and ERC-1155
 	// approvals so that CLOB order settlement can proceed without on-chain reverts.
 	// Safe to call multiple times — each approval is a no-op if already granted.
@@ -35,16 +39,19 @@ type orderManager struct {
 	client          clob.Client
 	tokenManagement ctf.Client
 	signer          *auth.PrivateKeySigner
+	rpcURL          string // Alchemy Polygon RPC URL for on-chain reads
 }
 
 func NewOrderManager(
 	client clob.Client,
 	manager ctf.Client,
 	signer *auth.PrivateKeySigner,
+	rpcURL string,
 ) OrderManager {
 	return &orderManager{
 		client:          client,
 		tokenManagement: manager,
 		signer:          signer,
+		rpcURL:          rpcURL,
 	}
 }

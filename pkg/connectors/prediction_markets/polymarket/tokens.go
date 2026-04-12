@@ -27,6 +27,10 @@ func (p *polymarket) MergePositions(market prediction.Market, amountUSDC *big.In
 	return p.orderManager.MergePositions(context.Background(), market, amountUSDC)
 }
 
+func (p *polymarket) GetLockedPositions() ([]prediction.LockedPosition, error) {
+	return p.orderManager.GetLockedPositions(context.Background())
+}
+
 func (p *polymarket) GetTokensToRedeem(market prediction.Market) ([]prediction.Balance, error) {
 	ctx := context.Background()
 

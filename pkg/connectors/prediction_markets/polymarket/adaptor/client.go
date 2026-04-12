@@ -94,7 +94,7 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 	tokenManager := client.CTF
 
 	clobWebsocket.Authenticate(signer, creds)
-	orderManager := order_manager.NewOrderManager(clobClient, tokenManager, signer)
+	orderManager := order_manager.NewOrderManager(clobClient, tokenManager, signer, config.PolygonRPCURL)
 	websocketManager := websocket.NewWebsocket(clobWebsocket)
 	gammaClient := gamma.NewGammaClient(client.Gamma)
 
