@@ -53,7 +53,8 @@ func (c *orderManager) SplitPosition(ctx context.Context, market prediction.Mark
 	usdcAddr := common.HexToAddress(usdcAddressHex)
 
 	// Ensure the CTF contract has sufficient ERC-20 allowance before submitting.
-	// This works for both EOA and Safe wallets — the CTF client handles routing.
+	// The CTF client automatically detects if this is a SafeSigner and routes
+	// appropriately (uses owner address for signatures).
 	if err := c.tokenManagement.EnsureCollateralApproved(ctx, usdcAddr, amountUSDC); err != nil {
 		return "", nil, fmt.Errorf("approve USDC for CTF: %w", err)
 	}

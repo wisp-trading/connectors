@@ -65,10 +65,11 @@ func (c *polymarketClient) Configure(config *config.Config) (order_manager.Order
 
 	// When a Polygon RPC URL is configured, build a CTF client with a NegRisk backend
 	// so SplitPosition and MergePositions (on-chain EVM calls) can be executed.
+	// Pass the signer so the client can detect SafeSigner and route approvals correctly.
 	// Without this, ctf.NewClient() is used — a lightweight client that only computes
 	// IDs client-side and cannot submit transactions (CTF-002 backend required error).
 	if config.PolygonRPCURL != "" {
-		ctfClient, err := buildCTFClient(config, safeAddr)
+		ctfClient, err := buildCTFClient(config, safeAddr, signer)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to build CTF client: %w", err)
 		}
@@ -138,9 +139,9 @@ func (c *polymarketClient) IsConfigured() bool {
 // This is required for on-chain operations (SplitPosition / MergePositions).
 // The private key is used to derive the transactor; the chain ID is always
 // Polygon mainnet (137) since Polymarket is deployed there.
-// For Safe wallets, the safeAddr is passed for reference (Safe support requires
-// additional configuration beyond private key signing).
-func buildCTFClient(cfg *config.Config, safeAddr common.Address) (ctf.Client, error) {
+// The signer is passed to the CTF client so it can detect SafeSigner and
+// route approvals through the owner address automatically.
+func buildCTFClient(cfg *config.Config, safeAddr common.Address, signer auth.Signer) (ctf.Client, error) {
 	backend, err := ethclient.Dial(cfg.PolygonRPCURL)
 	if err != nil {
 		return nil, fmt.Errorf("dial polygon rpc %q: %w", cfg.PolygonRPCURL, err)
@@ -157,15 +158,8 @@ func buildCTFClient(cfg *config.Config, safeAddr common.Address) (ctf.Client, er
 		return nil, fmt.Errorf("create transactor: %w", err)
 	}
 
-	// For Safe mode: set txOpts.From to the Safe address so that transactions
-	// are credited to the Safe in the CLOB's accounting (matching CLOB orders
-	// which use SafeSigner). Polymarket's infrastructure routes these correctly
-	// through the Safe contract when signature_type is GNOSIS_SAFE.
-	sigType := auth.SignatureType(cfg.SignatureType)
-	if sigType != auth.SignatureEOA {
-		fmt.Printf("[polymarket:ctf] Safe mode: using Safe address %s for transactions\n", safeAddr.Hex())
-		txOpts.From = safeAddr
-	}
-
-	return ctf.NewClientWithNegRisk(backend, txOpts, int64(ctf.PolygonChainID))
+	// Pass the signer to the CTF client so it can detect SafeSigner and route
+	// approvals through the owner address (not the Safe address).
+	// This ensures ERC-20 approvals work correctly for Safe wallets.
+	return ctf.NewClientWithNegRiskSigner(backend, txOpts, int64(ctf.PolygonChainID), signer)
 }
