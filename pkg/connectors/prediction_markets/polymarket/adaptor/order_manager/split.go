@@ -52,10 +52,13 @@ const clobBalancePollTimeout = 30 * time.Second
 func (c *orderManager) SplitPosition(ctx context.Context, market prediction.Market, amountUSDC *big.Int) (string, <-chan error, error) {
 	usdcAddr := common.HexToAddress(usdcAddressHex)
 
-	// Ensure the CTF contract has sufficient ERC-20 allowance before submitting.
+	// For EOA wallets: Ensure the CTF contract has sufficient ERC-20 allowance before submitting.
 	// Without this the on-chain call reverts with "transfer amount exceeds balance".
-	if err := c.tokenManagement.EnsureCollateralApproved(ctx, usdcAddr, amountUSDC); err != nil {
-		return "", nil, fmt.Errorf("approve USDC for CTF: %w", err)
+	// For Safe wallets: Polymarket's builder infrastructure handles approvals automatically.
+	if c.sigType == 0 { // SignatureTypeEOA
+		if err := c.tokenManagement.EnsureCollateralApproved(ctx, usdcAddr, amountUSDC); err != nil {
+			return "", nil, fmt.Errorf("approve USDC for CTF: %w", err)
+		}
 	}
 
 	txHash, mined, err := c.tokenManagement.SplitPositionAsync(ctx, &ctf.SplitPositionRequest{
