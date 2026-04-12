@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 
@@ -56,6 +57,13 @@ func (s *stubCTFClient) RedeemNegRisk(_ context.Context, _ *ctf.RedeemNegRiskReq
 	return ctf.RedeemNegRiskResponse{}, nil
 }
 
+func (s *stubCTFClient) SplitPositionAsync(_ context.Context, req *ctf.SplitPositionRequest) (common.Hash, <-chan error, error) {
+	s.splitReq = req
+	ch := make(chan error, 1)
+	ch <- s.splitErr
+	return common.HexToHash("0x1111111111111111111111111111111111111111111111111111111111111111"), ch, s.splitErr
+}
+
 func (s *stubCTFClient) EnsureCollateralApproved(_ context.Context, _ common.Address, _ *big.Int) error {
 	return nil
 }
@@ -98,7 +106,7 @@ var _ = Describe("SplitPosition", func() {
 
 	BeforeEach(func() {
 		stub = &stubCTFClient{}
-		om = order_manager.NewOrderManager(nil, stub, nil, "")
+		om = order_manager.NewOrderManager(nil, stub, nil, "", auth.SignatureEOA, common.Address{})
 		market = testMarket(conditionIDHex)
 		ctx = context.Background()
 	})
@@ -112,25 +120,25 @@ var _ = Describe("SplitPosition", func() {
 		})
 
 		It("returns the transaction hash hex string", func() {
-			txHash, err := om.SplitPosition(ctx, market, big.NewInt(5_000_000))
+			txHash, _, err := om.SplitPosition(ctx, market, big.NewInt(5_000_000))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(txHash).To(Equal("0x1111111111111111111111111111111111111111111111111111111111111111"))
 		})
 
 		It("passes the correct USDC collateral token address", func() {
-			_, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
+			_, _, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
 			Expect(stub.splitReq).ToNot(BeNil())
 			Expect(stub.splitReq.CollateralToken).To(Equal(usdcAddress))
 		})
 
 		It("maps the market ID to the condition ID", func() {
-			_, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
+			_, _, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
 			Expect(stub.splitReq).ToNot(BeNil())
 			Expect(stub.splitReq.ConditionID).To(Equal(common.HexToHash(conditionIDHex)))
 		})
 
 		It("uses the binary partition [1, 2]", func() {
-			_, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
+			_, _, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
 			Expect(stub.splitReq).ToNot(BeNil())
 			Expect(stub.splitReq.Partition).To(HaveLen(2))
 			Expect(stub.splitReq.Partition[0]).To(Equal(big.NewInt(1)))
@@ -139,13 +147,13 @@ var _ = Describe("SplitPosition", func() {
 
 		It("forwards the requested USDC amount unchanged", func() {
 			amount := big.NewInt(10_000_000) // $10.00
-			_, _ = om.SplitPosition(ctx, market, amount)
+			_, _, _ = om.SplitPosition(ctx, market, amount)
 			Expect(stub.splitReq).ToNot(BeNil())
 			Expect(stub.splitReq.Amount.Cmp(amount)).To(Equal(0))
 		})
 
 		It("uses an empty parent collection ID", func() {
-			_, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
+			_, _, _ = om.SplitPosition(ctx, market, big.NewInt(1_000_000))
 			Expect(stub.splitReq).ToNot(BeNil())
 			Expect(stub.splitReq.ParentCollectionID).To(Equal(common.Hash{}))
 		})
@@ -157,13 +165,13 @@ var _ = Describe("SplitPosition", func() {
 		})
 
 		It("propagates the error", func() {
-			_, err := om.SplitPosition(ctx, market, big.NewInt(1_000_000))
+			_, _, err := om.SplitPosition(ctx, market, big.NewInt(1_000_000))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("rpc: connection refused"))
 		})
 
 		It("returns an empty transaction hash", func() {
-			txHash, _ := om.SplitPosition(ctx, market, big.NewInt(1_000_000))
+			txHash, _, _ := om.SplitPosition(ctx, market, big.NewInt(1_000_000))
 			Expect(txHash).To(BeEmpty())
 		})
 	})
@@ -181,7 +189,7 @@ var _ = Describe("MergePositions", func() {
 
 	BeforeEach(func() {
 		stub = &stubCTFClient{}
-		om = order_manager.NewOrderManager(nil, stub, nil, "")
+		om = order_manager.NewOrderManager(nil, stub, nil, "", auth.SignatureEOA, common.Address{})
 		market = testMarket(conditionIDHex)
 		ctx = context.Background()
 	})

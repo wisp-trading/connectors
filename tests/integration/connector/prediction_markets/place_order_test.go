@@ -2,13 +2,11 @@ package prediction_markets_test
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
-	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
@@ -36,20 +34,17 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 	})
 
 	Describe("Placing an order", func() {
-		Context("Order is a BUY Limit Order via EOA", func() {
-			It("Should place a $1.10 limit buy order and cancel it", func() {
+		Context("BUY Limit Order", func(){
+			It("should place a $1.10 limit buy order and cancel it", func() {
 				conn := runner.GetWebSocketCapable()
 				err := conn.StartWebSocket()
-				defer func(conn prediction.WebSocketConnector) {
-					err := conn.StopWebSocket()
-					if err != nil {
-						connector_test.LogError("Failed to stop WebSocket connection: %v", err)
-						return
-					}
-				}(conn)
 				Expect(err).ToNot(HaveOccurred())
+				defer func() {
+					if stopErr := conn.StopWebSocket(); stopErr != nil {
+						connector_test.LogError("StopWebSocket: %v", stopErr)
+					}
+				}()
 
-				// Get market and subscribe to orderbook
 				market, obChan, err := getMarketAndSubscribeOrderbook(conn, orderTestMarketSlug)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -57,30 +52,21 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				// Use a $1.10 target so the order always clears the $1.00 exchange minimum.
 				targetValue := numerical.NewFromFloat(1.10)
 				orderResponse, err := placeLimitOrderAtBestBidValue(runner, conn, market, obChan, targetValue, 0)
-				Expect(err).ToNot(HaveOccurred(), "Order placement should succeed")
+				Expect(err).ToNot(HaveOccurred(), "order placement should succeed")
 				Expect(orderResponse).ToNot(BeNil())
-				Expect(orderResponse.OrderID).ToNot(BeEmpty(), "Should receive order ID")
+				Expect(orderResponse.OrderID).ToNot(BeEmpty(), "should receive order ID")
 
-				// Cancel order and verify
 				resp, err := cancelOrderAndVerify(conn, orderResponse.OrderID)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(resp.OrderID).To(Equal(orderResponse.OrderID), "Cancel response should match order ID")
+				Expect(resp.OrderID).To(Equal(orderResponse.OrderID), "cancel response should match order ID")
 			})
 		})
 
-		// EOASell verifies the CLOB accepts a SELL limit order when the EOA holds
-		// YES tokens on-chain. Requires POLYGON_RPC_URL and existing token balance
-		// (run the split_merge_test or a prior strategy pass to fund the EOA first).
-		Context("Order is a SELL Limit Order via EOA", func() {
-			It("CLOB should accept a SELL order for YES tokens held by the EOA", func() {
-				if os.Getenv("POLYGON_RPC_URL") == "" {
-					Skip("POLYGON_RPC_URL not set — skipping on-chain EOA SELL test")
-				}
-
-				eoa := ctfPreflightCheck()
-
+		Context("SELL Limit Order", func() {
+			It("should place a SELL order for outcome tokens and cancel it", func() {
 				conn := runner.GetWebSocketCapable()
 				Expect(conn).ToNot(BeNil(), "connector must implement WebSocketConnector")
+				balancePreflightCheck(conn)
 
 				err := conn.StartWebSocket()
 				Expect(err).ToNot(HaveOccurred())
@@ -100,9 +86,7 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 				// Minimum shares to clear Polymarket's $1.00 order value floor.
 				sharesToSell := numerical.NewFromFloat(1).Div(bestAsk).RoundUp(0)
 
-				fmt.Fprintf(GinkgoWriter,
-					"EOA: %s  bestAsk: %s  sharesToSell: %s\n",
-					eoa.Hex(), bestAsk, sharesToSell)
+				fmt.Fprintf(GinkgoWriter, "bestAsk: %s  sharesToSell: %s\n", bestAsk, sharesToSell)
 
 				// Place a resting SELL limit order at best ask — should not cross.
 				sellParams := OrderPlacementParams{
@@ -114,7 +98,7 @@ var _ = Describe("Prediction Market Order Placement Tests", func() {
 					Expiration: 1 * time.Hour,
 				}
 				orderResp, err := placeLimitOrderAtPrice(conn, sellParams)
-				Expect(err).ToNot(HaveOccurred(), "CLOB should accept SELL order — no balance:0")
+				Expect(err).ToNot(HaveOccurred(), "CLOB should accept SELL order")
 				Expect(orderResp.OrderID).ToNot(BeEmpty())
 
 				fmt.Fprintf(GinkgoWriter, "SELL order accepted: orderID=%s\n", orderResp.OrderID)

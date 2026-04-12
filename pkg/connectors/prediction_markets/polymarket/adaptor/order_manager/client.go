@@ -40,6 +40,9 @@ type OrderManager interface {
 	// in the market and polls until each reports a balance of at least minAmount.
 	// Use after CLOB buy fills to wait for settlement before MergePositions.
 	ConfirmConditionalBalance(ctx context.Context, market prediction.Market, minAmount *big.Int) error
+	// GetNativeBalance returns the native MATIC balance (in wei) for the signing address.
+	// Requires polygon_rpc_url to be configured; returns 0 when no RPC is available.
+	GetNativeBalance(ctx context.Context) (*big.Int, error)
 }
 
 // orderManager implementation

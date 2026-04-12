@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/auth"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
 
@@ -79,5 +81,34 @@ func (c *orderManager) GetMarketBalance(ctx context.Context, market prediction.M
 	}
 
 	return balances, nil
+}
+
+// GetNativeBalance queries the Polygon RPC for the signing address's native MATIC balance.
+func (c *orderManager) GetNativeBalance(ctx context.Context) (*big.Int, error) {
+	if c.rpcURL == "" {
+		return big.NewInt(0), nil
+	}
+
+	client, err := ethclient.DialContext(ctx, c.rpcURL)
+	if err != nil {
+		return nil, fmt.Errorf("dial polygon rpc: %w", err)
+	}
+	defer client.Close()
+
+	addr := c.resolveBalanceAddress()
+	balance, err := client.BalanceAt(ctx, addr, nil)
+	if err != nil {
+		return nil, fmt.Errorf("fetch MATIC balance for %s: %w", addr.Hex(), err)
+	}
+	return balance, nil
+}
+
+// resolveBalanceAddress returns the address whose balances should be queried.
+// For Safe wallets, capital sits on the Safe address; for EOA, it's the signer address.
+func (c *orderManager) resolveBalanceAddress() common.Address {
+	if c.sigType != auth.SignatureEOA && c.safeAddr != (common.Address{}) {
+		return c.safeAddr
+	}
+	return common.HexToAddress(c.signer.Address().String())
 }
 
