@@ -3,12 +3,28 @@ package order_manager
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/big"
+	"strings"
 
+	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
 	"github.com/ethereum/go-ethereum/common"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 )
+
+// isEmptyBodyErr returns true for errors that indicate an HTTP 200 response
+// with an empty body — the CLOB's balance-allowance/update endpoint does this.
+func isEmptyBodyErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if err == io.EOF {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unexpected end of json") || strings.Contains(msg, "eof")
+}
 
 func maxUint256() *big.Int {
 	return new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
@@ -41,7 +57,33 @@ func (c *orderManager) SplitPosition(ctx context.Context, market prediction.Mark
 	if err != nil {
 		return "", err
 	}
+
+	// Notify the CLOB about the newly-minted conditional token balances.
+	// The CLOB does not poll on-chain state on its own — without this call it
+	// returns "balance: 0" when the EOA tries to place a SELL order even though
+	// the tokens exist on-chain. The endpoint returns HTTP 200 with an empty body
+	// (no JSON), so we ignore io.EOF / "unexpected end of JSON" errors.
+	notifyBalanceUpdate(ctx, c, market)
+
 	return resp.TransactionHash.Hex(), nil
+}
+
+// notifyBalanceUpdate pings the CLOB's balance-allowance/update endpoint for
+// every outcome token in the market so the CLOB re-reads on-chain ERC-1155
+// balances. Errors are logged but never returned — a failed notify is not fatal.
+func notifyBalanceUpdate(ctx context.Context, c *orderManager, market prediction.Market) {
+	for _, outcome := range market.Outcomes {
+		tokenID := outcome.OutcomeID.String()
+		_, err := c.client.UpdateBalanceAllowance(ctx, &clobtypes.BalanceAllowanceUpdateRequest{
+			AssetType: clobtypes.AssetTypeConditional,
+			TokenID:   tokenID,
+		})
+		if err != nil && !isEmptyBodyErr(err) {
+			fmt.Printf("[polymarket:split] warn: balance notify failed for token %s: %v\n", tokenID, err)
+		} else {
+			fmt.Printf("[polymarket:split] balance notify sent for token %s\n", tokenID)
+		}
+	}
 }
 
 // MergePositions burns amountUSDC worth of YES + NO tokens and returns USDC.

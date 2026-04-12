@@ -60,6 +60,18 @@ func (s *stubCTFClient) EnsureCollateralApproved(_ context.Context, _ common.Add
 	return nil
 }
 
+func (s *stubCTFClient) CollateralBalance(_ context.Context, _ common.Address) (*big.Int, error) {
+	return big.NewInt(0), nil
+}
+
+func (s *stubCTFClient) EnsureERC20Approved(_ context.Context, _, _ common.Address) error {
+	return nil
+}
+
+func (s *stubCTFClient) EnsureConditionalApproved(_ context.Context, _ common.Address) error {
+	return nil
+}
+
 // ---- helpers ----
 
 // testMarket builds a prediction.Market with a known condition ID.

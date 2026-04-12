@@ -3,6 +3,7 @@ package order_manager
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/clob/clobtypes"
 	"github.com/GoPolymarket/polymarket-go-sdk/pkg/ctf"
@@ -41,12 +42,24 @@ func (c *orderManager) GetMarketBalance(ctx context.Context, market prediction.M
 	balances := make(map[prediction.OutcomeID]clobtypes.BalanceAllowanceResponse, len(market.Outcomes))
 
 	for _, outcome := range market.Outcomes {
-		balanceRequest := &clobtypes.BalanceAllowanceRequest{
+		tokenID := outcome.OutcomeID.String()
+
+		// Notify the CLOB to refresh its on-chain ERC-1155 balance cache for this
+		// token before reading. Required when tokens were minted directly via
+		// SplitPosition (EOA path) rather than bought through the order book.
+		// The endpoint returns HTTP 200 with an empty body — ignore EOF errors.
+		_, err := c.client.UpdateBalanceAllowance(ctx, &clobtypes.BalanceAllowanceUpdateRequest{
 			AssetType: clobtypes.AssetTypeConditional,
-			TokenID:   outcome.OutcomeID.String(),
+			TokenID:   tokenID,
+		})
+		if err != nil && !isEmptyBodyErr(err) {
+			return nil, fmt.Errorf("refresh balance for token %s: %w", tokenID, err)
 		}
 
-		response, err := c.client.BalanceAllowance(ctx, balanceRequest)
+		response, err := c.client.BalanceAllowance(ctx, &clobtypes.BalanceAllowanceRequest{
+			AssetType: clobtypes.AssetTypeConditional,
+			TokenID:   tokenID,
+		})
 		if err != nil {
 			return nil, err
 		}
