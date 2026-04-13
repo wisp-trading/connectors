@@ -34,6 +34,17 @@ func parseDecimal(value string) numerical.Decimal {
 	return d
 }
 
+// effectiveAddress returns the address to query for user-specific data.
+// When a vault address is configured, orders are placed through the vault,
+// so all read operations (open orders, fills, balances) must query the
+// vault address. Otherwise, fall back to the account (EOA) address.
+func (h *hyperliquidSpot) effectiveAddress() string {
+	if h.config.VaultAddress != "" {
+		return h.config.VaultAddress
+	}
+	return h.config.AccountAddress
+}
+
 // convertInterval converts standard interval format to Hyperliquid format
 func convertInterval(interval string) string {
 	switch interval {

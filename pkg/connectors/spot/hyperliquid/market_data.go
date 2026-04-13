@@ -138,7 +138,7 @@ func (h *hyperliquidSpot) FetchKlines(pair portfolio.Pair, interval string, limi
 // FetchRecentTrades implements connector.MarketDataReader.
 // Returns the user's recent fills for the requested spot pair.
 func (h *hyperliquidSpot) FetchRecentTrades(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
-	fills, err := h.marketData.GetUserFills(h.config.AccountAddress)
+	fills, err := h.marketData.GetUserFills(h.effectiveAddress())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user fills: %w", err)
 	}

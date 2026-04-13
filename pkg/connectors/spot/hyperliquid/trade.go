@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	hyperliquid "github.com/sonirico/go-hyperliquid"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
@@ -16,14 +17,14 @@ func (h *hyperliquidSpot) PlaceLimitOrder(pair portfolio.Pair, side connector.Or
 	size, _ := quantity.Float64()
 	px, _ := price.Float64()
 
-	var result interface{ }
+	var status hyperliquid.OrderStatus
 	var err error
 
 	switch side {
 	case connector.OrderSideBuy:
-		result, err = h.trading.PlaceBuyLimitOrder(coin, size, px)
+		status, err = h.trading.PlaceBuyLimitOrder(coin, size, px)
 	case connector.OrderSideSell:
-		result, err = h.trading.PlaceSellLimitOrder(coin, size, px)
+		status, err = h.trading.PlaceSellLimitOrder(coin, size, px)
 	default:
 		return nil, fmt.Errorf("unknown order side: %s", side)
 	}
@@ -32,16 +33,32 @@ func (h *hyperliquidSpot) PlaceLimitOrder(pair portfolio.Pair, side connector.Or
 		return nil, fmt.Errorf("failed to place %s limit order: %w", side, err)
 	}
 
+	orderID, orderStatus := extractOrderInfo(status)
+
 	return &connector.OrderResponse{
-		OrderID:   fmt.Sprintf("%v", result),
+		OrderID:   orderID,
 		Symbol:    coin,
 		Side:      side,
 		Type:      connector.OrderTypeLimit,
 		Price:     price,
 		Quantity:  quantity,
-		Status:    connector.OrderStatusNew,
+		Status:    orderStatus,
 		Timestamp: time.Now(),
 	}, nil
+}
+
+// extractOrderInfo pulls the order ID and status from the Hyperliquid OrderStatus response.
+func extractOrderInfo(status hyperliquid.OrderStatus) (string, connector.OrderStatus) {
+	if status.Resting != nil {
+		return fmt.Sprintf("%d", status.Resting.Oid), connector.OrderStatusOpen
+	}
+	if status.Filled != nil {
+		return fmt.Sprintf("%d", status.Filled.Oid), connector.OrderStatusFilled
+	}
+	if status.Error != nil {
+		return "", connector.OrderStatusRejected
+	}
+	return "", connector.OrderStatusPending
 }
 
 // PlaceMarketOrder implements connector.OrderExecutor
@@ -49,13 +66,14 @@ func (h *hyperliquidSpot) PlaceMarketOrder(pair portfolio.Pair, side connector.O
 	coin := h.normaliseAssetName(pair.Base())
 	size, _ := quantity.Float64()
 
+	var status hyperliquid.OrderStatus
 	var err error
 
 	switch side {
 	case connector.OrderSideBuy:
-		_, err = h.trading.PlaceBuyMarketOrder(coin, size, h.config.DefaultSlippage)
+		status, err = h.trading.PlaceBuyMarketOrder(coin, size, h.config.DefaultSlippage)
 	case connector.OrderSideSell:
-		_, err = h.trading.PlaceSellMarketOrder(coin, size, h.config.DefaultSlippage)
+		status, err = h.trading.PlaceSellMarketOrder(coin, size, h.config.DefaultSlippage)
 	default:
 		return nil, fmt.Errorf("unknown order side: %s", side)
 	}
@@ -64,13 +82,15 @@ func (h *hyperliquidSpot) PlaceMarketOrder(pair portfolio.Pair, side connector.O
 		return nil, fmt.Errorf("failed to place %s market order: %w", side, err)
 	}
 
+	orderID, orderStatus := extractOrderInfo(status)
+
 	return &connector.OrderResponse{
-		OrderID:   fmt.Sprintf("%d", h.timeProvider.Now().UnixNano()),
+		OrderID:   orderID,
 		Symbol:    coin,
 		Side:      side,
 		Type:      connector.OrderTypeMarket,
 		Quantity:  quantity,
-		Status:    connector.OrderStatusFilled,
+		Status:    orderStatus,
 		Timestamp: time.Now(),
 	}, nil
 }
@@ -100,7 +120,7 @@ func (h *hyperliquidSpot) CancelOrder(orderID string, pair ...portfolio.Pair) (*
 
 // GetOpenOrders implements connector.OrderExecutor
 func (h *hyperliquidSpot) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
-	orders, err := h.marketData.GetOpenOrders(h.config.AccountAddress)
+	orders, err := h.marketData.GetOpenOrders(h.effectiveAddress())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get open orders: %w", err)
 	}
@@ -127,7 +147,7 @@ func (h *hyperliquidSpot) GetOrderStatus(orderID string, pair ...portfolio.Pair)
 		return nil, fmt.Errorf("invalid order ID %q: %w", orderID, err)
 	}
 
-	order, err := h.marketData.GetOrderByOid(h.config.AccountAddress, oid)
+	order, err := h.marketData.GetOrderByOid(h.effectiveAddress(), oid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order status: %w", err)
 	}

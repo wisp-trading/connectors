@@ -10,9 +10,11 @@ import (
 	"github.com/wisp-trading/connectors/pkg/connectors"
 	spotTypes "github.com/wisp-trading/sdk/pkg/markets/spot/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/execution"
 	lifecycleTypes "github.com/wisp-trading/sdk/pkg/types/lifecycle"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
+	"github.com/wisp-trading/sdk/pkg/types/strategy"
 	wispTypes "github.com/wisp-trading/sdk/pkg/types/wisp"
 	"github.com/wisp-trading/sdk/wisp"
 )
@@ -36,6 +38,7 @@ type SpotTestRunner struct {
 	cancel     context.CancelFunc
 	controller lifecycleTypes.Controller
 	wisp       wispTypes.Wisp
+	registry   registry.ConnectorRegistry
 	exchange   connector.ExchangeName
 }
 
@@ -96,6 +99,7 @@ func NewSpotTestRunner(connectorName connector.ExchangeName, config connector.Co
 		cancel:     cancel,
 		controller: controller,
 		wisp:       wispInstance,
+		registry:   reg,
 		exchange:   connectorName,
 	}, nil
 }
@@ -111,6 +115,34 @@ func (tr *SpotTestRunner) Spot() spotTypes.Spot {
 // ExchangeName returns the exchange name of the initialised connector.
 func (tr *SpotTestRunner) ExchangeName() connector.ExchangeName {
 	return tr.exchange
+}
+
+// ─── Order Execution ─────────────────────────────────────────────────────
+
+// Emit dispatches a built signal through the SDK's execution pipeline and
+// returns the execution callback. Callers can Await or AwaitWithTimeout.
+func (tr *SpotTestRunner) Emit(signal strategy.Signal) execution.ExecutionCallback {
+	return tr.wisp.Emit(signal)
+}
+
+// CancelOrder cancels an order by ID via the connector's OrderExecutor.
+// This bypasses the SDK signal pipeline because the Spot public API does
+// not expose cancellation — it is a connector-level operation.
+func (tr *SpotTestRunner) CancelOrder(orderID string, pair portfolio.Pair) (*connector.CancelResponse, error) {
+	conn, exists := tr.registry.Spot(tr.exchange)
+	if !exists {
+		return nil, fmt.Errorf("spot connector %s not found in registry", tr.exchange)
+	}
+	return conn.CancelOrder(orderID, pair)
+}
+
+// GetOpenOrders queries the exchange for currently open orders.
+func (tr *SpotTestRunner) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
+	conn, exists := tr.registry.Spot(tr.exchange)
+	if !exists {
+		return nil, fmt.Errorf("spot connector %s not found in registry", tr.exchange)
+	}
+	return conn.GetOpenOrders(pair...)
 }
 
 // ─── Watchlist ────────────────────────────────────────────────────────────

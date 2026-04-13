@@ -14,7 +14,7 @@ import (
 // The SDK deserialises the spot clearinghouse state into a UserState struct
 // where each AssetPosition represents a spot token holding.
 func (h *hyperliquidSpot) GetBalances() ([]connector.AssetBalance, error) {
-	state, err := h.marketData.FetchSpotUserState(h.config.AccountAddress)
+	state, err := h.marketData.FetchSpotUserState(h.effectiveAddress())
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch spot balances: %w", err)
 	}
@@ -60,7 +60,7 @@ func (h *hyperliquidSpot) GetBalance(asset portfolio.Asset) (*connector.AssetBal
 // GetTradingHistory implements connector.AccountReader.
 // Returns the user's historical fills for the given spot pair.
 func (h *hyperliquidSpot) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
-	fills, err := h.marketData.GetUserFills(h.config.AccountAddress)
+	fills, err := h.marketData.GetUserFills(h.effectiveAddress())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user fills: %w", err)
 	}
