@@ -11,12 +11,14 @@ import (
 )
 
 // Module is the Hyperliquid spot connector module.
-// It reuses the adaptors (ExchangeClient, InfoClient) provided by the perps module.
+// It reuses the adaptors (ExchangeClient, InfoClient) provided by the perps module
+// and wires its own WebSocket connection with spot-specific named deps.
 var Module = fx.Options(
+	websocket.WebSocketModule,
+
 	fx.Provide(
 		rest.NewSpotTradingService,
 		rest.NewSpotMarketDataService,
-		websocket.NewSpotRealTimeService,
 		fx.Annotate(
 			NewHyperliquidSpot,
 			fx.ResultTags(`name:"hyperliquid_spot"`),
@@ -34,7 +36,7 @@ func registerHyperliquidSpot(spotConn spotconnector.Connector, reg registry.Conn
 	reg.RegisterSpot(types.HyperliquidSpot, spotConn)
 }
 
-// sharedAdaptorsModule provides the shared API clients.
+// SharedAdaptorsModule provides the shared API clients.
 // Only needed if the perps module is not loaded — when both are loaded,
 // fx deduplicates the adaptors automatically.
 var SharedAdaptorsModule = fx.Options(
