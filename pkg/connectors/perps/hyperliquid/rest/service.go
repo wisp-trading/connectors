@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	hyperliquid "github.com/sonirico/go-hyperliquid"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
+	hyperliquid2 "github.com/wisp-trading/connectors/pkg/connectors/adaptors/hyperliquid"
 )
 
 // TradingService interface for trading operations
@@ -37,15 +37,15 @@ type TradingService interface {
 
 // tradingService implementation
 type tradingService struct {
-	client         adaptors.ExchangeClient
-	infoClient     adaptors.InfoClient
+	client         hyperliquid2.ExchangeClient
+	infoClient     hyperliquid2.InfoClient
 	priceValidator PriceValidator
 }
 
 // NewTradingService creates a new trading service
 func NewTradingService(
-	client adaptors.ExchangeClient,
-	infoClient adaptors.InfoClient,
+	client hyperliquid2.ExchangeClient,
+	infoClient hyperliquid2.InfoClient,
 	priceValidator PriceValidator,
 ) TradingService {
 	return &tradingService{

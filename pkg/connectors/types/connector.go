@@ -6,6 +6,7 @@ import (
 
 const (
 	Hyperliquid     connector.ExchangeName = "hyperliquid"
+	HyperliquidSpot connector.ExchangeName = "hyperliquid_spot"
 	Paradex         connector.ExchangeName = "paradex"
 	Bybit           connector.ExchangeName = "bybit"
 	GateSpot        connector.ExchangeName = "gate_spot"
@@ -15,6 +16,7 @@ const (
 
 var AllConnectors = []connector.ExchangeName{
 	Hyperliquid,
+	HyperliquidSpot,
 	Paradex,
 	Bybit,
 	GateSpot,

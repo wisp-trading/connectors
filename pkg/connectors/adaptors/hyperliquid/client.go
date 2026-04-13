@@ -1,4 +1,4 @@
-package adaptors
+package hyperliquid
 
 import (
 	"fmt"

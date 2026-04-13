@@ -3,7 +3,8 @@ package connectors
 import (
 	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
 	"github.com/wisp-trading/connectors/pkg/connectors/gate"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
+	hyperliquidperps "github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid"
+	hyperliquidspot "github.com/wisp-trading/connectors/pkg/connectors/spot/hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket"
@@ -15,10 +16,11 @@ import (
 // Each connector module automatically registers itself via fx groups
 var Module = fx.Options(
 	paradex.Module,
-	hyperliquid.Module,
+	hyperliquidperps.Module,
 	perp.Module,
 	gate.Module,
 	polymarket.Module,
 	deribit.Module,
 	pyth.Module,
+	hyperliquidspot.Module,
 )

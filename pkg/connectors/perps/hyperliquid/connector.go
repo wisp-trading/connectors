@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/rest"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/websocket"
+	hyperliquid2 "github.com/wisp-trading/connectors/pkg/connectors/adaptors/hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid/rest"
+	"github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid/websocket"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
@@ -15,8 +15,8 @@ import (
 
 // hyperliquid implements Connector and Initializable interfaces
 type hyperliquid struct {
-	exchangeClient adaptors.ExchangeClient
-	infoClient     adaptors.InfoClient
+	exchangeClient hyperliquid2.ExchangeClient
+	infoClient     hyperliquid2.InfoClient
 	marketData     rest.MarketDataService
 	trading        rest.TradingService
 	realTime       websocket.RealTimeService
@@ -51,8 +51,8 @@ var _ perp.WebSocketConnector = (*hyperliquid)(nil)
 
 // NewHyperliquid creates a new Hyperliquid connector
 func NewHyperliquid(
-	exchangeClient adaptors.ExchangeClient,
-	infoClient adaptors.InfoClient,
+	exchangeClient hyperliquid2.ExchangeClient,
+	infoClient hyperliquid2.InfoClient,
 	tradingService rest.TradingService,
 	marketDataService rest.MarketDataService,
 	realTimeService websocket.RealTimeService,

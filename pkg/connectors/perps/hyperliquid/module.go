@@ -1,9 +1,9 @@
 package hyperliquid
 
 import (
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/rest"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/websocket"
+	hyperliquid2 "github.com/wisp-trading/connectors/pkg/connectors/adaptors/hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid/rest"
+	"github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
@@ -15,8 +15,8 @@ var Module = fx.Options(
 	websocket.WebSocketModule,
 
 	fx.Provide(
-		adaptors.NewExchangeClient,
-		adaptors.NewInfoClient,
+		hyperliquid2.NewExchangeClient,
+		hyperliquid2.NewInfoClient,
 		rest.NewPriceValidator,
 		rest.NewTradingService,
 		rest.NewMarketDataService,

@@ -7,11 +7,9 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
-	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
 	deribitconfig "github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
-	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
-	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
+	hyperliquid "github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid"
+	hyperliquidspot "github.com/wisp-trading/connectors/pkg/connectors/spot/hyperliquid"
 	polymarketconfig "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
@@ -33,8 +31,9 @@ func init() {
 // SPOT CONNECTOR CONFIGURATION
 // ========================================
 const (
-	testSpotConnectorName = types.GateSpot
-	testSpotSymbol        = "ETH"
+	testSpotConnectorName = types.HyperliquidSpot
+	testSpotSymbol        = "HYPE"
+	testSpotQuote         = "USDC"
 )
 
 // GetTestSpotConnectorName returns the spot connector name for tests
@@ -47,9 +46,20 @@ func GetSpotSymbol() string {
 	return testSpotSymbol
 }
 
+// GetSpotQuote returns the spot quote currency for tests
+func GetSpotQuote() string {
+	return testSpotQuote
+}
+
 // GetSpotConnectorConfig returns the config for the spot connector under test
 func GetSpotConnectorConfig() connector.Config {
-	return getGateSpotConfig()
+	return getHyperliquidSpotConfig()
+}
+
+// IsSpotTradingEnabled returns whether live trading tests should run
+func IsSpotTradingEnabled() bool {
+	enabled, _ := strconv.ParseBool(os.Getenv("ENABLE_SPOT_TRADING_TESTS"))
+	return enabled
 }
 
 // ========================================
@@ -76,14 +86,6 @@ func GetPerpConnectorConfig() connector.Config {
 }
 
 // ========================================
-// TRADING TEST FLAGS
-// ========================================
-const (
-	enableSpotTradingTests = true
-	enablePerpTradingTests = true
-)
-
-// ========================================
 // INDIVIDUAL CONNECTOR CONFIGS
 // ========================================
 
@@ -99,35 +101,16 @@ func getHyperliquidConfig() *hyperliquid.Config {
 	}
 }
 
-// getParadexConfig creates a Paradex config from environment variables
-func getParadexConfig() *paradex.Config {
-	return &paradex.Config{
-		AccountAddress: os.Getenv("PARADEX_ACCOUNT_ADDRESS"),
-		EthPrivateKey:  os.Getenv("PARADEX_ETH_PRIVATE_KEY"),
-		Network:        os.Getenv("PARADEX_NETWORK"),
-		BaseURL:        os.Getenv("PARADEX_BASE_URL"),
-		WebSocketURL:   os.Getenv("PARADEX_WS_URL"),
-		StarknetRPC:    os.Getenv("PARADEX_STARKNET_RPC"),
-	}
-}
-
-// getBybitConfig creates a Bybit config from environment variables
-func getBybitConfig() *perp.Config {
-	testnet, _ := strconv.ParseBool(os.Getenv("BYBIT_TESTNET"))
-	return &perp.Config{
-		APIKey:    os.Getenv("BYBIT_API_KEY"),
-		APISecret: os.Getenv("BYBIT_API_SECRET"),
-		IsTestnet: testnet,
-	}
-}
-
-// getGateSpotConfig creates a Gate.io Spot config from environment variables
-func getGateSpotConfig() *gatespot.Config {
-	testnet, _ := strconv.ParseBool(os.Getenv("GATE_TESTNET"))
-	return &gatespot.Config{
-		APIKey:     os.Getenv("GATE_API_KEY"),
-		APISecret:  os.Getenv("GATE_API_SECRET"),
-		UseTestnet: testnet,
+// getHyperliquidSpotConfig creates a Hyperliquid Spot config from environment variables.
+// Shares the same credentials as the perp connector — same API, same keys.
+func getHyperliquidSpotConfig() *hyperliquidspot.Config {
+	testnet, _ := strconv.ParseBool(os.Getenv("HYPERLIQUID_TESTNET"))
+	return &hyperliquidspot.Config{
+		AccountAddress: os.Getenv("HYPERLIQUID_ACCOUNT_ADDRESS"),
+		PrivateKey:     os.Getenv("HYPERLIQUID_PRIVATE_KEY"),
+		VaultAddress:   os.Getenv("HYPERLIQUID_VAULT_ADDRESS"),
+		BaseURL:        os.Getenv("HYPERLIQUID_BASE_URL"),
+		UseTestnet:     testnet,
 	}
 }
 

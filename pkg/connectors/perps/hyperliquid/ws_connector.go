@@ -3,7 +3,7 @@ package hyperliquid
 import (
 	"fmt"
 
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/websocket"
+	"github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid/websocket"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"

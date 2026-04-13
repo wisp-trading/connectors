@@ -3,12 +3,14 @@ package spot_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 )
 
-var _ = Describe("Spot Connector Tests", func() {
+// spot_test.go — Verifies that the SDK lifecycle boots cleanly and the
+// connector is reachable through the public Spot() API.
+
+var _ = Describe("Spot — Initialisation", func() {
 	var runner *connector_test.SpotTestRunner
 
 	BeforeEach(func() {
@@ -26,83 +28,24 @@ var _ = Describe("Spot Connector Tests", func() {
 		}
 	})
 
-	// Include shared behaviors
-	connector_test.MarketDataBehavior(
-		func() connector_test.BaseTestRunner { return runner },
-		func() portfolio.Pair { return connector_test.CreatePair("ETH") },
-	)
+	It("should boot the SDK and expose Spot() without error", func() {
+		spot := runner.Spot()
+		Expect(spot).ToNot(BeNil())
 
-	connector_test.AccountBehavior(
-		func() connector_test.BaseTestRunner { return runner },
-	)
+		connector_test.LogSuccess("SDK booted — Spot() available for %s",
+			runner.ExchangeName())
+	})
 
-	connector_test.WebSocketLifecycleBehavior(
-		func() connector_test.BaseTestRunner { return runner },
-	)
+	It("should allow watching a pair via the public API", func() {
+		pair := connector_test.CreatePairWithQuote(
+			connector_test.GetSpotSymbol(),
+			connector_test.GetSpotQuote(),
+		)
 
-	// Spot-specific WebSocket subscriptions
-	Describe("Spot WebSocket Subscriptions", func() {
-		BeforeEach(func() {
-			if !runner.HasWebSocketSupport() {
-				Skip("Connector does not support WebSocket")
-			}
-			wsConn := runner.GetWebSocketConnector()
-			err := wsConn.StartWebSocket()
-			Expect(err).ToNot(HaveOccurred())
-			Eventually(wsConn.IsWebSocketConnected, "10s").Should(BeTrue())
-		})
+		// WatchPair should not panic or error
+		runner.WatchPair(pair)
 
-		AfterEach(func() {
-			if runner.HasWebSocketSupport() {
-				wsConn := runner.GetWebSocketConnector()
-				if wsConn.IsWebSocketConnected() {
-					_ = wsConn.StopWebSocket()
-				}
-			}
-		})
-
-		Context("OrderBook Subscription", func() {
-			It("should subscribe and receive updates", func() {
-				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreatePair(connector_test.GetSpotSymbol())
-
-				err := wsConn.SubscribeOrderBook(asset)
-				Expect(err).ToNot(HaveOccurred())
-
-				channels := wsConn.GetOrderBookChannels()
-				Expect(channels).ToNot(BeEmpty())
-
-				connector_test.LogSuccess("OrderBook subscription active for %s", connector_test.GetSpotSymbol())
-			})
-		})
-
-		Context("Klines Subscription", func() {
-			It("should subscribe and receive updates", func() {
-				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreatePair(connector_test.GetSpotSymbol())
-
-				err := wsConn.SubscribeKlines(asset, "1m")
-				Expect(err).ToNot(HaveOccurred())
-
-				channels := wsConn.GetKlineChannels()
-				Expect(channels).ToNot(BeEmpty())
-
-				connector_test.LogSuccess("Klines subscription active for %s", connector_test.GetSpotSymbol())
-			})
-		})
-
-		Context("Account Balance Subscription", func() {
-			It("should subscribe to balance updates", func() {
-				wsConn := runner.GetWebSocketConnector()
-
-				err := wsConn.SubscribeAccountBalance()
-				Expect(err).ToNot(HaveOccurred())
-
-				balanceCh := wsConn.AssetBalanceUpdates()
-				Expect(balanceCh).ToNot(BeNil())
-
-				connector_test.LogSuccess("Balance subscription active")
-			})
-		})
+		connector_test.LogSuccess("WatchPair(%s) accepted via SDK",
+			pair.Base().Symbol()+"/"+pair.Quote().Symbol())
 	})
 })

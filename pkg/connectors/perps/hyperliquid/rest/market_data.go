@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/sonirico/go-hyperliquid"
-	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
+	hyperliquid2 "github.com/wisp-trading/connectors/pkg/connectors/adaptors/hyperliquid"
 )
 
 // MarketDataService interface for market data operations
@@ -31,12 +31,12 @@ type MarketDataService interface {
 
 // marketDataService implementation
 type marketDataService struct {
-	client adaptors.InfoClient
+	client hyperliquid2.InfoClient
 }
 
 var millisecondsPerSecond = int64(1000)
 
-func NewMarketDataService(client adaptors.InfoClient) MarketDataService {
+func NewMarketDataService(client hyperliquid2.InfoClient) MarketDataService {
 	return &marketDataService{client: client}
 }
 

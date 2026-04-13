@@ -8,14 +8,22 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
-// CreatePair creates a portfolio.Asset for testing
+// Pair is a convenience alias for portfolio.Pair used in test files.
+type Pair = portfolio.Pair
+
+// CreatePair creates a portfolio.Pair with USDT as the default quote currency
 func CreatePair(symbol string) portfolio.Pair {
 	base := portfolio.NewAsset(symbol)
 	quote := portfolio.NewAsset("USDT")
 
+	return portfolio.NewPair(base, quote)
+}
+
+// CreatePairWithQuote creates a portfolio.Pair with a specified quote currency
+func CreatePairWithQuote(base, quote string) portfolio.Pair {
 	return portfolio.NewPair(
-		base,
-		quote,
+		portfolio.NewAsset(base),
+		portfolio.NewAsset(quote),
 	)
 }
 

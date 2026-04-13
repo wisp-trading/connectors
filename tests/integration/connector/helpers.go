@@ -12,21 +12,20 @@ import (
 	"go.uber.org/fx"
 )
 
-// BaseTestRunner provides common test runner functionality
+// BaseTestRunner provides common test runner functionality for perp, options,
+// and prediction runners that still use the legacy shared-behaviors approach.
+// The spot runner uses a standalone design that routes everything through the
+// SDK public API instead.
 type BaseTestRunner interface {
-	// Cleanup releases resources
 	Cleanup()
-	// GetContext returns the test context
 	GetContext() context.Context
-	// GetBaseConnector returns the base connector for shared tests
 	GetBaseConnector() connector.Connector
-	// HasWebSocketSupport checks if connector supports WebSocket
 	HasWebSocketSupport() bool
-	// GetWebSocketCapable returns the base WebSocket capability
 	GetWebSocketCapable() connector.WebSocketCapable
 }
 
-// BaseRunnerImpl contains shared implementation for test runners
+// BaseRunnerImpl contains shared implementation for perp, options, and
+// prediction test runners.
 type BaseRunnerImpl struct {
 	app    *fx.App
 	ctx    context.Context
@@ -56,6 +55,8 @@ func (b *BaseRunnerImpl) GetRegistry() registry.ConnectorRegistry {
 	return b.reg
 }
 
+// ─── Logging Helpers ─────────────────────────────────────────────────────
+
 // LogSuccess logs a successful test action with formatted message
 func LogSuccess(format string, args ...interface{}) {
 	fmt.Printf("[SUCCESS] "+format+"\n", args...)
@@ -76,9 +77,12 @@ func LogDebug(format string, args ...interface{}) {
 	fmt.Printf("[DEBUG] "+format+"\n", args...)
 }
 
+// LogError logs an error message with formatted output
 func LogError(format string, args ...interface{}) {
 	fmt.Printf("[ERROR] "+format+"\n", args...)
 }
+
+// ─── Test Data Constructors ──────────────────────────────────────────────
 
 // CreateOptionsContract creates a test options contract
 func CreateOptionsContract(symbol string, strike float64, optionType string) optionsTypes.OptionContract {
