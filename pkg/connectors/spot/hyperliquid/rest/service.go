@@ -37,6 +37,18 @@ type SpotMarketDataService interface {
 
 	// FetchL2Book fetches the L2 order book for a spot asset.
 	FetchL2Book(coin string) (*hyperliquid.L2Book, error)
+
+	// GetCandles fetches historical candlestick data.
+	GetCandles(coin, interval string, startTime, endTime int64) ([]hyperliquid.Candle, error)
+
+	// GetOpenOrders fetches open orders for the given address.
+	GetOpenOrders(user string) ([]hyperliquid.OpenOrder, error)
+
+	// GetUserFills fetches trade fills for the given address.
+	GetUserFills(user string) ([]hyperliquid.Fill, error)
+
+	// GetOrderByOid fetches a specific order by its order ID.
+	GetOrderByOid(user string, oid int64) (*hyperliquid.OpenOrder, error)
 }
 
 // spotTradingService implementation

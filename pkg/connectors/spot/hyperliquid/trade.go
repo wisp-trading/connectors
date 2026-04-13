@@ -100,10 +100,44 @@ func (h *hyperliquidSpot) CancelOrder(orderID string, pair ...portfolio.Pair) (*
 
 // GetOpenOrders implements connector.OrderExecutor
 func (h *hyperliquidSpot) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Order, error) {
-	return nil, fmt.Errorf("GetOpenOrders not yet implemented for Hyperliquid spot")
+	orders, err := h.marketData.GetOpenOrders(h.config.AccountAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get open orders: %w", err)
+	}
+
+	var connectorOrders []connector.Order
+	for _, order := range orders {
+		connectorOrders = append(connectorOrders, connector.Order{
+			ID:        fmt.Sprintf("%d", order.Oid),
+			Pair:      h.coinToPair(order.Coin),
+			Side:      connector.FromString(order.Side),
+			Quantity:  numerical.NewFromFloat(order.Size),
+			Price:     numerical.NewFromFloat(order.LimitPx),
+			CreatedAt: time.Unix(order.Timestamp/1000, 0),
+		})
+	}
+
+	return connectorOrders, nil
 }
 
 // GetOrderStatus implements connector.OrderExecutor
 func (h *hyperliquidSpot) GetOrderStatus(orderID string, pair ...portfolio.Pair) (*connector.Order, error) {
-	return nil, fmt.Errorf("GetOrderStatus not yet implemented for Hyperliquid spot")
+	oid, err := strconv.ParseInt(orderID, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid order ID %q: %w", orderID, err)
+	}
+
+	order, err := h.marketData.GetOrderByOid(h.config.AccountAddress, oid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get order status: %w", err)
+	}
+
+	return &connector.Order{
+		ID:        fmt.Sprintf("%d", order.Oid),
+		Pair:      h.coinToPair(order.Coin),
+		Side:      connector.FromString(order.Side),
+		Quantity:  numerical.NewFromFloat(order.Size),
+		Price:     numerical.NewFromFloat(order.LimitPx),
+		CreatedAt: time.Unix(order.Timestamp/1000, 0),
+	}, nil
 }

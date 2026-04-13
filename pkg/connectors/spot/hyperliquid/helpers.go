@@ -20,16 +20,6 @@ func (h *hyperliquidSpot) coinToPair(coin string) portfolio.Pair {
 	)
 }
 
-// convertInterval converts standard interval format to Hyperliquid format
-func convertInterval(interval string) string {
-	switch interval {
-	case "1m", "5m", "15m", "1h", "4h", "1d":
-		return interval
-	default:
-		return "1h"
-	}
-}
-
 func parseDecimal(value string) numerical.Decimal {
 	if value == "" {
 		return numerical.Zero()
@@ -42,4 +32,34 @@ func parseDecimal(value string) numerical.Decimal {
 	}
 
 	return d
+}
+
+// convertInterval converts standard interval format to Hyperliquid format
+func convertInterval(interval string) string {
+	switch interval {
+	case "1m", "5m", "15m", "1h", "4h", "1d":
+		return interval
+	default:
+		return "1h"
+	}
+}
+
+// intervalToSeconds converts interval string to seconds
+func intervalToSeconds(interval string) int {
+	switch interval {
+	case "1m":
+		return 60
+	case "5m":
+		return 300
+	case "15m":
+		return 900
+	case "1h":
+		return 3600
+	case "4h":
+		return 14400
+	case "1d":
+		return 86400
+	default:
+		return 3600
+	}
 }

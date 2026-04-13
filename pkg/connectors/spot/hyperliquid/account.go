@@ -58,6 +58,47 @@ func (h *hyperliquidSpot) GetBalance(asset portfolio.Asset) (*connector.AssetBal
 }
 
 // GetTradingHistory implements connector.AccountReader.
+// Returns the user's historical fills for the given spot pair.
 func (h *hyperliquidSpot) GetTradingHistory(pair portfolio.Pair, limit int) ([]connector.Trade, error) {
-	return nil, fmt.Errorf("GetTradingHistory not yet implemented for Hyperliquid spot")
+	fills, err := h.marketData.GetUserFills(h.config.AccountAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user fills: %w", err)
+	}
+
+	symbol := h.normaliseAssetName(pair.Base())
+	trades := make([]connector.Trade, 0, limit)
+
+	for _, fill := range fills {
+		if fill.Coin != symbol {
+			continue
+		}
+
+		if len(trades) >= limit {
+			break
+		}
+
+		price := parseDecimal(fill.Price)
+		quantity := parseDecimal(fill.Size)
+
+		var side connector.OrderSide
+		if fill.Side == "B" {
+			side = connector.OrderSideBuy
+		} else {
+			side = connector.OrderSideSell
+		}
+
+		trades = append(trades, connector.Trade{
+			ID:        fmt.Sprintf("%d", fill.Oid),
+			OrderID:   fmt.Sprintf("%d", fill.Oid),
+			Pair:      h.coinToPair(fill.Coin),
+			Side:      side,
+			Price:     price,
+			Quantity:  quantity,
+			Fee:       numerical.Zero(),
+			Timestamp: time.Unix(fill.Time/1000, 0),
+			IsMaker:   false,
+		})
+	}
+
+	return trades, nil
 }

@@ -61,3 +61,61 @@ func (s *spotMarketDataService) FetchL2Book(coin string) (*hyperliquid.L2Book, e
 
 	return book, nil
 }
+
+var millisecondsPerSecond = int64(1000)
+
+func (s *spotMarketDataService) GetCandles(coin, interval string, startTime, endTime int64) ([]hyperliquid.Candle, error) {
+	info, err := s.infoClient.GetInfo()
+	if err != nil {
+		return nil, fmt.Errorf("info client not configured: %w", err)
+	}
+
+	candles, err := info.CandlesSnapshot(coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch candles for %s: %w", coin, err)
+	}
+
+	return candles, nil
+}
+
+func (s *spotMarketDataService) GetOpenOrders(user string) ([]hyperliquid.OpenOrder, error) {
+	info, err := s.infoClient.GetInfo()
+	if err != nil {
+		return nil, fmt.Errorf("info client not configured: %w", err)
+	}
+
+	orders, err := info.OpenOrders(user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch open orders: %w", err)
+	}
+
+	return orders, nil
+}
+
+func (s *spotMarketDataService) GetUserFills(user string) ([]hyperliquid.Fill, error) {
+	info, err := s.infoClient.GetInfo()
+	if err != nil {
+		return nil, fmt.Errorf("info client not configured: %w", err)
+	}
+
+	fills, err := info.UserFills(user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch user fills: %w", err)
+	}
+
+	return fills, nil
+}
+
+func (s *spotMarketDataService) GetOrderByOid(user string, oid int64) (*hyperliquid.OpenOrder, error) {
+	info, err := s.infoClient.GetInfo()
+	if err != nil {
+		return nil, fmt.Errorf("info client not configured: %w", err)
+	}
+
+	order, err := info.QueryOrderByOid(user, oid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch order %d: %w", oid, err)
+	}
+
+	return order, nil
+}
