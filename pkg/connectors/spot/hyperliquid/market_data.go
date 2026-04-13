@@ -122,13 +122,13 @@ func (h *hyperliquidSpot) FetchKlines(pair portfolio.Pair, interval string, limi
 		klines = append(klines, connector.Kline{
 			Pair:      pair,
 			Interval:  interval,
-			OpenTime:  time.Unix(candle.Time/1000, 0),
+			OpenTime:  time.Unix(candle.TimeOpen/1000, 0),
 			Open:      open,
 			High:      high,
 			Low:       low,
 			Close:     closeVal,
 			Volume:    volume,
-			CloseTime: time.Unix(candle.Timestamp/1000, 0),
+			CloseTime: time.Unix(candle.TimeClose/1000, 0),
 		})
 	}
 

@@ -3,7 +3,6 @@
 package websocket
 
 import (
-	hyperliquid "github.com/sonirico/go-hyperliquid"
 	mock "github.com/stretchr/testify/mock"
 
 	websocket "github.com/wisp-trading/connectors/pkg/connectors/perps/hyperliquid/websocket"
@@ -23,7 +22,7 @@ func (_m *MessageParser) EXPECT() *MessageParser_Expecter {
 }
 
 // ParseAccountBalance provides a mock function with given fields: msg
-func (_m *MessageParser) ParseAccountBalance(msg hyperliquid.WSMessage) (*websocket.AccountBalanceMessage, error) {
+func (_m *MessageParser) ParseAccountBalance(msg websocket.Message) (*websocket.AccountBalanceMessage, error) {
 	ret := _m.Called(msg)
 
 	if len(ret) == 0 {
@@ -32,10 +31,10 @@ func (_m *MessageParser) ParseAccountBalance(msg hyperliquid.WSMessage) (*websoc
 
 	var r0 *websocket.AccountBalanceMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) (*websocket.AccountBalanceMessage, error)); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) (*websocket.AccountBalanceMessage, error)); ok {
 		return rf(msg)
 	}
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) *websocket.AccountBalanceMessage); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) *websocket.AccountBalanceMessage); ok {
 		r0 = rf(msg)
 	} else {
 		if ret.Get(0) != nil {
@@ -43,7 +42,7 @@ func (_m *MessageParser) ParseAccountBalance(msg hyperliquid.WSMessage) (*websoc
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(hyperliquid.WSMessage) error); ok {
+	if rf, ok := ret.Get(1).(func(websocket.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -58,14 +57,14 @@ type MessageParser_ParseAccountBalance_Call struct {
 }
 
 // ParseAccountBalance is a helper method to define mock.On call
-//   - msg hyperliquid.WSMessage
+//   - msg websocket.Message
 func (_e *MessageParser_Expecter) ParseAccountBalance(msg interface{}) *MessageParser_ParseAccountBalance_Call {
 	return &MessageParser_ParseAccountBalance_Call{Call: _e.mock.On("ParseAccountBalance", msg)}
 }
 
-func (_c *MessageParser_ParseAccountBalance_Call) Run(run func(msg hyperliquid.WSMessage)) *MessageParser_ParseAccountBalance_Call {
+func (_c *MessageParser_ParseAccountBalance_Call) Run(run func(msg websocket.Message)) *MessageParser_ParseAccountBalance_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(hyperliquid.WSMessage))
+		run(args[0].(websocket.Message))
 	})
 	return _c
 }
@@ -75,13 +74,13 @@ func (_c *MessageParser_ParseAccountBalance_Call) Return(_a0 *websocket.AccountB
 	return _c
 }
 
-func (_c *MessageParser_ParseAccountBalance_Call) RunAndReturn(run func(hyperliquid.WSMessage) (*websocket.AccountBalanceMessage, error)) *MessageParser_ParseAccountBalance_Call {
+func (_c *MessageParser_ParseAccountBalance_Call) RunAndReturn(run func(websocket.Message) (*websocket.AccountBalanceMessage, error)) *MessageParser_ParseAccountBalance_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ParseFundingRate provides a mock function with given fields: msg
-func (_m *MessageParser) ParseFundingRate(msg hyperliquid.WSMessage) (*websocket.FundingRateMessage, error) {
+func (_m *MessageParser) ParseFundingRate(msg websocket.Message) (*websocket.FundingRateMessage, error) {
 	ret := _m.Called(msg)
 
 	if len(ret) == 0 {
@@ -90,10 +89,10 @@ func (_m *MessageParser) ParseFundingRate(msg hyperliquid.WSMessage) (*websocket
 
 	var r0 *websocket.FundingRateMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) (*websocket.FundingRateMessage, error)); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) (*websocket.FundingRateMessage, error)); ok {
 		return rf(msg)
 	}
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) *websocket.FundingRateMessage); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) *websocket.FundingRateMessage); ok {
 		r0 = rf(msg)
 	} else {
 		if ret.Get(0) != nil {
@@ -101,7 +100,7 @@ func (_m *MessageParser) ParseFundingRate(msg hyperliquid.WSMessage) (*websocket
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(hyperliquid.WSMessage) error); ok {
+	if rf, ok := ret.Get(1).(func(websocket.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -116,14 +115,14 @@ type MessageParser_ParseFundingRate_Call struct {
 }
 
 // ParseFundingRate is a helper method to define mock.On call
-//   - msg hyperliquid.WSMessage
+//   - msg websocket.Message
 func (_e *MessageParser_Expecter) ParseFundingRate(msg interface{}) *MessageParser_ParseFundingRate_Call {
 	return &MessageParser_ParseFundingRate_Call{Call: _e.mock.On("ParseFundingRate", msg)}
 }
 
-func (_c *MessageParser_ParseFundingRate_Call) Run(run func(msg hyperliquid.WSMessage)) *MessageParser_ParseFundingRate_Call {
+func (_c *MessageParser_ParseFundingRate_Call) Run(run func(msg websocket.Message)) *MessageParser_ParseFundingRate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(hyperliquid.WSMessage))
+		run(args[0].(websocket.Message))
 	})
 	return _c
 }
@@ -133,13 +132,13 @@ func (_c *MessageParser_ParseFundingRate_Call) Return(_a0 *websocket.FundingRate
 	return _c
 }
 
-func (_c *MessageParser_ParseFundingRate_Call) RunAndReturn(run func(hyperliquid.WSMessage) (*websocket.FundingRateMessage, error)) *MessageParser_ParseFundingRate_Call {
+func (_c *MessageParser_ParseFundingRate_Call) RunAndReturn(run func(websocket.Message) (*websocket.FundingRateMessage, error)) *MessageParser_ParseFundingRate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ParseKline provides a mock function with given fields: msg
-func (_m *MessageParser) ParseKline(msg hyperliquid.WSMessage) (*websocket.KlineMessage, error) {
+func (_m *MessageParser) ParseKline(msg websocket.Message) (*websocket.KlineMessage, error) {
 	ret := _m.Called(msg)
 
 	if len(ret) == 0 {
@@ -148,10 +147,10 @@ func (_m *MessageParser) ParseKline(msg hyperliquid.WSMessage) (*websocket.Kline
 
 	var r0 *websocket.KlineMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) (*websocket.KlineMessage, error)); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) (*websocket.KlineMessage, error)); ok {
 		return rf(msg)
 	}
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) *websocket.KlineMessage); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) *websocket.KlineMessage); ok {
 		r0 = rf(msg)
 	} else {
 		if ret.Get(0) != nil {
@@ -159,7 +158,7 @@ func (_m *MessageParser) ParseKline(msg hyperliquid.WSMessage) (*websocket.Kline
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(hyperliquid.WSMessage) error); ok {
+	if rf, ok := ret.Get(1).(func(websocket.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -174,14 +173,14 @@ type MessageParser_ParseKline_Call struct {
 }
 
 // ParseKline is a helper method to define mock.On call
-//   - msg hyperliquid.WSMessage
+//   - msg websocket.Message
 func (_e *MessageParser_Expecter) ParseKline(msg interface{}) *MessageParser_ParseKline_Call {
 	return &MessageParser_ParseKline_Call{Call: _e.mock.On("ParseKline", msg)}
 }
 
-func (_c *MessageParser_ParseKline_Call) Run(run func(msg hyperliquid.WSMessage)) *MessageParser_ParseKline_Call {
+func (_c *MessageParser_ParseKline_Call) Run(run func(msg websocket.Message)) *MessageParser_ParseKline_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(hyperliquid.WSMessage))
+		run(args[0].(websocket.Message))
 	})
 	return _c
 }
@@ -191,13 +190,13 @@ func (_c *MessageParser_ParseKline_Call) Return(_a0 *websocket.KlineMessage, _a1
 	return _c
 }
 
-func (_c *MessageParser_ParseKline_Call) RunAndReturn(run func(hyperliquid.WSMessage) (*websocket.KlineMessage, error)) *MessageParser_ParseKline_Call {
+func (_c *MessageParser_ParseKline_Call) RunAndReturn(run func(websocket.Message) (*websocket.KlineMessage, error)) *MessageParser_ParseKline_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ParseOrderBook provides a mock function with given fields: msg
-func (_m *MessageParser) ParseOrderBook(msg hyperliquid.WSMessage) (*websocket.OrderBookMessage, error) {
+func (_m *MessageParser) ParseOrderBook(msg websocket.Message) (*websocket.OrderBookMessage, error) {
 	ret := _m.Called(msg)
 
 	if len(ret) == 0 {
@@ -206,10 +205,10 @@ func (_m *MessageParser) ParseOrderBook(msg hyperliquid.WSMessage) (*websocket.O
 
 	var r0 *websocket.OrderBookMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) (*websocket.OrderBookMessage, error)); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) (*websocket.OrderBookMessage, error)); ok {
 		return rf(msg)
 	}
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) *websocket.OrderBookMessage); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) *websocket.OrderBookMessage); ok {
 		r0 = rf(msg)
 	} else {
 		if ret.Get(0) != nil {
@@ -217,7 +216,7 @@ func (_m *MessageParser) ParseOrderBook(msg hyperliquid.WSMessage) (*websocket.O
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(hyperliquid.WSMessage) error); ok {
+	if rf, ok := ret.Get(1).(func(websocket.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -232,14 +231,14 @@ type MessageParser_ParseOrderBook_Call struct {
 }
 
 // ParseOrderBook is a helper method to define mock.On call
-//   - msg hyperliquid.WSMessage
+//   - msg websocket.Message
 func (_e *MessageParser_Expecter) ParseOrderBook(msg interface{}) *MessageParser_ParseOrderBook_Call {
 	return &MessageParser_ParseOrderBook_Call{Call: _e.mock.On("ParseOrderBook", msg)}
 }
 
-func (_c *MessageParser_ParseOrderBook_Call) Run(run func(msg hyperliquid.WSMessage)) *MessageParser_ParseOrderBook_Call {
+func (_c *MessageParser_ParseOrderBook_Call) Run(run func(msg websocket.Message)) *MessageParser_ParseOrderBook_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(hyperliquid.WSMessage))
+		run(args[0].(websocket.Message))
 	})
 	return _c
 }
@@ -249,13 +248,13 @@ func (_c *MessageParser_ParseOrderBook_Call) Return(_a0 *websocket.OrderBookMess
 	return _c
 }
 
-func (_c *MessageParser_ParseOrderBook_Call) RunAndReturn(run func(hyperliquid.WSMessage) (*websocket.OrderBookMessage, error)) *MessageParser_ParseOrderBook_Call {
+func (_c *MessageParser_ParseOrderBook_Call) RunAndReturn(run func(websocket.Message) (*websocket.OrderBookMessage, error)) *MessageParser_ParseOrderBook_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ParsePosition provides a mock function with given fields: msg
-func (_m *MessageParser) ParsePosition(msg hyperliquid.WSMessage) (*websocket.PositionMessage, error) {
+func (_m *MessageParser) ParsePosition(msg websocket.Message) (*websocket.PositionMessage, error) {
 	ret := _m.Called(msg)
 
 	if len(ret) == 0 {
@@ -264,10 +263,10 @@ func (_m *MessageParser) ParsePosition(msg hyperliquid.WSMessage) (*websocket.Po
 
 	var r0 *websocket.PositionMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) (*websocket.PositionMessage, error)); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) (*websocket.PositionMessage, error)); ok {
 		return rf(msg)
 	}
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) *websocket.PositionMessage); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) *websocket.PositionMessage); ok {
 		r0 = rf(msg)
 	} else {
 		if ret.Get(0) != nil {
@@ -275,7 +274,7 @@ func (_m *MessageParser) ParsePosition(msg hyperliquid.WSMessage) (*websocket.Po
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(hyperliquid.WSMessage) error); ok {
+	if rf, ok := ret.Get(1).(func(websocket.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -290,14 +289,14 @@ type MessageParser_ParsePosition_Call struct {
 }
 
 // ParsePosition is a helper method to define mock.On call
-//   - msg hyperliquid.WSMessage
+//   - msg websocket.Message
 func (_e *MessageParser_Expecter) ParsePosition(msg interface{}) *MessageParser_ParsePosition_Call {
 	return &MessageParser_ParsePosition_Call{Call: _e.mock.On("ParsePosition", msg)}
 }
 
-func (_c *MessageParser_ParsePosition_Call) Run(run func(msg hyperliquid.WSMessage)) *MessageParser_ParsePosition_Call {
+func (_c *MessageParser_ParsePosition_Call) Run(run func(msg websocket.Message)) *MessageParser_ParsePosition_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(hyperliquid.WSMessage))
+		run(args[0].(websocket.Message))
 	})
 	return _c
 }
@@ -307,13 +306,13 @@ func (_c *MessageParser_ParsePosition_Call) Return(_a0 *websocket.PositionMessag
 	return _c
 }
 
-func (_c *MessageParser_ParsePosition_Call) RunAndReturn(run func(hyperliquid.WSMessage) (*websocket.PositionMessage, error)) *MessageParser_ParsePosition_Call {
+func (_c *MessageParser_ParsePosition_Call) RunAndReturn(run func(websocket.Message) (*websocket.PositionMessage, error)) *MessageParser_ParsePosition_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ParseTrades provides a mock function with given fields: msg
-func (_m *MessageParser) ParseTrades(msg hyperliquid.WSMessage) ([]websocket.TradeMessage, error) {
+func (_m *MessageParser) ParseTrades(msg websocket.Message) ([]websocket.TradeMessage, error) {
 	ret := _m.Called(msg)
 
 	if len(ret) == 0 {
@@ -322,10 +321,10 @@ func (_m *MessageParser) ParseTrades(msg hyperliquid.WSMessage) ([]websocket.Tra
 
 	var r0 []websocket.TradeMessage
 	var r1 error
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) ([]websocket.TradeMessage, error)); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) ([]websocket.TradeMessage, error)); ok {
 		return rf(msg)
 	}
-	if rf, ok := ret.Get(0).(func(hyperliquid.WSMessage) []websocket.TradeMessage); ok {
+	if rf, ok := ret.Get(0).(func(websocket.Message) []websocket.TradeMessage); ok {
 		r0 = rf(msg)
 	} else {
 		if ret.Get(0) != nil {
@@ -333,7 +332,7 @@ func (_m *MessageParser) ParseTrades(msg hyperliquid.WSMessage) ([]websocket.Tra
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(hyperliquid.WSMessage) error); ok {
+	if rf, ok := ret.Get(1).(func(websocket.Message) error); ok {
 		r1 = rf(msg)
 	} else {
 		r1 = ret.Error(1)
@@ -348,14 +347,14 @@ type MessageParser_ParseTrades_Call struct {
 }
 
 // ParseTrades is a helper method to define mock.On call
-//   - msg hyperliquid.WSMessage
+//   - msg websocket.Message
 func (_e *MessageParser_Expecter) ParseTrades(msg interface{}) *MessageParser_ParseTrades_Call {
 	return &MessageParser_ParseTrades_Call{Call: _e.mock.On("ParseTrades", msg)}
 }
 
-func (_c *MessageParser_ParseTrades_Call) Run(run func(msg hyperliquid.WSMessage)) *MessageParser_ParseTrades_Call {
+func (_c *MessageParser_ParseTrades_Call) Run(run func(msg websocket.Message)) *MessageParser_ParseTrades_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(hyperliquid.WSMessage))
+		run(args[0].(websocket.Message))
 	})
 	return _c
 }
@@ -365,7 +364,7 @@ func (_c *MessageParser_ParseTrades_Call) Return(_a0 []websocket.TradeMessage, _
 	return _c
 }
 
-func (_c *MessageParser_ParseTrades_Call) RunAndReturn(run func(hyperliquid.WSMessage) ([]websocket.TradeMessage, error)) *MessageParser_ParseTrades_Call {
+func (_c *MessageParser_ParseTrades_Call) RunAndReturn(run func(websocket.Message) ([]websocket.TradeMessage, error)) *MessageParser_ParseTrades_Call {
 	_c.Call.Return(run)
 	return _c
 }

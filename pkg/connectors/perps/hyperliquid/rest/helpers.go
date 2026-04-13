@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sonirico/go-hyperliquid"
@@ -52,7 +53,7 @@ func (t *tradingService) placeLimitOrder(coin string, size, price float64, isBuy
 		ClientOrderID: clientOrderID,
 	}
 
-	return ex.Order(req, nil)
+	return ex.Order(context.Background(), req, nil)
 }
 
 func (t *tradingService) placeTriggerOrder(coin string, size, triggerPrice float64, isBuy bool, isMarket bool) (hyperliquid.OrderStatus, error) {
@@ -87,5 +88,5 @@ func (t *tradingService) placeTriggerOrder(coin string, size, triggerPrice float
 		},
 	}
 
-	return ex.Order(req, nil)
+	return ex.Order(context.Background(), req, nil)
 }

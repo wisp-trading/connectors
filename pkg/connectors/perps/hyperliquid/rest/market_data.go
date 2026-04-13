@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/sonirico/go-hyperliquid"
@@ -45,7 +47,7 @@ func (m *marketDataService) GetAllMids() (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.AllMids()
+	return info.AllMids(context.Background())
 }
 
 func (m *marketDataService) GetL2Book(coin string) (*hyperliquid.L2Book, error) {
@@ -53,7 +55,7 @@ func (m *marketDataService) GetL2Book(coin string) (*hyperliquid.L2Book, error) 
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.L2Snapshot(coin)
+	return info.L2Snapshot(context.Background(), coin)
 }
 
 func (m *marketDataService) GetCandles(coin, interval string, startTime, endTime int64) ([]hyperliquid.Candle, error) {
@@ -61,7 +63,7 @@ func (m *marketDataService) GetCandles(coin, interval string, startTime, endTime
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.CandlesSnapshot(coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
+	return info.CandlesSnapshot(context.Background(), coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
 }
 
 func (m *marketDataService) GetMeta() (*hyperliquid.Meta, error) {
@@ -69,7 +71,7 @@ func (m *marketDataService) GetMeta() (*hyperliquid.Meta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.Meta()
+	return info.Meta(context.Background())
 }
 
 func (m *marketDataService) GetSpotMeta() (*hyperliquid.SpotMeta, error) {
@@ -77,7 +79,7 @@ func (m *marketDataService) GetSpotMeta() (*hyperliquid.SpotMeta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.SpotMeta()
+	return info.SpotMeta(context.Background())
 }
 
 func (m *marketDataService) GetMetaAndAssetCtxs() (map[string]any, error) {
@@ -85,7 +87,19 @@ func (m *marketDataService) GetMetaAndAssetCtxs() (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.MetaAndAssetCtxs()
+	result, err := info.MetaAndAssetCtxs(context.Background(), hyperliquid.MetaAndAssetCtxsParams{})
+	if err != nil {
+		return nil, err
+	}
+	b, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal MetaAndAssetCtxs: %w", err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(b, &out); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal MetaAndAssetCtxs to map: %w", err)
+	}
+	return out, nil
 }
 
 func (m *marketDataService) GetSpotMetaAndAssetCtxs() (map[string]any, error) {
@@ -93,7 +107,19 @@ func (m *marketDataService) GetSpotMetaAndAssetCtxs() (map[string]any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.SpotMetaAndAssetCtxs()
+	result, err := info.SpotMetaAndAssetCtxs(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	b, err := json.Marshal(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal SpotMetaAndAssetCtxs: %w", err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(b, &out); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SpotMetaAndAssetCtxs to map: %w", err)
+	}
+	return out, nil
 }
 
 func (m *marketDataService) NameToAsset(name string) int {
@@ -101,5 +127,6 @@ func (m *marketDataService) NameToAsset(name string) int {
 	if err != nil {
 		return -1 // Return -1 on error since this returns int
 	}
-	return info.NameToAsset(name)
+	asset, _ := info.CoinToAsset(name)
+	return asset
 }

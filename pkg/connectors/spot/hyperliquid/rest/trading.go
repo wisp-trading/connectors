@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"math"
 
@@ -20,7 +21,7 @@ func (t *spotTradingService) PlaceBuyMarketOrder(coin string, size, slippage flo
 	if err != nil {
 		return hyperliquid.OrderStatus{}, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.MarketOpen(coin, true, roundToSigFigs(size, 5), nil, slippage, nil, nil)
+	return ex.MarketOpen(context.Background(), coin, true, roundToSigFigs(size, 5), nil, slippage, nil, nil)
 }
 
 func (t *spotTradingService) PlaceSellMarketOrder(coin string, size, slippage float64) (hyperliquid.OrderStatus, error) {
@@ -28,19 +29,17 @@ func (t *spotTradingService) PlaceSellMarketOrder(coin string, size, slippage fl
 	if err != nil {
 		return hyperliquid.OrderStatus{}, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.MarketOpen(coin, false, roundToSigFigs(size, 5), nil, slippage, nil, nil)
+	return ex.MarketOpen(context.Background(), coin, false, roundToSigFigs(size, 5), nil, slippage, nil, nil)
 }
 
-// CancelOrderByID cancels a resting order. Uses ExchangeClient.CancelOrder
-// directly to work around go-hyperliquid v0.5.0 serialising the OID as a
-// JSON string instead of an integer.
+// CancelOrderByID cancels a resting order by coin name and order ID.
 func (t *spotTradingService) CancelOrderByID(coin string, orderID int64) error {
-	info, err := t.infoClient.GetInfo()
+	ex, err := t.client.GetExchange()
 	if err != nil {
-		return fmt.Errorf("info client not configured: %w", err)
+		return fmt.Errorf("exchange not configured: %w", err)
 	}
-	assetIndex := info.NameToAsset(coin)
-	return t.client.CancelOrder(assetIndex, orderID)
+	_, err = ex.Cancel(context.Background(), coin, orderID)
+	return err
 }
 
 func (t *spotTradingService) PlaceBulkOrders(orders []hyperliquid.CreateOrderRequest) (*hyperliquid.APIResponse[hyperliquid.OrderResponse], error) {
@@ -48,7 +47,7 @@ func (t *spotTradingService) PlaceBulkOrders(orders []hyperliquid.CreateOrderReq
 	if err != nil {
 		return nil, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.BulkOrders(orders, nil)
+	return ex.BulkOrders(context.Background(), orders, nil)
 }
 
 // placeLimitOrder places a limit order via the Go SDK.
@@ -72,7 +71,7 @@ func (t *spotTradingService) placeLimitOrder(coin string, size, price float64, i
 		},
 	}
 
-	return ex.Order(req, nil)
+	return ex.Order(context.Background(), req, nil)
 }
 
 // roundToSigFigs rounds a number to n significant figures.

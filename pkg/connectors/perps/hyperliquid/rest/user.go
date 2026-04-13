@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sonirico/go-hyperliquid"
@@ -12,7 +13,7 @@ func (m *marketDataService) GetUserState(user string) (hyperliquid.UserState, er
 		return hyperliquid.UserState{}, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	state, err := info.SpotUserState(user)
+	state, err := info.UserState(context.Background(), user)
 
 	if err != nil {
 		return hyperliquid.UserState{}, err
@@ -27,7 +28,7 @@ func (m *marketDataService) GetOpenOrders(user string) ([]hyperliquid.OpenOrder,
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.OpenOrders(user)
+	return info.OpenOrders(context.Background(), user)
 }
 
 func (m *marketDataService) GetUserFills(user string) ([]hyperliquid.Fill, error) {
@@ -35,5 +36,5 @@ func (m *marketDataService) GetUserFills(user string) ([]hyperliquid.Fill, error
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.UserFills(user)
+	return info.UserFills(context.Background(), hyperliquid.UserFillsParams{Address: user})
 }

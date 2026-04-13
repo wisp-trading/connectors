@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sonirico/go-hyperliquid"
@@ -11,7 +12,7 @@ func (t *tradingService) ClosePosition(coin string, size *float64, slippage floa
 	if err != nil {
 		return hyperliquid.OrderStatus{}, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.MarketClose(coin, size, nil, slippage, nil, nil)
+	return ex.MarketClose(context.Background(), coin, size, nil, slippage, nil, nil)
 }
 
 func (t *tradingService) CloseEntirePosition(coin string, slippage float64) (hyperliquid.OrderStatus, error) {

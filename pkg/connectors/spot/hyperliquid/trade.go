@@ -156,17 +156,27 @@ func (h *hyperliquidSpot) GetOrderStatus(orderID string, pair ...portfolio.Pair)
 		return nil, fmt.Errorf("invalid order ID %q: %w", orderID, err)
 	}
 
-	order, err := h.marketData.GetOrderByOid(h.effectiveAddress(), oid)
+	result, err := h.marketData.GetOrderByOid(h.effectiveAddress(), oid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order status: %w", err)
 	}
 
+	queried := result.Order.Order
+	size, err := strconv.ParseFloat(queried.Sz, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse order size %q: %w", queried.Sz, err)
+	}
+	limitPx, err := strconv.ParseFloat(queried.LimitPx, 64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse order price %q: %w", queried.LimitPx, err)
+	}
+
 	return &connector.Order{
-		ID:        fmt.Sprintf("%d", order.Oid),
-		Pair:      h.coinToPair(order.Coin),
-		Side:      connector.FromString(order.Side),
-		Quantity:  numerical.NewFromFloat(order.Size),
-		Price:     numerical.NewFromFloat(order.LimitPx),
-		CreatedAt: time.Unix(order.Timestamp/1000, 0),
+		ID:        fmt.Sprintf("%d", queried.Oid),
+		Pair:      h.coinToPair(queried.Coin),
+		Side:      connector.FromString(string(queried.Side)),
+		Quantity:  numerical.NewFromFloat(size),
+		Price:     numerical.NewFromFloat(limitPx),
+		CreatedAt: time.Unix(queried.Timestamp/1000, 0),
 	}, nil
 }

@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sonirico/go-hyperliquid"
@@ -11,7 +12,7 @@ func (t *tradingService) CancelOrderByID(coin string, orderID int64) (*hyperliqu
 	if err != nil {
 		return nil, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.Cancel(coin, orderID)
+	return ex.Cancel(context.Background(), coin, orderID)
 }
 
 func (t *tradingService) CancelOrderByCustomRef(coin, customRef string) (*hyperliquid.APIResponse[hyperliquid.CancelOrderResponse], error) {
@@ -19,5 +20,5 @@ func (t *tradingService) CancelOrderByCustomRef(coin, customRef string) (*hyperl
 	if err != nil {
 		return nil, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.CancelByCloid(coin, customRef)
+	return ex.CancelByCloid(context.Background(), coin, customRef)
 }

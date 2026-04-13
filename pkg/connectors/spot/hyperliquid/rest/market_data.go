@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 
 	hyperliquid "github.com/sonirico/go-hyperliquid"
@@ -12,7 +13,7 @@ func (s *spotMarketDataService) FetchSpotMeta() (*hyperliquid.SpotMeta, error) {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	meta, err := info.SpotMeta()
+	meta, err := info.SpotMeta(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch spot meta: %w", err)
 	}
@@ -20,13 +21,13 @@ func (s *spotMarketDataService) FetchSpotMeta() (*hyperliquid.SpotMeta, error) {
 	return meta, nil
 }
 
-func (s *spotMarketDataService) FetchSpotMetaAndAssetCtxs() (map[string]any, error) {
+func (s *spotMarketDataService) FetchSpotMetaAndAssetCtxs() (*hyperliquid.SpotMetaAndAssetCtxs, error) {
 	info, err := s.infoClient.GetInfo()
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	data, err := info.SpotMetaAndAssetCtxs()
+	data, err := info.SpotMetaAndAssetCtxs(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch spot meta and asset ctxs: %w", err)
 	}
@@ -34,13 +35,13 @@ func (s *spotMarketDataService) FetchSpotMetaAndAssetCtxs() (map[string]any, err
 	return data, nil
 }
 
-func (s *spotMarketDataService) FetchSpotUserState(address string) (*hyperliquid.UserState, error) {
+func (s *spotMarketDataService) FetchSpotUserState(address string) (*hyperliquid.SpotUserState, error) {
 	info, err := s.infoClient.GetInfo()
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	state, err := info.SpotUserState(address)
+	state, err := info.SpotUserState(context.Background(), address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch spot user state: %w", err)
 	}
@@ -54,7 +55,7 @@ func (s *spotMarketDataService) FetchL2Book(coin string) (*hyperliquid.L2Book, e
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	book, err := info.L2Snapshot(coin)
+	book, err := info.L2Snapshot(context.Background(), coin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch L2 book for %s: %w", coin, err)
 	}
@@ -70,7 +71,7 @@ func (s *spotMarketDataService) GetCandles(coin, interval string, startTime, end
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	candles, err := info.CandlesSnapshot(coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
+	candles, err := info.CandlesSnapshot(context.Background(), coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch candles for %s: %w", coin, err)
 	}
@@ -84,7 +85,7 @@ func (s *spotMarketDataService) GetOpenOrders(user string) ([]hyperliquid.OpenOr
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	orders, err := info.OpenOrders(user)
+	orders, err := info.OpenOrders(context.Background(), user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch open orders: %w", err)
 	}
@@ -98,7 +99,7 @@ func (s *spotMarketDataService) GetUserFills(user string) ([]hyperliquid.Fill, e
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	fills, err := info.UserFills(user)
+	fills, err := info.UserFills(context.Background(), hyperliquid.UserFillsParams{Address: user})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch user fills: %w", err)
 	}
@@ -106,16 +107,16 @@ func (s *spotMarketDataService) GetUserFills(user string) ([]hyperliquid.Fill, e
 	return fills, nil
 }
 
-func (s *spotMarketDataService) GetOrderByOid(user string, oid int64) (*hyperliquid.OpenOrder, error) {
+func (s *spotMarketDataService) GetOrderByOid(user string, oid int64) (*hyperliquid.OrderQueryResult, error) {
 	info, err := s.infoClient.GetInfo()
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
 
-	order, err := info.QueryOrderByOid(user, oid)
+	result, err := info.QueryOrderByOid(context.Background(), user, oid)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch order %d: %w", oid, err)
 	}
 
-	return order, nil
+	return result, nil
 }

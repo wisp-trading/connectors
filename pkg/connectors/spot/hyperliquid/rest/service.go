@@ -17,8 +17,7 @@ type SpotTradingService interface {
 	PlaceBuyMarketOrder(coin string, size, slippage float64) (hyperliquid.OrderStatus, error)
 	PlaceSellMarketOrder(coin string, size, slippage float64) (hyperliquid.OrderStatus, error)
 
-	// Cancel — uses the ExchangeClient.CancelOrder workaround because
-	// go-hyperliquid v0.5.0 serialises the OID as a JSON string.
+	// Cancel cancels a resting order by coin name and order ID.
 	CancelOrderByID(coin string, orderID int64) error
 
 	// Bulk
@@ -31,10 +30,10 @@ type SpotMarketDataService interface {
 	FetchSpotMeta() (*hyperliquid.SpotMeta, error)
 
 	// FetchSpotMetaAndAssetCtxs returns spot metadata with current pricing context.
-	FetchSpotMetaAndAssetCtxs() (map[string]any, error)
+	FetchSpotMetaAndAssetCtxs() (*hyperliquid.SpotMetaAndAssetCtxs, error)
 
 	// FetchSpotUserState returns spot balances for the given address.
-	FetchSpotUserState(address string) (*hyperliquid.UserState, error)
+	FetchSpotUserState(address string) (*hyperliquid.SpotUserState, error)
 
 	// FetchL2Book fetches the L2 order book for a spot asset.
 	FetchL2Book(coin string) (*hyperliquid.L2Book, error)
@@ -49,7 +48,7 @@ type SpotMarketDataService interface {
 	GetUserFills(user string) ([]hyperliquid.Fill, error)
 
 	// GetOrderByOid fetches a specific order by its order ID.
-	GetOrderByOid(user string, oid int64) (*hyperliquid.OpenOrder, error)
+	GetOrderByOid(user string, oid int64) (*hyperliquid.OrderQueryResult, error)
 }
 
 // spotTradingService implementation

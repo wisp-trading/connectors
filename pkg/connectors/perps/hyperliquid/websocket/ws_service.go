@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/sonirico/go-hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/websocket/base"
 	"github.com/wisp-trading/connectors/pkg/websocket/connection"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
@@ -57,7 +56,7 @@ type SubscriptionHandler struct {
 	Channel  string
 	Coin     string
 	Interval string
-	Callback func(hyperliquid.WSMessage)
+	Callback func(Message)
 }
 
 // NewWebSocketService creates a new WebSocket service using pkg/websocket infrastructure
@@ -274,7 +273,7 @@ func (ws *WebSocketService) resubscribeAll() {
 }
 
 // subscribeToChannel is the internal method that handles raw subscriptions
-func (ws *WebSocketService) subscribeToChannel(channel, coin, interval string, callback func(hyperliquid.WSMessage)) (int, error) {
+func (ws *WebSocketService) subscribeToChannel(channel, coin, interval string, callback func(Message)) (int, error) {
 	fmt.Printf("🟢 subscribeToChannel CALLED: channel=%s, coin=%s, interval=%s\n", channel, coin, interval)
 
 	subID := generateSubscriptionID()
@@ -417,8 +416,7 @@ func (ws *WebSocketService) routeMessageToSubscriptions(channel string, data []b
 		return nil
 	}
 
-	// Parse as hyperliquid.WSMessage
-	msg := hyperliquid.WSMessage{
+	msg := Message{
 		Channel: msgWrapper.Channel,
 		Data:    msgWrapper.Data,
 	}
@@ -468,15 +466,15 @@ func (ws *WebSocketService) sendSubscription(channel, coin, interval string) err
 
 // Parsing helper functions that use the injected parser
 
-func (ws *WebSocketService) parseOrderBook(msg hyperliquid.WSMessage) (*OrderBookMessage, error) {
+func (ws *WebSocketService) parseOrderBook(msg Message) (*OrderBookMessage, error) {
 	return ws.parser.ParseOrderBook(msg)
 }
 
-func (ws *WebSocketService) parseTrades(msg hyperliquid.WSMessage) ([]TradeMessage, error) {
+func (ws *WebSocketService) parseTrades(msg Message) ([]TradeMessage, error) {
 	return ws.parser.ParseTrades(msg)
 }
 
-func (ws *WebSocketService) parseKline(msg hyperliquid.WSMessage) (*KlineMessage, error) {
+func (ws *WebSocketService) parseKline(msg Message) (*KlineMessage, error) {
 	return ws.parser.ParseKline(msg)
 }
 
@@ -504,7 +502,7 @@ func (ws *WebSocketService) handleOrderbookMessage(data []byte) error {
 
 	for _, sub := range ws.subscriptions {
 		if sub.Channel == "l2Book" {
-			msg := hyperliquid.WSMessage{Channel: msgWrapper.Channel, Data: msgWrapper.Data}
+			msg := Message{Channel: msgWrapper.Channel, Data: msgWrapper.Data}
 			sub.Callback(msg)
 		}
 	}
@@ -534,7 +532,7 @@ func (ws *WebSocketService) handleTradesMessage(data []byte) error {
 
 	for _, sub := range ws.subscriptions {
 		if sub.Channel == "trades" {
-			msg := hyperliquid.WSMessage{Channel: msgWrapper.Channel, Data: msgWrapper.Data}
+			msg := Message{Channel: msgWrapper.Channel, Data: msgWrapper.Data}
 			sub.Callback(msg)
 		}
 	}
@@ -564,7 +562,7 @@ func (ws *WebSocketService) handleCandleMessage(data []byte) error {
 
 	for _, sub := range ws.subscriptions {
 		if sub.Channel == "candle" {
-			msg := hyperliquid.WSMessage{Channel: msgWrapper.Channel, Data: msgWrapper.Data}
+			msg := Message{Channel: msgWrapper.Channel, Data: msgWrapper.Data}
 			sub.Callback(msg)
 		}
 	}

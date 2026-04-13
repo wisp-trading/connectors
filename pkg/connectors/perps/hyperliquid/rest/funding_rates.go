@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -150,5 +151,5 @@ func (m *marketDataService) GetHistoricalFundingRates(coin string, startTime, en
 	startTimeMs := startTime * millisecondsPerSecond
 	endTimeMs := endTime * millisecondsPerSecond
 
-	return info.FundingHistory(coin, startTimeMs, &endTimeMs)
+	return info.FundingHistory(context.Background(), coin, startTimeMs, &endTimeMs)
 }

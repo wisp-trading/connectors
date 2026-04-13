@@ -11,26 +11,25 @@ import (
 
 // GetBalances implements connector.AccountReader.
 // Returns all spot token balances from Hyperliquid's SpotUserState endpoint.
-// The SDK deserialises the spot clearinghouse state into a UserState struct
-// where each AssetPosition represents a spot token holding.
 func (h *hyperliquidSpot) GetBalances() ([]connector.AssetBalance, error) {
 	state, err := h.marketData.FetchSpotUserState(h.effectiveAddress())
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch spot balances: %w", err)
 	}
 
-	balances := make([]connector.AssetBalance, 0, len(state.AssetPositions))
-	for _, ap := range state.AssetPositions {
-		pos := ap.Position
-		total := parseDecimal(pos.Szi)
+	balances := make([]connector.AssetBalance, 0, len(state.Balances))
+	for _, b := range state.Balances {
+		total := parseDecimal(b.Total)
 		if total.IsZero() {
 			continue
 		}
 
+		locked := parseDecimal(b.Hold)
+
 		balances = append(balances, connector.AssetBalance{
-			Asset:     portfolio.NewAsset(pos.Coin),
-			Free:      total,
-			Locked:    numerical.Zero(),
+			Asset:     portfolio.NewAsset(b.Coin),
+			Free:      total.Sub(locked),
+			Locked:    locked,
 			Total:     total,
 			UpdatedAt: time.Now(),
 		})
