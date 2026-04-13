@@ -125,8 +125,18 @@ func (h *hyperliquidSpot) GetOpenOrders(pair ...portfolio.Pair) ([]connector.Ord
 		return nil, fmt.Errorf("failed to get open orders: %w", err)
 	}
 
-	var connectorOrders []connector.Order
+	// Build a set of filter coins from the pair arguments.
+	// If no pairs are given, all orders are returned.
+	filterCoins := make(map[string]bool, len(pair))
+	for _, p := range pair {
+		filterCoins[h.normaliseAssetName(p.Base())] = true
+	}
+
+	connectorOrders := make([]connector.Order, 0, len(orders))
 	for _, order := range orders {
+		if len(filterCoins) > 0 && !filterCoins[order.Coin] {
+			continue
+		}
 		connectorOrders = append(connectorOrders, connector.Order{
 			ID:        fmt.Sprintf("%d", order.Oid),
 			Pair:      h.coinToPair(order.Coin),

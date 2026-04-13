@@ -74,8 +74,8 @@ func (t *spotTradingService) placeLimitOrder(coin string, size, price float64, i
 // roundToSigFigs rounds a number to n significant figures.
 // Hyperliquid enforces a maximum of 5 significant figures on all prices and sizes.
 func roundToSigFigs(num float64, sigFigs int) float64 {
-	if num == 0 {
-		return 0
+	if num == 0 || sigFigs <= 0 {
+		return num
 	}
 	magnitude := math.Floor(math.Log10(math.Abs(num)))
 	multiplier := math.Pow(10, float64(sigFigs-1)-magnitude)

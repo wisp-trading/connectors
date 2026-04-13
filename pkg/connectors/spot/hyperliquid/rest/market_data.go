@@ -62,7 +62,7 @@ func (s *spotMarketDataService) FetchL2Book(coin string) (*hyperliquid.L2Book, e
 	return book, nil
 }
 
-var millisecondsPerSecond = int64(1000)
+const millisecondsPerSecond = int64(1000)
 
 func (s *spotMarketDataService) GetCandles(coin, interval string, startTime, endTime int64) ([]hyperliquid.Candle, error) {
 	info, err := s.infoClient.GetInfo()
