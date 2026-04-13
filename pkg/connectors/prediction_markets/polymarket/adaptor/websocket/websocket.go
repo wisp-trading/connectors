@@ -12,6 +12,7 @@ type Websocket interface {
 	SubscribePrices(ctx context.Context, market prediction.Market) (<-chan ws.PriceChangeEvent, error)
 	SubscribeUserTrades(ctx context.Context, market prediction.Market) (<-chan ws.TradeEvent, error)
 	SubscribeUserOrders(ctx context.Context, market prediction.Market) (<-chan ws.OrderEvent, error)
+	UnsubscribeMarket(market prediction.Market) error
 	Close()
 }
 

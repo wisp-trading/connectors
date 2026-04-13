@@ -49,9 +49,16 @@ func (p *polymarket) GetRecurringMarket(baseSlug string, recurrence prediction.R
 }
 
 func (p *polymarket) UnsubscribeMarket(market prediction.Market) error {
-	// Websocket unsubscribe not yet implemented in SDK
-	// TODO: Implement when polymarket SDK adds UnsubscribeMarketAssets support
-	p.appLogger.Info("Unsubscribe for market %s not yet implemented", market.Slug)
+	if _, exists := p.subscribedMarkets[market.MarketID]; !exists {
+		return nil // already unsubscribed
+	}
+
+	if err := p.clobWebsocket.UnsubscribeMarket(market); err != nil {
+		return fmt.Errorf("failed to unsubscribe market %s: %w", market.Slug, err)
+	}
+
+	delete(p.subscribedMarkets, market.MarketID)
+	p.appLogger.Info("Unsubscribed from market %s", market.Slug)
 	return nil
 }
 
