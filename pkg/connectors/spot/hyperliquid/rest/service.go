@@ -17,8 +17,9 @@ type SpotTradingService interface {
 	PlaceBuyMarketOrder(coin string, size, slippage float64) (hyperliquid.OrderStatus, error)
 	PlaceSellMarketOrder(coin string, size, slippage float64) (hyperliquid.OrderStatus, error)
 
-	// Cancel
-	CancelOrderByID(coin string, orderID int64) (*hyperliquid.APIResponse[hyperliquid.CancelOrderResponse], error)
+	// Cancel — uses the ExchangeClient.CancelOrder workaround because
+	// go-hyperliquid v0.5.0 serialises the OID as a JSON string.
+	CancelOrderByID(coin string, orderID int64) error
 
 	// Bulk
 	PlaceBulkOrders(orders []hyperliquid.CreateOrderRequest) (*hyperliquid.APIResponse[hyperliquid.OrderResponse], error)

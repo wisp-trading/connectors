@@ -31,12 +31,16 @@ func (t *spotTradingService) PlaceSellMarketOrder(coin string, size, slippage fl
 	return ex.MarketOpen(coin, false, roundToSigFigs(size, 5), nil, slippage, nil, nil)
 }
 
-func (t *spotTradingService) CancelOrderByID(coin string, orderID int64) (*hyperliquid.APIResponse[hyperliquid.CancelOrderResponse], error) {
-	ex, err := t.client.GetExchange()
+// CancelOrderByID cancels a resting order. Uses ExchangeClient.CancelOrder
+// directly to work around go-hyperliquid v0.5.0 serialising the OID as a
+// JSON string instead of an integer.
+func (t *spotTradingService) CancelOrderByID(coin string, orderID int64) error {
+	info, err := t.infoClient.GetInfo()
 	if err != nil {
-		return nil, fmt.Errorf("exchange not configured: %w", err)
+		return fmt.Errorf("info client not configured: %w", err)
 	}
-	return ex.Cancel(coin, orderID)
+	assetIndex := info.NameToAsset(coin)
+	return t.client.CancelOrder(assetIndex, orderID)
 }
 
 func (t *spotTradingService) PlaceBulkOrders(orders []hyperliquid.CreateOrderRequest) (*hyperliquid.APIResponse[hyperliquid.OrderResponse], error) {

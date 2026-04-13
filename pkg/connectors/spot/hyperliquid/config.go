@@ -2,6 +2,7 @@ package hyperliquid
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
@@ -37,6 +38,13 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("account_address is required")
 	}
 
+	// Ensure addresses are 0x-prefixed — the Hyperliquid info API returns
+	// empty results for un-prefixed addresses.
+	c.AccountAddress = normaliseAddress(c.AccountAddress)
+	if c.VaultAddress != "" {
+		c.VaultAddress = normaliseAddress(c.VaultAddress)
+	}
+
 	if c.UseTestnet {
 		if c.BaseURL == "" {
 			c.BaseURL = "https://api.hyperliquid-testnet.xyz"
@@ -62,4 +70,12 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// normaliseAddress ensures an Ethereum address has the 0x prefix.
+func normaliseAddress(addr string) string {
+	if !strings.HasPrefix(addr, "0x") && !strings.HasPrefix(addr, "0X") {
+		return "0x" + addr
+	}
+	return addr
 }

@@ -107,8 +107,7 @@ func (h *hyperliquidSpot) CancelOrder(orderID string, pair ...portfolio.Pair) (*
 		return nil, fmt.Errorf("invalid order ID: %w", err)
 	}
 
-	_, err = h.trading.CancelOrderByID(coin, oid)
-	if err != nil {
+	if err := h.trading.CancelOrderByID(coin, oid); err != nil {
 		return nil, fmt.Errorf("failed to cancel order: %w", err)
 	}
 
