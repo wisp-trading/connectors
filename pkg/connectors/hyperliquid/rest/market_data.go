@@ -1,7 +1,9 @@
 package rest
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/sonirico/go-hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
@@ -14,8 +16,8 @@ type MarketDataService interface {
 	GetCandles(coin, interval string, startTime, endTime int64) ([]hyperliquid.Candle, error)
 	GetMeta() (*hyperliquid.Meta, error)
 	GetSpotMeta() (*hyperliquid.SpotMeta, error)
-	GetMetaAndAssetCtxs() (map[string]any, error)
-	GetSpotMetaAndAssetCtxs() (map[string]any, error)
+	GetMetaAndAssetCtxs() (*hyperliquid.MetaAndAssetCtxs, error)
+	GetSpotMetaAndAssetCtxs() (*hyperliquid.SpotMetaAndAssetCtxs, error)
 	NameToAsset(name string) int
 
 	// User data methods
@@ -40,12 +42,18 @@ func NewMarketDataService(client adaptors.InfoClient) MarketDataService {
 	return &marketDataService{client: client}
 }
 
+func (m *marketDataService) ctx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), 30*time.Second)
+}
+
 func (m *marketDataService) GetAllMids() (map[string]string, error) {
 	info, err := m.client.GetInfo()
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.AllMids()
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.AllMids(ctx)
 }
 
 func (m *marketDataService) GetL2Book(coin string) (*hyperliquid.L2Book, error) {
@@ -53,7 +61,9 @@ func (m *marketDataService) GetL2Book(coin string) (*hyperliquid.L2Book, error) 
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.L2Snapshot(coin)
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.L2Snapshot(ctx, coin)
 }
 
 func (m *marketDataService) GetCandles(coin, interval string, startTime, endTime int64) ([]hyperliquid.Candle, error) {
@@ -61,7 +71,9 @@ func (m *marketDataService) GetCandles(coin, interval string, startTime, endTime
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.CandlesSnapshot(coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.CandlesSnapshot(ctx, coin, interval, startTime*millisecondsPerSecond, endTime*millisecondsPerSecond)
 }
 
 func (m *marketDataService) GetMeta() (*hyperliquid.Meta, error) {
@@ -69,7 +81,9 @@ func (m *marketDataService) GetMeta() (*hyperliquid.Meta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.Meta()
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.Meta(ctx)
 }
 
 func (m *marketDataService) GetSpotMeta() (*hyperliquid.SpotMeta, error) {
@@ -77,29 +91,40 @@ func (m *marketDataService) GetSpotMeta() (*hyperliquid.SpotMeta, error) {
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.SpotMeta()
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.SpotMeta(ctx)
 }
 
-func (m *marketDataService) GetMetaAndAssetCtxs() (map[string]any, error) {
+func (m *marketDataService) GetMetaAndAssetCtxs() (*hyperliquid.MetaAndAssetCtxs, error) {
 	info, err := m.client.GetInfo()
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.MetaAndAssetCtxs()
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.MetaAndAssetCtxs(ctx, hyperliquid.MetaAndAssetCtxsParams{})
 }
 
-func (m *marketDataService) GetSpotMetaAndAssetCtxs() (map[string]any, error) {
+func (m *marketDataService) GetSpotMetaAndAssetCtxs() (*hyperliquid.SpotMetaAndAssetCtxs, error) {
 	info, err := m.client.GetInfo()
 	if err != nil {
 		return nil, fmt.Errorf("info client not configured: %w", err)
 	}
-	return info.SpotMetaAndAssetCtxs()
+	ctx, cancel := m.ctx()
+	defer cancel()
+	return info.SpotMetaAndAssetCtxs(ctx)
 }
 
 func (m *marketDataService) NameToAsset(name string) int {
 	info, err := m.client.GetInfo()
 	if err != nil {
-		return -1 // Return -1 on error since this returns int
+		return -1
 	}
-	return info.NameToAsset(name)
+	// CoinToAsset replaced NameToAsset in go-hyperliquid v0.35
+	id, ok := info.CoinToAsset(name)
+	if !ok {
+		return -1
+	}
+	return id
 }

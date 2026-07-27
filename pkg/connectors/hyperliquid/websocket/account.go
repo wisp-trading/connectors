@@ -2,8 +2,6 @@ package websocket
 
 import (
 	"fmt"
-
-	"github.com/sonirico/go-hyperliquid"
 )
 
 // SubscribeToPositions subscribes to position updates
@@ -15,7 +13,7 @@ func (ws *WebSocketService) SubscribeToPositions(user string, callback func(*Pos
 	// For user-specific subscriptions on Hyperliquid, subscribe to webData2 channel
 	subID := generateSubscriptionID()
 
-	rawSubID, err := ws.subscribeToChannel("webData2", user, "", func(msg hyperliquid.WSMessage) {
+	rawSubID, err := ws.subscribeToChannel("webData2", user, "", func(msg WSMessage) {
 		parsed, err := ws.parser.ParsePosition(msg)
 		if err != nil {
 			ws.logger.Warn("Failed to parse position: %v", err)
@@ -47,7 +45,7 @@ func (ws *WebSocketService) SubscribeToAccountBalance(user string, callback func
 	// For user-specific subscriptions on Hyperliquid, subscribe to webData2 channel
 	subID := generateSubscriptionID()
 
-	rawSubID, err := ws.subscribeToChannel("webData2", user, "", func(msg hyperliquid.WSMessage) {
+	rawSubID, err := ws.subscribeToChannel("webData2", user, "", func(msg WSMessage) {
 		parsed, err := ws.parser.ParseAccountBalance(msg)
 		if err != nil {
 			ws.logger.Warn("Failed to parse account balance: %v", err)

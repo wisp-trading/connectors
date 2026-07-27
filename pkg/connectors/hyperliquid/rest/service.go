@@ -1,7 +1,9 @@
 package rest
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	hyperliquid "github.com/sonirico/go-hyperliquid"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid/adaptors"
@@ -63,7 +65,10 @@ func (t *tradingService) Initialize() error {
 		return fmt.Errorf("failed to get info client: %w", err)
 	}
 
-	meta, err := info.Meta()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	meta, err := info.Meta(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get meta: %w", err)
 	}
@@ -91,7 +96,9 @@ func (t *tradingService) ModifyOrder(orderID int64, coin string, size, price flo
 			},
 		},
 	}
-	return ex.ModifyOrder(req)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return ex.ModifyOrder(ctx, req)
 }
 
 func (t *tradingService) PlaceBulkOrders(orders []hyperliquid.CreateOrderRequest) (*hyperliquid.APIResponse[hyperliquid.OrderResponse], error) {
@@ -99,5 +106,7 @@ func (t *tradingService) PlaceBulkOrders(orders []hyperliquid.CreateOrderRequest
 	if err != nil {
 		return nil, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.BulkOrders(orders, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return ex.BulkOrders(ctx, orders, nil)
 }

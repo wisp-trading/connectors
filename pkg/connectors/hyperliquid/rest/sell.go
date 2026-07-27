@@ -1,7 +1,9 @@
 package rest
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/sonirico/go-hyperliquid"
 )
@@ -15,7 +17,9 @@ func (t *tradingService) PlaceSellMarketOrder(coin string, size, slippage float6
 	if err != nil {
 		return hyperliquid.OrderStatus{}, fmt.Errorf("exchange not configured: %w", err)
 	}
-	return ex.MarketOpen(coin, false, size, nil, slippage, nil, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return ex.MarketOpen(ctx, coin, false, size, nil, slippage, nil, nil)
 }
 
 func (t *tradingService) PlaceSellStopLoss(coin string, size, triggerPrice float64) (hyperliquid.OrderStatus, error) {

@@ -1,8 +1,10 @@
 package adaptors
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/sonirico/go-hyperliquid"
@@ -50,7 +52,8 @@ func NewInfoClient() InfoClient {
 	}
 }
 
-// Configure sets up the exchange client with runtime config
+// Configure sets up the exchange client with runtime config.
+// Aligned to go-hyperliquid v0.35+ (context-aware NewInfo / NewExchange).
 func (e *exchangeClient) Configure(baseURL, privateKey, vaultAddr, accountAddr string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -64,27 +67,31 @@ func (e *exchangeClient) Configure(baseURL, privateKey, vaultAddr, accountAddr s
 		return fmt.Errorf("invalid private key: %w", err)
 	}
 
-	// Fetch Meta and SpotMeta before creating Exchange
-	// This is required for the Exchange to map coin symbols to asset indices
-	info := hyperliquid.NewInfo(baseURL, true, nil, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	meta, err := info.Meta()
+	// NewInfo with nil meta/spotMeta loads them (requires live network).
+	info := hyperliquid.NewInfo(ctx, baseURL, true, nil, nil, nil)
+
+	meta, err := info.Meta(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch meta: %w", err)
 	}
 
-	spotMeta, err := info.SpotMeta()
+	spotMeta, err := info.SpotMeta(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fetch spot meta: %w", err)
 	}
 
 	e.exchange = hyperliquid.NewExchange(
+		ctx,
 		privateKeyECDSA,
 		baseURL,
 		meta,
 		vaultAddr,
 		accountAddr,
 		spotMeta,
+		nil, // default perp dexs
 	)
 	e.configured = true
 	return nil
@@ -106,7 +113,7 @@ func (e *exchangeClient) GetExchange() (*hyperliquid.Exchange, error) {
 	return e.exchange, nil
 }
 
-// Configure sets up the info client with runtime config
+// Configure sets up the info client with runtime config.
 func (i *infoClient) Configure(baseURL string) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -115,7 +122,10 @@ func (i *infoClient) Configure(baseURL string) error {
 		return fmt.Errorf("client already configured")
 	}
 
-	i.info = hyperliquid.NewInfo(baseURL, true, nil, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	i.info = hyperliquid.NewInfo(ctx, baseURL, true, nil, nil, nil)
 	i.configured = true
 	return nil
 }
