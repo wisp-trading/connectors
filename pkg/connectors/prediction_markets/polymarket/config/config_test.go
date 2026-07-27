@@ -33,11 +33,10 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should set default SignatureType to 2", func() {
+			It("should allow empty SignatureType (EOA default)", func() {
 				conf.SignatureType = 0
 				err := conf.Validate()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(conf.SignatureType).To(Equal(2))
 			})
 		})
 
@@ -51,11 +50,10 @@ var _ = Describe("Config", func() {
 		})
 
 		Context("when PolymarketAddress is missing", func() {
-			It("should return an error", func() {
+			It("should allow empty address (optional / auto-derived)", func() {
 				conf.PolymarketAddress = ""
 				err := conf.Validate()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("funder_address is required"))
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 
@@ -89,14 +87,14 @@ var _ = Describe("Config", func() {
 				conf.PolymarketAddress = "not-an-address"
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))
+				Expect(err.Error()).To(ContainSubstring("polymarket_address must be a valid Ethereum address"))
 			})
 
 			It("should return an error for wrong length", func() {
 				conf.PolymarketAddress = "0x123"
 				err := conf.Validate()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("funder_address must be a valid Ethereum address"))
+				Expect(err.Error()).To(ContainSubstring("polymarket_address must be a valid Ethereum address"))
 			})
 		})
 	})
