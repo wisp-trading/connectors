@@ -40,9 +40,9 @@ func NewConfig() connector.Config {
 // Config holds the configuration for Polymarket connector
 type Config struct {
 	// Authentication
-	PrivateKey        string        `json:"private_key"`        // Ethereum private key for signing orders
-	PolymarketAddress string        `json:"polymarket_address"` // Safe proxy wallet address (only used when signature_type != EOA)
-	SignatureType     SignatureType `json:"signature_type,omitempty"` // EOA (default), PROXY, or GNOSIS_SAFE
+	PrivateKey        string        `json:"private_key"`                   // Ethereum private key for signing orders
+	PolymarketAddress string        `json:"polymarket_address,omitempty"`  // Safe proxy; optional (auto-derived for Safe)
+	SignatureType     SignatureType `json:"signature_type,omitempty"`      // EOA (default), PROXY, or GNOSIS_SAFE
 
 	// On-chain — required for SplitPosition / MergePositions (NegRisk arb).
 	// The CTF client is initialised with this Polygon RPC backend; without it
