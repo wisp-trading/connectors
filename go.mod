@@ -1,6 +1,8 @@
 module github.com/wisp-trading/connectors
 
-go 1.24.2
+go 1.26
+
+toolchain go1.26.5
 
 require (
 	github.com/GoPolymarket/polymarket-go-sdk v1.1.0
