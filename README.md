@@ -6,14 +6,14 @@ Wisp is the only Go trading framework with native Polymarket (prediction markets
 
 ## Supported Exchanges
 
-| Exchange | Market Type | Status |
-|----------|-------------|--------|
-| Gate.io | Spot | Production |
-| Hyperliquid | Perpetual Futures | Production |
-| Paradex | Perpetual Futures | Production |
-| Bybit | Perpetual Futures | Production |
-| Deribit | Options | Production |
-| Polymarket | Prediction Markets | Alpha |
+| Exchange | Market Type | Status | Notes |
+|----------|-------------|--------|--------|
+| Hyperliquid | Perpetual Futures | **Production** | Primary live venue |
+| Polymarket | Prediction Markets | Alpha | First-class domain; sharp edges remain |
+| Bybit | Perpetual Futures | Beta | In-tree; less battle time than HL |
+| Paradex | Perpetual Futures | Beta | Known gaps (e.g. klines) |
+| Gate.io | Spot | Beta | In-tree |
+| Deribit | Options | Experimental | Not production-ready |
 
 ## Installation
 
