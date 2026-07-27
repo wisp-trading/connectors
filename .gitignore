@@ -55,3 +55,6 @@ config/*/local.yaml
 config/**/*local*.yaml
 config/**/*.secret.yaml
 orderbooks
+
+# Foreign project junk — never commit
+DEPI*
