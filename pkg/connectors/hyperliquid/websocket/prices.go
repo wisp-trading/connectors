@@ -2,8 +2,6 @@ package websocket
 
 import (
 	"fmt"
-
-	"github.com/sonirico/go-hyperliquid"
 )
 
 // SubscribeToOrderBook subscribes to orderbook updates for a coin
@@ -20,7 +18,7 @@ func (ws *WebSocketService) SubscribeToOrderBook(coin string, callback func(*Ord
 	ws.orderBookMu.Unlock()
 
 	// Subscribe to raw message with parsing wrapper
-	rawSubID, err := ws.subscribeToChannel("l2Book", coin, "", func(msg hyperliquid.WSMessage) {
+	rawSubID, err := ws.subscribeToChannel("l2Book", coin, "", func(msg WSMessage) {
 		parsed, err := ws.parseOrderBook(msg)
 		if err != nil {
 			select {
@@ -86,7 +84,7 @@ func (ws *WebSocketService) SubscribeToKlines(coin, interval string, callback fu
 	ws.klinesCallbacks[subID] = callback
 	ws.klinesMu.Unlock()
 
-	rawSubID, err := ws.subscribeToChannel("candle", coin, interval, func(msg hyperliquid.WSMessage) {
+	rawSubID, err := ws.subscribeToChannel("candle", coin, interval, func(msg WSMessage) {
 		parsed, err := ws.parseKline(msg)
 		if err != nil {
 			select {
@@ -150,7 +148,7 @@ func (ws *WebSocketService) SubscribeToFundingRates(coin string, callback func(*
 	ws.fundingRatesCallbacks[subID] = callback
 	ws.fundingRatesMu.Unlock()
 
-	rawSubID, err := ws.subscribeToChannel("activeAssetCtx", coin, "", func(msg hyperliquid.WSMessage) {
+	rawSubID, err := ws.subscribeToChannel("activeAssetCtx", coin, "", func(msg WSMessage) {
 		parsed, err := ws.parser.ParseFundingRate(msg)
 		if err != nil {
 			select {

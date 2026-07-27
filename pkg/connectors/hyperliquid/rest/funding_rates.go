@@ -2,10 +2,12 @@ package rest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/sonirico/go-hyperliquid"
 )
@@ -150,5 +152,7 @@ func (m *marketDataService) GetHistoricalFundingRates(coin string, startTime, en
 	startTimeMs := startTime * millisecondsPerSecond
 	endTimeMs := endTime * millisecondsPerSecond
 
-	return info.FundingHistory(coin, startTimeMs, &endTimeMs)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return info.FundingHistory(ctx, coin, startTimeMs, &endTimeMs)
 }

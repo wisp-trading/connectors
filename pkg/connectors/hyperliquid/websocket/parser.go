@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	hyperliquidsdk "github.com/sonirico/go-hyperliquid"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
 	"github.com/wisp-trading/sdk/pkg/types/temporal"
 	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
@@ -14,12 +13,12 @@ import (
 
 // MessageParser defines the interface for parsing WebSocket messages
 type MessageParser interface {
-	ParseOrderBook(msg hyperliquidsdk.WSMessage) (*OrderBookMessage, error)
-	ParseTrades(msg hyperliquidsdk.WSMessage) ([]TradeMessage, error)
-	ParsePosition(msg hyperliquidsdk.WSMessage) (*PositionMessage, error)
-	ParseAccountBalance(msg hyperliquidsdk.WSMessage) (*AccountBalanceMessage, error)
-	ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error)
-	ParseFundingRate(msg hyperliquidsdk.WSMessage) (*FundingRateMessage, error)
+	ParseOrderBook(msg WSMessage) (*OrderBookMessage, error)
+	ParseTrades(msg WSMessage) ([]TradeMessage, error)
+	ParsePosition(msg WSMessage) (*PositionMessage, error)
+	ParseAccountBalance(msg WSMessage) (*AccountBalanceMessage, error)
+	ParseKline(msg WSMessage) (*KlineMessage, error)
+	ParseFundingRate(msg WSMessage) (*FundingRateMessage, error)
 }
 
 // Parser handles parsing of WebSocket messages into typed structs
@@ -37,7 +36,7 @@ func NewParser(logger logging.ApplicationLogger, timeProvider temporal.TimeProvi
 }
 
 // ParseOrderBook parses a raw WebSocket message into an OrderBookMessage
-func (p *Parser) ParseOrderBook(msg hyperliquidsdk.WSMessage) (*OrderBookMessage, error) {
+func (p *Parser) ParseOrderBook(msg WSMessage) (*OrderBookMessage, error) {
 	if msg.Channel != "l2Book" {
 		return nil, fmt.Errorf("expected l2Book channel, got %s", msg.Channel)
 	}
@@ -131,7 +130,7 @@ func (p *Parser) ParseOrderBook(msg hyperliquidsdk.WSMessage) (*OrderBookMessage
 }
 
 // ParseTrades parses a raw WebSocket message into TradeMessages
-func (p *Parser) ParseTrades(msg hyperliquidsdk.WSMessage) ([]TradeMessage, error) {
+func (p *Parser) ParseTrades(msg WSMessage) ([]TradeMessage, error) {
 	if msg.Channel != "trades" {
 		return nil, fmt.Errorf("expected trades channel, got %s", msg.Channel)
 	}
@@ -195,7 +194,7 @@ func (p *Parser) ParseTrades(msg hyperliquidsdk.WSMessage) ([]TradeMessage, erro
 }
 
 // ParsePosition parses a raw WebSocket message into a PositionMessage
-func (p *Parser) ParsePosition(msg hyperliquidsdk.WSMessage) (*PositionMessage, error) {
+func (p *Parser) ParsePosition(msg WSMessage) (*PositionMessage, error) {
 	if msg.Channel != "webData2" {
 		return nil, fmt.Errorf("expected webData2 channel, got %s", msg.Channel)
 	}
@@ -254,7 +253,7 @@ func (p *Parser) ParsePosition(msg hyperliquidsdk.WSMessage) (*PositionMessage, 
 }
 
 // ParseAccountBalance parses a raw WebSocket message into an AccountBalanceMessage
-func (p *Parser) ParseAccountBalance(msg hyperliquidsdk.WSMessage) (*AccountBalanceMessage, error) {
+func (p *Parser) ParseAccountBalance(msg WSMessage) (*AccountBalanceMessage, error) {
 	if msg.Channel != "webData2" {
 		return nil, fmt.Errorf("expected webData2 channel, got %s", msg.Channel)
 	}
@@ -293,7 +292,7 @@ func (p *Parser) ParseAccountBalance(msg hyperliquidsdk.WSMessage) (*AccountBala
 }
 
 // ParseKline parses a raw WebSocket message into a KlineMessage
-func (p *Parser) ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error) {
+func (p *Parser) ParseKline(msg WSMessage) (*KlineMessage, error) {
 	if msg.Channel != "candle" {
 		return nil, fmt.Errorf("expected candle channel, got %s", msg.Channel)
 	}
@@ -336,7 +335,7 @@ func (p *Parser) ParseKline(msg hyperliquidsdk.WSMessage) (*KlineMessage, error)
 // ParseFundingRate parses a raw WebSocket message into a FundingRateMessage
 // Hyperliquid activeAssetCtx message format:
 // {"channel":"activeAssetCtx","data":{"coin":"ETH","ctx":{"funding":"0.00001234","markPx":"3300.5",...}}}
-func (p *Parser) ParseFundingRate(msg hyperliquidsdk.WSMessage) (*FundingRateMessage, error) {
+func (p *Parser) ParseFundingRate(msg WSMessage) (*FundingRateMessage, error) {
 	if msg.Channel != "activeAssetCtx" {
 		return nil, fmt.Errorf("expected activeAssetCtx channel, got %s", msg.Channel)
 	}

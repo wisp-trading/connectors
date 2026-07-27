@@ -2,8 +2,6 @@ package websocket
 
 import (
 	"fmt"
-
-	"github.com/sonirico/go-hyperliquid"
 )
 
 // SubscribeToTrades subscribes to trade updates for a coin
@@ -18,7 +16,7 @@ func (ws *WebSocketService) SubscribeToTrades(coin string, callback func([]Trade
 	ws.tradesCallbacks[subID] = callback
 	ws.tradesMu.Unlock()
 
-	rawSubID, err := ws.subscribeToChannel("trades", coin, "", func(msg hyperliquid.WSMessage) {
+	rawSubID, err := ws.subscribeToChannel("trades", coin, "", func(msg WSMessage) {
 		parsed, err := ws.parseTrades(msg)
 		if err != nil {
 			ws.logger.Warn("Failed to parse trades: %v", err)
