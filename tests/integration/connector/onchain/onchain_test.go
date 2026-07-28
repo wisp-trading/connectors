@@ -40,70 +40,31 @@ var _ = Describe("Onchain UniV3 Connector E2E", func() {
 		connector_test.LogSuccess("wisp.Onchain() accessible")
 	})
 
-	It("should register tokens and dry-run a market swap into the onchain store via executor", func() {
+	It("should register and resolve tokens on the connector", func() {
 		conn := runner.GetOnchainConnector()
-		baseSym := connector_test.GetOnchainBaseSymbol()
 		baseAddr := connector_test.GetOnchainBaseToken()
 		if baseAddr == "" {
-			// Without a base token we still prove dry_run path using WETH/WETH is invalid;
-			// require base for meaningful e2e.
-			Skip("set UNISWAP_V3_BASE_TOKEN (and optional UNISWAP_V3_BASE_SYMBOL) for swap e2e")
+			Skip("set UNISWAP_V3_BASE_TOKEN")
 		}
-
-		// Register WETH (from config) + base token
-		weth := ""
-		// Resolve via config: connector seeds WETH on Initialize when cfg.WETH set
-		if addr, _, ok := conn.ResolveToken("WETH"); ok {
-			weth = addr
+		sym := connector_test.GetOnchainBaseSymbol()
+		Expect(conn.RegisterToken(sym, baseAddr, 18)).To(Succeed())
+		addr, dec, ok := conn.ResolveToken(sym)
+		Expect(ok).To(BeTrue())
+		Expect(addr).ToNot(BeEmpty())
+		Expect(dec).To(Equal(uint8(18)))
+		// WETH seeded from config when present
+		if _, _, wok := conn.ResolveToken("WETH"); wok {
+			connector_test.LogSuccess("WETH resolved from config")
 		}
-		if weth == "" {
-			Skip("UNISWAP_V3_WETH required so connector can register WETH")
-		}
+		connector_test.LogSuccess("token registry %s → %s", sym, addr)
+	})
 
-		Expect(conn.RegisterToken(baseSym, baseAddr, 18)).To(Succeed())
-		pair := portfolio.NewPair(portfolio.NewAsset(baseSym), portfolio.NewAsset("WETH"))
+	It("should dry-run BUY into onchain store via executor and surface via SDK", func() {
+		assertSwapToStore(runner, connector.OrderSideBuy)
+	})
 
-		// Optional quote (needs quoter + live pool); failure soft-skips quote assertion only
-		qty, err := numerical.NewFromString("0.001")
-		Expect(err).ToNot(HaveOccurred())
-		if q, qerr := conn.QuoteMarket(pair, connector.OrderSideBuy, qty); qerr == nil {
-			Expect(q.AmountIn.IsPositive() || !q.AmountIn.IsNegative()).To(BeTrue())
-			connector_test.LogSuccess("QuoteMarket fee=%d amountOut=%s", q.FeeTier, q.AmountOut.String())
-		} else {
-			connector_test.LogWarning("QuoteMarket skipped/failed (ok for dry_run without pool): %v", qerr)
-		}
-
-		// Strategy-facing signal → domain executor → connector PlaceMarketOrder (dry_run) → store
-		sig, err := runner.GetWisp().Onchain().Signal(runner.StrategyName()).
-			Buy(pair, runner.ExchangeName(), qty).
-			Build()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(sig).ToNot(BeNil())
-
-		result := &execution.ExecutionResult{OrderIDs: make([]string, 0)}
-		execErr := runner.GetOnchainExecutor().ExecuteOnchainSignal(sig, &execution.ExecutionContext{}, result)
-		Expect(execErr).ToNot(HaveOccurred(), "dry_run swap must succeed via onchain executor")
-		Expect(result.OrderIDs).ToNot(BeEmpty(), "executor must record order id from connector response")
-		connector_test.LogSuccess("ExecuteOnchainSignal order_ids=%v", result.OrderIDs)
-
-		// Store must hold the placed order (PlaceOrderAndRecord)
-		orders := runner.GetOnchainStore().GetOrders()
-		Expect(orders).ToNot(BeEmpty(), "onchain MarketStore must contain order after executor path")
-		found := false
-		for _, o := range orders {
-			if o.ID == result.OrderIDs[0] {
-				found = true
-				Expect(o.Pair.Symbol()).To(Equal(pair.Symbol()))
-				Expect(o.Side).To(Equal(connector.OrderSideBuy))
-				break
-			}
-		}
-		Expect(found).To(BeTrue(), "store must contain the exact order id returned by the connector")
-
-		// Facade Positions surface reads the same order book
-		positions := runner.GetWisp().Onchain().Positions()
-		Expect(positions).ToNot(BeEmpty(), "wisp.Onchain().Positions() must surface store orders")
-		connector_test.LogSuccess("✓ connector → executor → store → wisp.Onchain() verified (dry_run)")
+	It("should dry-run SELL into onchain store via executor and surface via SDK", func() {
+		assertSwapToStore(runner, connector.OrderSideSell)
 	})
 
 	It("should reject limit orders on the UniV3 pilot path", func() {
@@ -122,4 +83,79 @@ var _ = Describe("Onchain UniV3 Connector E2E", func() {
 		Expect(err).To(HaveOccurred())
 		connector_test.LogSuccess("limit order correctly rejected: %v", err)
 	})
+
+	It("should build signals via wisp.Onchain().Signal without executing", func() {
+		baseAddr := connector_test.GetOnchainBaseToken()
+		if baseAddr == "" {
+			Skip("set UNISWAP_V3_BASE_TOKEN")
+		}
+		baseSym := connector_test.GetOnchainBaseSymbol()
+		_ = runner.GetOnchainConnector().RegisterToken(baseSym, baseAddr, 18)
+		pair := portfolio.NewPair(portfolio.NewAsset(baseSym), portfolio.NewAsset("WETH"))
+		qty := numerical.NewFromFloat(0.001)
+
+		sig, err := runner.GetWisp().Onchain().Signal(runner.StrategyName()).
+			Buy(pair, runner.ExchangeName(), qty).
+			Build()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sig.GetActions()).To(HaveLen(1))
+		Expect(sig.GetActions()[0].Pair.Symbol()).To(Equal(pair.Symbol()))
+		connector_test.LogSuccess("signal built strategy=%s actions=1", runner.StrategyName())
+	})
 })
+
+func assertSwapToStore(runner *connector_test.OnchainTestRunner, side connector.OrderSide) {
+	conn := runner.GetOnchainConnector()
+	baseSym := connector_test.GetOnchainBaseSymbol()
+	baseAddr := connector_test.GetOnchainBaseToken()
+	if baseAddr == "" {
+		Skip("set UNISWAP_V3_BASE_TOKEN (and optional UNISWAP_V3_BASE_SYMBOL) for swap e2e")
+	}
+	if _, _, ok := conn.ResolveToken("WETH"); !ok {
+		Skip("UNISWAP_V3_WETH required so connector can register WETH")
+	}
+	Expect(conn.RegisterToken(baseSym, baseAddr, 18)).To(Succeed())
+	pair := portfolio.NewPair(portfolio.NewAsset(baseSym), portfolio.NewAsset("WETH"))
+
+	qty, err := numerical.NewFromString("0.001")
+	Expect(err).ToNot(HaveOccurred())
+
+	if q, qerr := conn.QuoteMarket(pair, side, qty); qerr == nil {
+		connector_test.LogSuccess("QuoteMarket side=%s fee=%d out=%s", side, q.FeeTier, q.AmountOut.String())
+	} else {
+		connector_test.LogWarning("QuoteMarket soft-fail (dry_run still ok): %v", qerr)
+	}
+
+	builder := runner.GetWisp().Onchain().Signal(runner.StrategyName())
+	if side == connector.OrderSideSell {
+		builder = builder.Sell(pair, runner.ExchangeName(), qty)
+	} else {
+		builder = builder.Buy(pair, runner.ExchangeName(), qty)
+	}
+	sig, err := builder.Build()
+	Expect(err).ToNot(HaveOccurred())
+
+	before := len(runner.GetOnchainStore().GetOrders())
+	result := &execution.ExecutionResult{OrderIDs: make([]string, 0)}
+	execErr := runner.GetOnchainExecutor().ExecuteOnchainSignal(sig, &execution.ExecutionContext{}, result)
+	Expect(execErr).ToNot(HaveOccurred(), "dry_run swap must succeed via onchain executor")
+	Expect(result.OrderIDs).ToNot(BeEmpty())
+
+	orders := runner.GetOnchainStore().GetOrders()
+	Expect(len(orders)).To(BeNumerically(">", before), "store must gain an order after executor")
+
+	found := false
+	for _, o := range orders {
+		if o.ID == result.OrderIDs[0] {
+			found = true
+			Expect(o.Pair.Symbol()).To(Equal(pair.Symbol()))
+			Expect(o.Side).To(Equal(side))
+			break
+		}
+	}
+	Expect(found).To(BeTrue(), "store must contain exact order id from connector")
+
+	positions := runner.GetWisp().Onchain().Positions()
+	Expect(positions).ToNot(BeEmpty(), "wisp.Onchain().Positions() must surface store orders")
+	connector_test.LogSuccess("✓ side=%s connector → executor → store → wisp.Onchain()", side)
+}

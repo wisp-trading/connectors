@@ -3,11 +3,13 @@ package connector
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"go.uber.org/fx"
 
 	"github.com/wisp-trading/connectors/pkg/connectors"
+	realtimeTypes "github.com/wisp-trading/sdk/pkg/markets/base/types/ingestors/realtime"
 	perpTypes "github.com/wisp-trading/sdk/pkg/markets/perp/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
@@ -21,13 +23,17 @@ import (
 // PerpTestRunner manages the lifecycle of perpetual connector tests with full SDK wiring.
 type PerpTestRunner struct {
 	*BaseRunnerImpl
-	conn                 perp.Connector
-	wsConn               perp.WebSocketConnector
-	exchangeName         connector.ExchangeName
-	wisp                 wispTypes.Wisp
-	store                perpTypes.MarketStore
-	watchlist            perpTypes.PerpWatchlist
-	batchIngestorFactory perpTypes.PerpBatchIngestorFactory
+	conn                    perp.Connector
+	wsConn                  perp.WebSocketConnector
+	exchangeName            connector.ExchangeName
+	wisp                    wispTypes.Wisp
+	store                   perpTypes.MarketStore
+	watchlist               perpTypes.PerpWatchlist
+	batchIngestorFactory    perpTypes.PerpBatchIngestorFactory
+	realtimeIngestorFactory perpTypes.PerpRealtimeIngestorFactory
+
+	rtMu        sync.Mutex
+	rtIngestors []realtimeTypes.RealtimeIngestor
 }
 
 // NewPerpTestRunner creates a new test runner for perp connectors.
@@ -37,11 +43,12 @@ func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Co
 	var store perpTypes.MarketStore
 	var watchlist perpTypes.PerpWatchlist
 	var batchFactory perpTypes.PerpBatchIngestorFactory
+	var realtimeFactory perpTypes.PerpRealtimeIngestorFactory
 
 	app := fx.New(
 		wisp.Module,
 		connectors.Module,
-		fx.Populate(&reg, &wispInstance, &store, &watchlist, &batchFactory),
+		fx.Populate(&reg, &wispInstance, &store, &watchlist, &batchFactory, &realtimeFactory),
 		fx.NopLogger,
 	)
 
@@ -78,14 +85,20 @@ func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Co
 			cancel: cancel,
 			reg:    reg,
 		},
-		conn:                 conn,
-		wsConn:               wsConn,
-		exchangeName:         connectorName,
-		wisp:                 wispInstance,
-		store:                store,
-		watchlist:            watchlist,
-		batchIngestorFactory: batchFactory,
+		conn:                    conn,
+		wsConn:                  wsConn,
+		exchangeName:            connectorName,
+		wisp:                    wispInstance,
+		store:                   store,
+		watchlist:               watchlist,
+		batchIngestorFactory:    batchFactory,
+		realtimeIngestorFactory: realtimeFactory,
 	}, nil
+}
+
+func (tr *PerpTestRunner) Cleanup() {
+	_ = tr.StopRealtime()
+	tr.BaseRunnerImpl.Cleanup()
 }
 
 func (tr *PerpTestRunner) GetPerpConnector() perp.Connector { return tr.conn }
@@ -117,6 +130,42 @@ func (tr *PerpTestRunner) CollectNow() {
 	for _, ingestor := range tr.batchIngestorFactory.CreateIngestors() {
 		ingestor.CollectNow()
 	}
+}
+
+func (tr *PerpTestRunner) StartRealtime(ctx context.Context) error {
+	tr.rtMu.Lock()
+	defer tr.rtMu.Unlock()
+	if len(tr.rtIngestors) > 0 {
+		return nil
+	}
+	ingestors := tr.realtimeIngestorFactory.CreateIngestors()
+	if len(ingestors) == 0 {
+		return fmt.Errorf("no perp realtime ingestors (need MarkReady + WebSocket connector)")
+	}
+	for _, ing := range ingestors {
+		if err := ing.Start(ctx); err != nil {
+			for _, started := range tr.rtIngestors {
+				_ = started.Stop()
+			}
+			tr.rtIngestors = nil
+			return err
+		}
+		tr.rtIngestors = append(tr.rtIngestors, ing)
+	}
+	return nil
+}
+
+func (tr *PerpTestRunner) StopRealtime() error {
+	tr.rtMu.Lock()
+	defer tr.rtMu.Unlock()
+	var first error
+	for _, ing := range tr.rtIngestors {
+		if err := ing.Stop(); err != nil && first == nil {
+			first = err
+		}
+	}
+	tr.rtIngestors = nil
+	return first
 }
 
 func (tr *PerpTestRunner) SDKPrice(pair portfolio.Pair) (numerical.Decimal, bool) {

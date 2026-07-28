@@ -46,6 +46,9 @@ func (b *BaseRunnerImpl) Cleanup() {
 	}
 }
 
+// CleanupWithRealtime stops realtime ingestors then base cleanup.
+// Pair runners override Cleanup to call this after StopRealtime.
+
 // GetContext returns the test context
 func (b *BaseRunnerImpl) GetContext() context.Context {
 	return b.ctx

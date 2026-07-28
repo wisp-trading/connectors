@@ -1,6 +1,7 @@
 package prediction_markets_test
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -8,6 +9,7 @@ import (
 	connector_test "github.com/wisp-trading/connectors/tests/integration/connector"
 	prediction "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
 var _ = Describe("Prediction Market Data Tests", func() {
@@ -45,6 +47,43 @@ var _ = Describe("Prediction Market Data Tests", func() {
 				Expect(market.Active).To(BeTrue())
 				Expect(market.Closed).To(BeFalse())
 				Expect(market.ResolutionTime.Unix()).To(Equal(int64(1798675200)))
+			})
+		})
+
+		Context("SDK market fetch", func() {
+			It("should serve markets via wisp.Predict() (connector → SDK)", func() {
+				// Strategy path: GetMarketBySlug uses connector under the hood / store cache
+				m, err := runner.GetPredict().GetMarketBySlug(
+					"will-jesus-christ-return-before-2027",
+					runner.ExchangeName(),
+				)
+				if err != nil {
+					Skip(fmt.Sprintf("market unavailable: %v", err))
+				}
+				Expect(m.MarketID).ToNot(BeEmpty())
+				Expect(m.Slug).To(Equal("will-jesus-christ-return-before-2027"))
+				connector_test.LogSuccess("SDK GetMarketBySlug ok id=%s", m.MarketID)
+			})
+		})
+
+		Context("Balance batch → store → SDK", func() {
+			It("should persist balances via batch ingestor and read via SDK", func() {
+				runner.CollectNow()
+				// USDC is the common polymarket collateral; skip soft if empty account
+				asset := portfolio.NewAsset("USDC")
+				stored, ok := runner.StoreBalance(asset)
+				if !ok {
+					// Try Collect again after a beat; some venues need auth
+					runner.CollectNow()
+					stored, ok = runner.StoreBalance(asset)
+				}
+				if !ok {
+					Skip("no USDC balance in store (account empty or balance extension skipped)")
+				}
+				sdkBal, found := runner.GetPredict().Balance(runner.ExchangeName(), asset)
+				Expect(found).To(BeTrue(), "wisp.Predict().Balance must read store")
+				Expect(sdkBal.Equal(stored)).To(BeTrue(), "SDK balance must match store")
+				connector_test.LogSuccess("Balance store→SDK: %s USDC", sdkBal.String())
 			})
 		})
 

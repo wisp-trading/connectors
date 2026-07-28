@@ -167,6 +167,68 @@ func AccountBehavior(getRunner func() BaseTestRunner) {
 	})
 }
 
+// WebSocketMarketDataStoreBehavior asserts WS updates land in MarketStore and SDK.
+//
+//	WatchPair → StartRealtime → (exchange push) → store → wisp.Spot()/Perp()
+func WebSocketMarketDataStoreBehavior(getRunner func() PairMarketTestRunner, getPair func() portfolio.Pair) {
+
+	Describe("WebSocket Market Data → Store → SDK", func() {
+
+		It("should stream order book into store and SDK facade", func() {
+			runner := getRunner()
+			if !runner.HasWebSocketSupport() {
+				Skip("Connector does not support WebSocket")
+			}
+			pair := getPair()
+
+			runner.WatchPair(pair)
+			Expect(runner.StartRealtime(runner.GetContext())).To(Succeed())
+			defer func() { _ = runner.StopRealtime() }()
+
+			Eventually(func() bool {
+				ob := runner.StoreOrderBook(pair)
+				return ob != nil && len(ob.Bids) > 0 && len(ob.Asks) > 0
+			}, "20s", "500ms").Should(BeTrue(),
+				"MarketStore must receive order book from realtime ingestor (WS → store)")
+
+			stored := runner.StoreOrderBook(pair)
+			LogSuccess("Store order book via WS: %d bids, %d asks", len(stored.Bids), len(stored.Asks))
+
+			Eventually(func() bool {
+				ob, found := runner.SDKOrderBook(pair)
+				return found && ob != nil && len(ob.Bids) > 0
+			}, "10s", "500ms").Should(BeTrue(), "SDK OrderBook() must read store-backed WS data")
+
+			sdkOB, found := runner.SDKOrderBook(pair)
+			Expect(found).To(BeTrue())
+			LogSuccess("SDK OrderBook via WS: %d bids, %d asks", len(sdkOB.Bids), len(sdkOB.Asks))
+		})
+
+		It("should stream klines into store and SDK facade", func() {
+			runner := getRunner()
+			if !runner.HasWebSocketSupport() {
+				Skip("Connector does not support WebSocket")
+			}
+			pair := getPair()
+
+			// Seed batch klines first so store has history; WS continues updates.
+			runner.WatchPair(pair)
+			runner.CollectNow()
+			Expect(runner.StartRealtime(runner.GetContext())).To(Succeed())
+			defer func() { _ = runner.StopRealtime() }()
+
+			Eventually(func() int {
+				return len(runner.StoreKlines(pair, "1m", 5))
+			}, "20s", "500ms").Should(BeNumerically(">", 0),
+				"MarketStore must contain klines (batch seed and/or WS updates)")
+
+			sdkK := runner.SDKKlines(pair, "1m", 5)
+			Expect(sdkK).ToNot(BeEmpty(), "SDK Klines() must read store data")
+			LogSuccess("SDK Klines via store: %d bars", len(sdkK))
+		})
+	})
+}
+
 // WebSocketLifecycleBehavior defines shared WebSocket lifecycle tests.
 func WebSocketLifecycleBehavior(getRunner func() BaseTestRunner) {
 
@@ -214,63 +276,10 @@ func WebSocketLifecycleBehavior(getRunner func() BaseTestRunner) {
 	})
 }
 
-// OptionsBehavior defines shared options market data test behaviors (placeholder readiness).
+// OptionsBehavior is a no-op. Real store transitions live in
+// options/options_test.go (WatchExpiration → CollectNow → store → wisp.Options).
+// Kept so existing call sites compile; do not reintroduce connector-only stubs.
 func OptionsBehavior(getRunner func() BaseTestRunner, getContract func() interface{}) {
-
-	Describe("Options Market Data (Shared)", func() {
-
-		Context("FetchMarkPrice", func() {
-			It("should fetch current mark price", func() {
-				runner := getRunner()
-				conn := runner.GetBaseConnector()
-				Expect(conn).NotTo(BeNil())
-				LogSuccess("Options connector ready for mark price fetch")
-			})
-		})
-
-		Context("FetchGreeks", func() {
-			It("should fetch Greeks (delta, gamma, theta, vega, rho)", func() {
-				runner := getRunner()
-				conn := runner.GetBaseConnector()
-				Expect(conn).NotTo(BeNil())
-				LogSuccess("Options connector ready for Greeks fetch")
-			})
-		})
-
-		Context("FetchImpliedVolatility", func() {
-			It("should fetch implied volatility", func() {
-				runner := getRunner()
-				conn := runner.GetBaseConnector()
-				Expect(conn).NotTo(BeNil())
-				LogSuccess("Options connector ready for IV fetch")
-			})
-		})
-
-		Context("FetchUnderlyingPrice", func() {
-			It("should fetch underlying asset price", func() {
-				runner := getRunner()
-				conn := runner.GetBaseConnector()
-				Expect(conn).NotTo(BeNil())
-				LogSuccess("Options connector ready for underlying price fetch")
-			})
-		})
-
-		Context("FetchExpirations", func() {
-			It("should list available expiration dates", func() {
-				runner := getRunner()
-				conn := runner.GetBaseConnector()
-				Expect(conn).NotTo(BeNil())
-				LogSuccess("Options connector ready for expiration fetch")
-			})
-		})
-
-		Context("FetchStrikes", func() {
-			It("should list available strikes for expiration", func() {
-				runner := getRunner()
-				conn := runner.GetBaseConnector()
-				Expect(conn).NotTo(BeNil())
-				LogSuccess("Options connector ready for strikes fetch")
-			})
-		})
-	})
+	_ = getRunner
+	_ = getContract
 }

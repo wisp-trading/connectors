@@ -26,10 +26,16 @@ var _ = Describe("Spot Connector Tests", func() {
 		}
 	})
 
-	// Include shared behaviors (store-aware path: connector → ingestor → store → SDK)
+	// Batch: connector → CollectNow → store → SDK
 	connector_test.MarketDataBehavior(
 		func() connector_test.PairMarketTestRunner { return runner },
-		func() portfolio.Pair { return connector_test.CreatePair("ETH") },
+		func() portfolio.Pair { return connector_test.CreatePair(connector_test.GetSpotSymbol()) },
+	)
+
+	// Realtime: WatchPair → StartRealtime → WS → store → SDK
+	connector_test.WebSocketMarketDataStoreBehavior(
+		func() connector_test.PairMarketTestRunner { return runner },
+		func() portfolio.Pair { return connector_test.CreatePair(connector_test.GetSpotSymbol()) },
 	)
 
 	connector_test.AccountBehavior(
@@ -40,69 +46,20 @@ var _ = Describe("Spot Connector Tests", func() {
 		func() connector_test.BaseTestRunner { return runner },
 	)
 
-	// Spot-specific WebSocket subscriptions
-	Describe("Spot WebSocket Subscriptions", func() {
-		BeforeEach(func() {
+	// Account WS has no MarketStore path — connector channel only.
+	Describe("Spot WebSocket Account (connector-only)", func() {
+		It("should subscribe to balance updates", func() {
 			if !runner.HasWebSocketSupport() {
 				Skip("Connector does not support WebSocket")
 			}
 			wsConn := runner.GetWebSocketConnector()
-			err := wsConn.StartWebSocket()
-			Expect(err).ToNot(HaveOccurred())
+			Expect(wsConn.StartWebSocket()).To(Succeed())
 			Eventually(wsConn.IsWebSocketConnected, "10s").Should(BeTrue())
-		})
+			defer func() { _ = wsConn.StopWebSocket() }()
 
-		AfterEach(func() {
-			if runner.HasWebSocketSupport() {
-				wsConn := runner.GetWebSocketConnector()
-				if wsConn.IsWebSocketConnected() {
-					_ = wsConn.StopWebSocket()
-				}
-			}
-		})
-
-		Context("OrderBook Subscription", func() {
-			It("should subscribe and receive updates", func() {
-				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreatePair(connector_test.GetSpotSymbol())
-
-				err := wsConn.SubscribeOrderBook(asset)
-				Expect(err).ToNot(HaveOccurred())
-
-				channels := wsConn.GetOrderBookChannels()
-				Expect(channels).ToNot(BeEmpty())
-
-				connector_test.LogSuccess("OrderBook subscription active for %s", connector_test.GetSpotSymbol())
-			})
-		})
-
-		Context("Klines Subscription", func() {
-			It("should subscribe and receive updates", func() {
-				wsConn := runner.GetWebSocketConnector()
-				asset := connector_test.CreatePair(connector_test.GetSpotSymbol())
-
-				err := wsConn.SubscribeKlines(asset, "1m")
-				Expect(err).ToNot(HaveOccurred())
-
-				channels := wsConn.GetKlineChannels()
-				Expect(channels).ToNot(BeEmpty())
-
-				connector_test.LogSuccess("Klines subscription active for %s", connector_test.GetSpotSymbol())
-			})
-		})
-
-		Context("Account Balance Subscription", func() {
-			It("should subscribe to balance updates", func() {
-				wsConn := runner.GetWebSocketConnector()
-
-				err := wsConn.SubscribeAccountBalance()
-				Expect(err).ToNot(HaveOccurred())
-
-				balanceCh := wsConn.AssetBalanceUpdates()
-				Expect(balanceCh).ToNot(BeNil())
-
-				connector_test.LogSuccess("Balance subscription active")
-			})
+			Expect(wsConn.SubscribeAccountBalance()).To(Succeed())
+			Expect(wsConn.AssetBalanceUpdates()).ToNot(BeNil())
+			connector_test.LogSuccess("Balance subscription active (no pair MarketStore path)")
 		})
 	})
 })

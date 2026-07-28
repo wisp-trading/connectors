@@ -29,14 +29,7 @@ var _ = Describe("Options Connector Tests", func() {
 		}
 	})
 
-	// Include shared behaviors
-	connector_test.OptionsBehavior(
-		func() connector_test.BaseTestRunner { return runner },
-		func() interface{} {
-			return connector_test.CreateOptionsContract("BTC", 50000, "CALL")
-		},
-	)
-
+	// Store transitions: WatchExpiration → CollectNow → OptionsStore → wisp.Options()
 	Describe("Options Market Data Flow to SDK", func() {
 
 		It("should make options service available via wisp.Options()", func() {

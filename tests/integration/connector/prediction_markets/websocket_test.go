@@ -51,40 +51,39 @@ var _ = Describe("Prediction Market Connector Tests", func() {
 
 		Context("Subscribing to market events", func() {
 			Context("Subscribing to market events", func() {
-				It("should subscribe to order book updates and receive data", func() {
+				It("should stream order book into prediction store and SDK", func() {
 					conn := runner.GetWebSocketCapable()
-					err := conn.StartWebSocket()
-					defer func(conn prediction.WebSocketConnector) {
-						err := conn.StopWebSocket()
-						if err != nil {
-							connector_test.LogError("Failed to stop WebSocket connection: %v", err)
-							return
-						}
-					}(conn)
-					Expect(err).ToNot(HaveOccurred())
-
 					market, err := conn.GetRecurringMarket("btc-updown-15m", prediction.Recurrence15Min)
 					Expect(err).ToNot(HaveOccurred())
+					Expect(market.Outcomes).ToNot(BeEmpty())
 
-					err = conn.SubscribeOrderBook(market)
-					Expect(err).ToNot(HaveOccurred())
+					// Full path: watchlist → realtime ingestor → store → wisp.Predict()
+					runner.WatchMarket(market)
+					Expect(runner.StartRealtime(runner.GetContext())).To(Succeed())
+					defer func() { _ = runner.StopRealtime() }()
 
-					orderbookChannel := conn.GetOrderBookUpdates()
-					Expect(orderbookChannel).ToNot(BeNil(), "Market orderbookChannels should not be nil")
+					outcome := market.Outcomes[0]
+					Eventually(func() bool {
+						ob := runner.StoreOrderBook(market.MarketID, outcome.OutcomeID)
+						return ob != nil && (len(ob.Bids) > 0 || len(ob.Asks) > 0)
+					}, "20s", "500ms").Should(BeTrue(),
+						"prediction MarketStore must receive order book from realtime ingestor")
 
-					// Verify order book data
-					orderBook := runner.VerifyOrderBookData(orderbookChannel, 3*time.Second)
-					Expect(orderBook.Bids).ToNot(BeNil())
-					Expect(orderBook.Asks).ToNot(BeNil())
-
+					stored := runner.StoreOrderBook(market.MarketID, outcome.OutcomeID)
+					Expect(stored).ToNot(BeNil())
 					connector_test.LogSuccess(
-						"Received order book data for market %s with %d bids and %d asks",
-						market.MarketID,
-						len(orderBook.Bids),
-						len(orderBook.Asks),
+						"Store order book market=%s outcome=%s bids=%d asks=%d",
+						market.MarketID, outcome.OutcomeID, len(stored.Bids), len(stored.Asks),
 					)
 
-					time.Sleep(2 * time.Second) // Allow additional messages
+					sdkOB, err := runner.GetPredict().Orderbook(
+						runner.ExchangeName(), market, outcome,
+					)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(sdkOB).ToNot(BeNil())
+					Expect(len(sdkOB.Bids)+len(sdkOB.Asks)).To(BeNumerically(">", 0),
+						"wisp.Predict().Orderbook must read store-backed data")
+					connector_test.LogSuccess("SDK Orderbook via store verified")
 				})
 
 				It("should subscribe to price changes and receive data", func() {
