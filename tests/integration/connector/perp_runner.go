@@ -8,28 +8,40 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/wisp-trading/connectors/pkg/connectors"
+	perpTypes "github.com/wisp-trading/sdk/pkg/markets/perp/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/perp"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
+	wispTypes "github.com/wisp-trading/sdk/pkg/types/wisp"
 	"github.com/wisp-trading/sdk/wisp"
 )
 
-// PerpTestRunner manages the lifecycle of perpetual connector tests
+// PerpTestRunner manages the lifecycle of perpetual connector tests with full SDK wiring.
 type PerpTestRunner struct {
 	*BaseRunnerImpl
-	conn   perp.Connector
-	wsConn perp.WebSocketConnector
+	conn                 perp.Connector
+	wsConn               perp.WebSocketConnector
+	exchangeName         connector.ExchangeName
+	wisp                 wispTypes.Wisp
+	store                perpTypes.MarketStore
+	watchlist            perpTypes.PerpWatchlist
+	batchIngestorFactory perpTypes.PerpBatchIngestorFactory
 }
 
-// NewPerpTestRunner creates a new test runner for perp connectors
+// NewPerpTestRunner creates a new test runner for perp connectors.
 func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Config) (*PerpTestRunner, error) {
 	var reg registry.ConnectorRegistry
+	var wispInstance wispTypes.Wisp
+	var store perpTypes.MarketStore
+	var watchlist perpTypes.PerpWatchlist
+	var batchFactory perpTypes.PerpBatchIngestorFactory
 
 	app := fx.New(
 		wisp.Module,
 		connectors.Module,
-		fx.Populate(&reg),
+		fx.Populate(&reg, &wispInstance, &store, &watchlist, &batchFactory),
 		fx.NopLogger,
 	)
 
@@ -40,22 +52,23 @@ func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Co
 		return nil, fmt.Errorf("failed to start fx app: %w", err)
 	}
 
-	// Get PERP connector from registry
 	conn, exists := reg.Perp(connectorName)
 	if !exists {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("perp connector %s not found in registry", connectorName)
 	}
 
-	// Initialize connector
 	if err := conn.Initialize(config); err != nil {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("failed to initialize connector: %w", err)
 	}
 
-	// Try to get WebSocket interface
-	wsConn, _ := conn.(perp.WebSocketConnector)
+	if err := reg.MarkReady(connectorName); err != nil {
+		_ = app.Stop(context.Background())
+		return nil, fmt.Errorf("failed to mark connector ready: %w", err)
+	}
 
+	wsConn, _ := conn.(perp.WebSocketConnector)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 
 	return &PerpTestRunner{
@@ -65,32 +78,24 @@ func NewPerpTestRunner(connectorName connector.ExchangeName, config connector.Co
 			cancel: cancel,
 			reg:    reg,
 		},
-		conn:   conn,
-		wsConn: wsConn,
+		conn:                 conn,
+		wsConn:               wsConn,
+		exchangeName:         connectorName,
+		wisp:                 wispInstance,
+		store:                store,
+		watchlist:            watchlist,
+		batchIngestorFactory: batchFactory,
 	}, nil
 }
 
-// GetPerpConnector returns the perp connector instance
-func (tr *PerpTestRunner) GetPerpConnector() perp.Connector {
-	return tr.conn
-}
+func (tr *PerpTestRunner) GetPerpConnector() perp.Connector { return tr.conn }
 
-// GetBaseConnector returns the base connector for shared tests
-func (tr *PerpTestRunner) GetBaseConnector() connector.Connector {
-	return tr.conn // perp.Connector embeds connector.Connector
-}
+func (tr *PerpTestRunner) GetBaseConnector() connector.Connector { return tr.conn }
 
-// GetWebSocketConnector returns the WebSocket connector instance
-func (tr *PerpTestRunner) GetWebSocketConnector() perp.WebSocketConnector {
-	return tr.wsConn
-}
+func (tr *PerpTestRunner) GetWebSocketConnector() perp.WebSocketConnector { return tr.wsConn }
 
-// HasWebSocketSupport checks if connector supports WebSocket
-func (tr *PerpTestRunner) HasWebSocketSupport() bool {
-	return tr.wsConn != nil
-}
+func (tr *PerpTestRunner) HasWebSocketSupport() bool { return tr.wsConn != nil }
 
-// GetWebSocketCapable returns the base WebSocket capability
 func (tr *PerpTestRunner) GetWebSocketCapable() connector.WebSocketCapable {
 	if tr.wsConn == nil {
 		return nil
@@ -98,9 +103,48 @@ func (tr *PerpTestRunner) GetWebSocketCapable() connector.WebSocketCapable {
 	return tr.wsConn
 }
 
-// Perp-specific helpers
+func (tr *PerpTestRunner) GetWisp() wispTypes.Wisp { return tr.wisp }
 
-// GetPerpSymbol returns the perp symbol for an asset
+func (tr *PerpTestRunner) GetPerpStore() perpTypes.MarketStore { return tr.store }
+
+func (tr *PerpTestRunner) ExchangeName() connector.ExchangeName { return tr.exchangeName }
+
+func (tr *PerpTestRunner) WatchPair(pair portfolio.Pair) {
+	tr.watchlist.RequirePair(tr.exchangeName, pair)
+}
+
+func (tr *PerpTestRunner) CollectNow() {
+	for _, ingestor := range tr.batchIngestorFactory.CreateIngestors() {
+		ingestor.CollectNow()
+	}
+}
+
+func (tr *PerpTestRunner) SDKPrice(pair portfolio.Pair) (numerical.Decimal, bool) {
+	return tr.wisp.Perp().Price(tr.exchangeName, pair)
+}
+
+func (tr *PerpTestRunner) SDKOrderBook(pair portfolio.Pair) (*connector.OrderBook, bool) {
+	return tr.wisp.Perp().OrderBook(tr.exchangeName, pair)
+}
+
+func (tr *PerpTestRunner) SDKKlines(pair portfolio.Pair, interval string, limit int) []connector.Kline {
+	return tr.wisp.Perp().Klines(tr.exchangeName, pair, interval, limit)
+}
+
+func (tr *PerpTestRunner) StorePrice(pair portfolio.Pair) *connector.Price {
+	return tr.store.GetPairPrice(pair, tr.exchangeName)
+}
+
+func (tr *PerpTestRunner) StoreOrderBook(pair portfolio.Pair) *connector.OrderBook {
+	return tr.store.GetOrderBook(pair, tr.exchangeName)
+}
+
+func (tr *PerpTestRunner) StoreKlines(pair portfolio.Pair, interval string, limit int) []connector.Kline {
+	return tr.store.GetKlines(pair, tr.exchangeName, interval, limit)
+}
+
 func (tr *PerpTestRunner) GetPerpSymbol(asset portfolio.Pair) string {
 	return tr.conn.GetPerpSymbol(asset)
 }
+
+var _ PairMarketTestRunner = (*PerpTestRunner)(nil)

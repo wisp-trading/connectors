@@ -8,9 +8,10 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
-	deribitconfig "github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
 	gatespot "github.com/wisp-trading/connectors/pkg/connectors/gate/spot"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
+	uniswapv3 "github.com/wisp-trading/connectors/pkg/connectors/onchain/uniswap_v3"
+	deribitconfig "github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
 	polymarketconfig "github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket/config"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
@@ -217,4 +218,60 @@ func getDeribitOptionsConfig() *deribitconfig.Config {
 		UseTestnet:      useTestnet,
 		DefaultSlippage: 0.001, // 0.1% default slippage
 	}
+}
+
+// ========================================
+// ONCHAIN (UNISWAP V3) CONNECTOR CONFIGURATION
+// ========================================
+const (
+	testOnchainConnectorName = types.UniswapV3
+)
+
+// GetTestOnchainConnectorName returns the onchain connector name for tests.
+func GetTestOnchainConnectorName() connector.ExchangeName {
+	return testOnchainConnectorName
+}
+
+// OnchainConfigured reports whether integration env for UniV3 is present.
+func OnchainConfigured() bool {
+	return os.Getenv("UNISWAP_V3_RPC_URL") != "" && os.Getenv("UNISWAP_V3_CHAIN_ID") != ""
+}
+
+// GetOnchainConnectorConfig returns UniV3 config from environment (dry_run by default).
+func GetOnchainConnectorConfig() connector.Config {
+	return getUniswapV3Config()
+}
+
+func getUniswapV3Config() *uniswapv3.Config {
+	chainID, _ := strconv.ParseUint(os.Getenv("UNISWAP_V3_CHAIN_ID"), 10, 64)
+	dryRun := true
+	if v := os.Getenv("UNISWAP_V3_DRY_RUN"); v != "" {
+		dryRun, _ = strconv.ParseBool(v)
+	}
+	// Empty private key forces dry_run inside Validate.
+	return &uniswapv3.Config{
+		RPCURL:          os.Getenv("UNISWAP_V3_RPC_URL"),
+		PrivateKey:      os.Getenv("UNISWAP_V3_PRIVATE_KEY"),
+		AccountAddress:  os.Getenv("UNISWAP_V3_ACCOUNT_ADDRESS"),
+		ChainID:         chainID,
+		SwapRouter:      os.Getenv("UNISWAP_V3_SWAP_ROUTER"),
+		Quoter:          os.Getenv("UNISWAP_V3_QUOTER"),
+		WETH:            os.Getenv("UNISWAP_V3_WETH"),
+		DefaultSlippage: 0.05,
+		DryRun:          dryRun,
+		Network:         os.Getenv("UNISWAP_V3_NETWORK"),
+	}
+}
+
+// GetOnchainBaseToken returns base token address for e2e (optional).
+func GetOnchainBaseToken() string {
+	return os.Getenv("UNISWAP_V3_BASE_TOKEN")
+}
+
+// GetOnchainBaseSymbol returns base symbol for e2e (default TEST).
+func GetOnchainBaseSymbol() string {
+	if s := os.Getenv("UNISWAP_V3_BASE_SYMBOL"); s != "" {
+		return s
+	}
+	return "TEST"
 }

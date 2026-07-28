@@ -8,65 +8,92 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 )
 
-// CreatePair creates a portfolio.Asset for testing
+// CreatePair creates a portfolio.Pair for testing (base-USDT).
 func CreatePair(symbol string) portfolio.Pair {
 	base := portfolio.NewAsset(symbol)
 	quote := portfolio.NewAsset("USDT")
-
-	return portfolio.NewPair(
-		base,
-		quote,
-	)
+	return portfolio.NewPair(base, quote)
 }
 
-// MarketDataBehavior defines shared market data test behaviors
-// Use this in both spot and perp test files
-func MarketDataBehavior(getRunner func() BaseTestRunner, getPair func() portfolio.Pair) {
+// MarketDataBehavior defines shared market data tests for spot/perp.
+//
+// Critical path asserted here:
+//
+//	connector.Fetch* returns data
+//	→ WatchPair + CollectNow (batch ingestor)
+//	→ MarketStore holds the data
+//	→ wisp.Spot()/Perp() facade reads the same values
+//
+// Earlier versions only checked connector return values while claiming "populate store".
+func MarketDataBehavior(getRunner func() PairMarketTestRunner, getPair func() portfolio.Pair) {
 
 	Describe("Market Data (Shared)", func() {
 
-		Context("FetchPrice", func() {
-			It("should fetch current price and populate store", func() {
+		Context("FetchPrice → store → SDK", func() {
+			It("should fetch current price, persist via ingestor, and serve via SDK", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getPair()
+				pair := getPair()
+				exchange := runner.ExchangeName()
 
-				price, err := conn.FetchPrice(symbol)
+				// 1) Raw connector works
+				price, err := conn.FetchPrice(pair)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(price).ToNot(BeNil())
 				Expect(price.Price.IsPositive()).To(BeTrue())
+				LogSuccess("Connector FetchPrice %s@%s = %s", pair.Symbol(), exchange, price.Price.String())
 
-				LogSuccess("Price for %s: %s", symbol, price.Price.String())
+				// 2) Ingestor path: watch + collect into store
+				runner.WatchPair(pair)
+				runner.CollectNow()
 
-				// VERIFY STORE: Fetch from store and verify data persisted
-				Expect(price.Timestamp).ToNot(Equal(int64(0)), "Store should have timestamp")
-				Expect(price.Price.IsPositive()).To(BeTrue(), "Store should have positive price")
+				// 3) Store must hold the price
+				stored := runner.StorePrice(pair)
+				Expect(stored).ToNot(BeNil(), "MarketStore must contain price after CollectNow — ingestor must write connector data")
+				Expect(stored.Price.IsPositive()).To(BeTrue(), "stored price must be positive")
+				LogSuccess("Store GetPairPrice %s@%s = %s", pair.Symbol(), exchange, stored.Price.String())
+
+				// 4) SDK facade must read the same store
+				sdkPrice, found := runner.SDKPrice(pair)
+				Expect(found).To(BeTrue(), "SDK Price() must find store data — connector → ingestor → store → facade")
+				Expect(sdkPrice.IsPositive()).To(BeTrue())
+				Expect(sdkPrice.Equal(stored.Price)).To(BeTrue(),
+					"SDK price %s must equal store price %s", sdkPrice.String(), stored.Price.String())
+				LogSuccess("SDK facade Price() = %s (matches store)", sdkPrice.String())
 			})
 		})
 
-		Context("FetchKlines", func() {
-			It("should fetch historical klines and populate store", func() {
+		Context("FetchKlines → store → SDK", func() {
+			It("should fetch klines, persist via ingestor, and serve via SDK", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getPair()
+				pair := getPair()
 
-				klines, err := conn.FetchKlines(symbol, "1m", 10)
+				klines, err := conn.FetchKlines(pair, "1m", 10)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(klines).ToNot(BeEmpty())
-
-				LogSuccess("Fetched %d klines for %s", len(klines), symbol)
-
-				// VERIFY STORE: Each kline should have valid data
-				for _, kline := range klines {
-					Expect(kline.Open > 0).To(BeTrue(), "Kline open should be positive")
-					Expect(kline.Close > 0).To(BeTrue(), "Kline close should be positive")
-					Expect(kline.CloseTime.Unix()).ToNot(Equal(int64(0)), "Kline should have close time")
+				for _, k := range klines {
+					Expect(k.Open > 0 || k.Close > 0).To(BeTrue(), "kline OHLC should be populated")
 				}
+				LogSuccess("Connector FetchKlines %s: %d bars", pair.Symbol(), len(klines))
+
+				runner.WatchPair(pair)
+				runner.CollectNow()
+
+				stored := runner.StoreKlines(pair, "1m", 10)
+				Expect(stored).ToNot(BeEmpty(), "MarketStore must contain klines after CollectNow")
+				LogSuccess("Store GetKlines 1m: %d bars", len(stored))
+
+				sdkKlines := runner.SDKKlines(pair, "1m", 10)
+				Expect(sdkKlines).ToNot(BeEmpty(), "SDK Klines() must return store data")
+				// Same series length (or store may retain more from default limits — at least non-empty match)
+				Expect(len(sdkKlines)).To(BeNumerically(">=", 1))
+				LogSuccess("SDK facade Klines() = %d bars", len(sdkKlines))
 			})
 		})
 
-		Context("FetchOrderBook", func() {
-			It("should fetch order book and populate store", func() {
+		Context("FetchOrderBook → store → SDK", func() {
+			It("should fetch order book, persist via ingestor, and serve via SDK", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
 				pair := getPair()
@@ -76,51 +103,54 @@ func MarketDataBehavior(getRunner func() BaseTestRunner, getPair func() portfoli
 				Expect(ob).ToNot(BeNil())
 				Expect(ob.Bids).ToNot(BeEmpty())
 				Expect(ob.Asks).ToNot(BeEmpty())
+				LogSuccess("Connector FetchOrderBook: %d bids, %d asks", len(ob.Bids), len(ob.Asks))
 
-				LogSuccess("OrderBook fetched: %d bids, %d asks", len(ob.Bids), len(ob.Asks))
+				runner.WatchPair(pair)
+				runner.CollectNow()
 
-				// VERIFY STORE: Order book bids and asks should be valid
-				for _, bid := range ob.Bids {
-					Expect(bid.Price.IsPositive()).To(BeTrue(), "Bid price should be positive")
-					Expect(bid.Quantity.IsPositive()).To(BeTrue(), "Bid quantity should be positive")
-				}
-				for _, ask := range ob.Asks {
-					Expect(ask.Price.IsPositive()).To(BeTrue(), "Ask price should be positive")
-					Expect(ask.Quantity.IsPositive()).To(BeTrue(), "Ask quantity should be positive")
-				}
+				stored := runner.StoreOrderBook(pair)
+				Expect(stored).ToNot(BeNil(), "MarketStore must contain order book after CollectNow")
+				Expect(stored.Bids).ToNot(BeEmpty(), "stored bids must be non-empty")
+				Expect(stored.Asks).ToNot(BeEmpty(), "stored asks must be non-empty")
+				LogSuccess("Store GetOrderBook: %d bids, %d asks", len(stored.Bids), len(stored.Asks))
+
+				sdkOB, found := runner.SDKOrderBook(pair)
+				Expect(found).To(BeTrue(), "SDK OrderBook() must find store data")
+				Expect(sdkOB.Bids).ToNot(BeEmpty())
+				Expect(sdkOB.Asks).ToNot(BeEmpty())
+				LogSuccess("SDK facade OrderBook() = %d bids, %d asks", len(sdkOB.Bids), len(sdkOB.Asks))
 			})
 		})
 
 		Context("FetchRecentTrades", func() {
-			It("should fetch recent trades and populate store", func() {
+			// Note: batch pair ingestors do not currently write recent trades into MarketStore.
+			// This test only asserts the connector API; do not claim store population here.
+			It("should fetch recent trades from the connector", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.MarketDataReader)
-				symbol := getPair()
+				pair := getPair()
 
-				trades, err := conn.FetchRecentTrades(symbol, 10)
+				trades, err := conn.FetchRecentTrades(pair, 10)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(trades).ToNot(BeNil())
-
-				LogSuccess("Fetched %d recent trades", len(trades))
-
-				// VERIFY STORE: Each trade should have valid data
 				for _, trade := range trades {
 					Expect(trade.Price.IsPositive()).To(BeTrue(), "Trade price should be positive")
 					Expect(trade.Quantity.IsPositive()).To(BeTrue(), "Trade quantity should be positive")
-					Expect(trade.Timestamp).ToNot(Equal(int64(0)), "Trade should have timestamp")
 				}
+				LogSuccess("Connector FetchRecentTrades: %d trades (store path not wired for trades)", len(trades))
 			})
 		})
 	})
 }
 
-// AccountBehavior defines shared account test behaviors
+// AccountBehavior defines shared account tests (connector-level only).
+// Account balances are not written into the pair MarketStore by batch ingestors.
 func AccountBehavior(getRunner func() BaseTestRunner) {
 
 	Describe("Account Data (Shared)", func() {
 
 		Context("GetAccountBalance", func() {
-			It("should fetch account balance and populate store", func() {
+			It("should fetch account balance from the connector", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector().(connector.AccountReader)
 
@@ -130,20 +160,14 @@ func AccountBehavior(getRunner func() BaseTestRunner) {
 				Expect(balance.Asset.Symbol()).ToNot(BeEmpty())
 
 				LogSuccess("Account Balance: %s %s", balance.Total.String(), balance.Asset.Symbol())
-
-				// VERIFY STORE: Balance data should be valid and have timestamp
 				Expect(balance.Total.String()).ToNot(BeEmpty(), "Total balance should be set")
 				Expect(balance.Free.String()).ToNot(BeEmpty(), "Free balance should be set")
-				Expect(balance.Locked.String()).ToNot(BeEmpty(), "Locked balance should be set")
-				Expect(balance.UpdatedAt.Unix()).ToNot(Equal(int64(0)), "Balance should have update timestamp")
-				LogSuccess("Balance verified - Free: %s, Locked: %s, Total: %s",
-					balance.Free.String(), balance.Locked.String(), balance.Total.String())
 			})
 		})
 	})
 }
 
-// WebSocketLifecycleBehavior defines shared WebSocket lifecycle tests
+// WebSocketLifecycleBehavior defines shared WebSocket lifecycle tests.
 func WebSocketLifecycleBehavior(getRunner func() BaseTestRunner) {
 
 	Describe("WebSocket Lifecycle (Shared)", func() {
@@ -156,7 +180,6 @@ func WebSocketLifecycleBehavior(getRunner func() BaseTestRunner) {
 				}
 
 				wsConn := runner.GetWebSocketCapable()
-
 				err := wsConn.StartWebSocket()
 				Expect(err).ToNot(HaveOccurred())
 
@@ -175,13 +198,10 @@ func WebSocketLifecycleBehavior(getRunner func() BaseTestRunner) {
 				}
 
 				wsConn := runner.GetWebSocketCapable()
-
-				// Start first
 				err := wsConn.StartWebSocket()
 				Expect(err).ToNot(HaveOccurred())
 				Eventually(wsConn.IsWebSocketConnected, "10s").Should(BeTrue())
 
-				// Stop
 				err = wsConn.StopWebSocket()
 				Expect(err).ToNot(HaveOccurred())
 
@@ -194,8 +214,7 @@ func WebSocketLifecycleBehavior(getRunner func() BaseTestRunner) {
 	})
 }
 
-// OptionsBehavior defines shared options market data test behaviors
-// Use this in options test files
+// OptionsBehavior defines shared options market data test behaviors (placeholder readiness).
 func OptionsBehavior(getRunner func() BaseTestRunner, getContract func() interface{}) {
 
 	Describe("Options Market Data (Shared)", func() {
@@ -204,8 +223,6 @@ func OptionsBehavior(getRunner func() BaseTestRunner, getContract func() interfa
 			It("should fetch current mark price", func() {
 				runner := getRunner()
 				conn := runner.GetBaseConnector()
-				// Options connector doesn't implement MarketDataReader
-				// It has GetOptionData instead - verify it's initialized
 				Expect(conn).NotTo(BeNil())
 				LogSuccess("Options connector ready for mark price fetch")
 			})

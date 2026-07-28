@@ -8,27 +8,40 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/wisp-trading/connectors/pkg/connectors"
+	spotTypes "github.com/wisp-trading/sdk/pkg/markets/spot/types"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/connector/spot"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/registry"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
+	wispTypes "github.com/wisp-trading/sdk/pkg/types/wisp"
 	"github.com/wisp-trading/sdk/wisp"
 )
 
-// SpotTestRunner manages the lifecycle of spot connector tests
+// SpotTestRunner manages the lifecycle of spot connector tests with full SDK wiring.
 type SpotTestRunner struct {
 	*BaseRunnerImpl
-	conn   spot.Connector
-	wsConn spot.WebSocketConnector
+	conn                 spot.Connector
+	wsConn               spot.WebSocketConnector
+	exchangeName         connector.ExchangeName
+	wisp                 wispTypes.Wisp
+	store                spotTypes.MarketStore
+	watchlist            spotTypes.SpotWatchlist
+	batchIngestorFactory spotTypes.SpotBatchIngestorFactory
 }
 
-// NewSpotTestRunner creates a new test runner for spot connectors
+// NewSpotTestRunner creates a new test runner for spot connectors.
 func NewSpotTestRunner(connectorName connector.ExchangeName, config connector.Config) (*SpotTestRunner, error) {
 	var reg registry.ConnectorRegistry
+	var wispInstance wispTypes.Wisp
+	var store spotTypes.MarketStore
+	var watchlist spotTypes.SpotWatchlist
+	var batchFactory spotTypes.SpotBatchIngestorFactory
 
 	app := fx.New(
 		wisp.Module,
 		connectors.Module,
-		fx.Populate(&reg),
+		fx.Populate(&reg, &wispInstance, &store, &watchlist, &batchFactory),
 		fx.NopLogger,
 	)
 
@@ -39,22 +52,24 @@ func NewSpotTestRunner(connectorName connector.ExchangeName, config connector.Co
 		return nil, fmt.Errorf("failed to start fx app: %w", err)
 	}
 
-	// Get SPOT connector from registry
 	conn, exists := reg.Spot(connectorName)
 	if !exists {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("spot connector %s not found in registry", connectorName)
 	}
 
-	// Initialize connector
 	if err := conn.Initialize(config); err != nil {
 		_ = app.Stop(context.Background())
 		return nil, fmt.Errorf("failed to initialize connector: %w", err)
 	}
 
-	// Try to get WebSocket interface
-	wsConn, _ := conn.(spot.WebSocketConnector)
+	// ReadyOnly filters require MarkReady — without this CreateIngestors returns empty.
+	if err := reg.MarkReady(connectorName); err != nil {
+		_ = app.Stop(context.Background())
+		return nil, fmt.Errorf("failed to mark connector ready: %w", err)
+	}
 
+	wsConn, _ := conn.(spot.WebSocketConnector)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 
 	return &SpotTestRunner{
@@ -64,35 +79,78 @@ func NewSpotTestRunner(connectorName connector.ExchangeName, config connector.Co
 			cancel: cancel,
 			reg:    reg,
 		},
-		conn:   conn,
-		wsConn: wsConn,
+		conn:                 conn,
+		wsConn:               wsConn,
+		exchangeName:         connectorName,
+		wisp:                 wispInstance,
+		store:                store,
+		watchlist:            watchlist,
+		batchIngestorFactory: batchFactory,
 	}, nil
 }
 
-// GetSpotConnector returns the spot connector instance
-func (tr *SpotTestRunner) GetSpotConnector() spot.Connector {
-	return tr.conn
-}
+func (tr *SpotTestRunner) GetSpotConnector() spot.Connector { return tr.conn }
 
-// GetBaseConnector returns the base connector for shared tests
-func (tr *SpotTestRunner) GetBaseConnector() connector.Connector {
-	return tr.conn // spot.Connector embeds connector.Connector
-}
+func (tr *SpotTestRunner) GetBaseConnector() connector.Connector { return tr.conn }
 
-// GetWebSocketConnector returns the WebSocket connector instance
-func (tr *SpotTestRunner) GetWebSocketConnector() spot.WebSocketConnector {
-	return tr.wsConn
-}
+func (tr *SpotTestRunner) GetWebSocketConnector() spot.WebSocketConnector { return tr.wsConn }
 
-// HasWebSocketSupport checks if connector supports WebSocket
-func (tr *SpotTestRunner) HasWebSocketSupport() bool {
-	return tr.wsConn != nil
-}
+func (tr *SpotTestRunner) HasWebSocketSupport() bool { return tr.wsConn != nil }
 
-// GetWebSocketCapable returns the base WebSocket capability
 func (tr *SpotTestRunner) GetWebSocketCapable() connector.WebSocketCapable {
 	if tr.wsConn == nil {
 		return nil
 	}
 	return tr.wsConn
 }
+
+func (tr *SpotTestRunner) GetWisp() wispTypes.Wisp { return tr.wisp }
+
+func (tr *SpotTestRunner) GetSpotStore() spotTypes.MarketStore { return tr.store }
+
+func (tr *SpotTestRunner) ExchangeName() connector.ExchangeName { return tr.exchangeName }
+
+// WatchPair registers a pair so batch ingestors will collect it.
+func (tr *SpotTestRunner) WatchPair(pair portfolio.Pair) {
+	tr.watchlist.RequirePair(tr.exchangeName, pair)
+}
+
+// CollectNow runs connector → batch ingestor → store for watched pairs.
+func (tr *SpotTestRunner) CollectNow() {
+	for _, ingestor := range tr.batchIngestorFactory.CreateIngestors() {
+		ingestor.CollectNow()
+	}
+}
+
+// SDKPrice reads price via the strategy-facing facade (store-backed).
+func (tr *SpotTestRunner) SDKPrice(pair portfolio.Pair) (numerical.Decimal, bool) {
+	return tr.wisp.Spot().Price(tr.exchangeName, pair)
+}
+
+// SDKOrderBook reads order book via the strategy-facing facade.
+func (tr *SpotTestRunner) SDKOrderBook(pair portfolio.Pair) (*connector.OrderBook, bool) {
+	return tr.wisp.Spot().OrderBook(tr.exchangeName, pair)
+}
+
+// SDKKlines reads klines via the strategy-facing facade.
+func (tr *SpotTestRunner) SDKKlines(pair portfolio.Pair, interval string, limit int) []connector.Kline {
+	return tr.wisp.Spot().Klines(tr.exchangeName, pair, interval, limit)
+}
+
+// StorePrice returns the raw store entry (bypasses facade) for dual assertion.
+func (tr *SpotTestRunner) StorePrice(pair portfolio.Pair) *connector.Price {
+	return tr.store.GetPairPrice(pair, tr.exchangeName)
+}
+
+// StoreOrderBook returns the raw store order book.
+func (tr *SpotTestRunner) StoreOrderBook(pair portfolio.Pair) *connector.OrderBook {
+	return tr.store.GetOrderBook(pair, tr.exchangeName)
+}
+
+// StoreKlines returns raw store klines.
+func (tr *SpotTestRunner) StoreKlines(pair portfolio.Pair, interval string, limit int) []connector.Kline {
+	return tr.store.GetKlines(pair, tr.exchangeName, interval, limit)
+}
+
+// Ensure SpotTestRunner satisfies PairMarketTestRunner.
+var _ PairMarketTestRunner = (*SpotTestRunner)(nil)

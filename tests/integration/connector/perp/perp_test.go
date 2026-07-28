@@ -26,9 +26,9 @@ var _ = Describe("Perp Connector Tests", func() {
 		}
 	})
 
-	// Include shared behaviors
+	// Include shared behaviors (store-aware path: connector → ingestor → store → SDK)
 	connector_test.MarketDataBehavior(
-		func() connector_test.BaseTestRunner { return runner },
+		func() connector_test.PairMarketTestRunner { return runner },
 		func() portfolio.Pair { return connector_test.CreatePair("ETH") },
 	)
 
