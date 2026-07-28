@@ -11,6 +11,7 @@ const (
 	GateSpot        connector.ExchangeName = "gate_spot"
 	Polymarket      connector.ExchangeName = "polymarket"
 	DeribitOptions  connector.ExchangeName = "deribit_options"
+	UniswapV3       connector.ExchangeName = "uniswap_v3"
 )
 
 var AllConnectors = []connector.ExchangeName{
@@ -20,4 +21,5 @@ var AllConnectors = []connector.ExchangeName{
 	GateSpot,
 	Polymarket,
 	DeribitOptions,
+	UniswapV3,
 }

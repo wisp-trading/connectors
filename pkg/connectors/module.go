@@ -4,6 +4,7 @@ import (
 	"github.com/wisp-trading/connectors/pkg/connectors/bybit/perp"
 	"github.com/wisp-trading/connectors/pkg/connectors/gate"
 	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
+	"github.com/wisp-trading/connectors/pkg/connectors/onchain/uniswap_v3"
 	"github.com/wisp-trading/connectors/pkg/connectors/options/deribit"
 	"github.com/wisp-trading/connectors/pkg/connectors/paradex"
 	"github.com/wisp-trading/connectors/pkg/connectors/prediction_markets/polymarket"
@@ -21,4 +22,5 @@ var Module = fx.Options(
 	polymarket.Module,
 	deribit.Module,
 	pyth.Module,
+	uniswap_v3.Module,
 )

@@ -58,3 +58,4 @@ orderbooks
 
 # Foreign project junk — never commit
 DEPI*
+go.work
